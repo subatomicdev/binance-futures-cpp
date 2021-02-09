@@ -5,6 +5,10 @@ The project uses Microsoft's cpprestsdk for asynchronous websocket functionality
 
 These dependencies are handled by vcpkg, a cross platform package manager.
 
+**Note**
+1. This expects a Redis server on 127.22.253.65  :  Change in bincancews.cpp 
+2. This expects the Binance exchange websocket URI at wss://stream.binance.com:9443  :  Change in BinanceExchange.hpp
+
 ## Build
 
 ### Windows
