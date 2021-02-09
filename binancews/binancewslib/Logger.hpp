@@ -7,7 +7,7 @@
 #include <Poco/DateTimeFormatter.h>
 #include <Poco/LocalDateTime.h>
 
-#include "pglibCommon.hpp"
+#include "binancewsCommon.hpp"
 
 namespace binancews
 {

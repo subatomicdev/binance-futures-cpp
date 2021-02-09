@@ -7,24 +7,12 @@
 #include <cpprest/ws_client.h>
 #include <cpprest/json.h>
 
-#include <BinanceExchange.h>
+#include <BinanceExchange.hpp>
 #include <Logger.hpp>
 #include <Redis.hpp>
 
+
 using namespace std::chrono_literals;
-
-/*
-template <typename T>
-std::string toString(const T a_value, const int n = 6)
-{
-    std::ostringstream out;
-    out.precision(n);
-    out << std::fixed << a_value;
-    return out.str();
-}
-*/
-
-
 using namespace binancews;
 
 
@@ -35,7 +23,6 @@ int main(int argc, char** argv)
         // create and connect to Redis
         auto redis = std::make_shared<Redis>();
         redis->init("172.22.253.65", 7379);
-
 
 
         auto onAllSymbolsDataFunc = [redis] (std::map<std::string, std::string> data)
