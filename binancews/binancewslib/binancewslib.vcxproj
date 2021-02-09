@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BinanceExchange.h" />
+    <ClInclude Include="BinanceExchange.hpp" />
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="pglibCommon.hpp" />
     <ClInclude Include="Redis.hpp" />

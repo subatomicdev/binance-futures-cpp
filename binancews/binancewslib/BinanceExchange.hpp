@@ -65,7 +65,7 @@ namespace binancews
     private:
         struct WebSocketSession
         {
-            WebSocketSession() : connected(false), id(0)/*, cancelToken(cancelTokenSource.get_token())*/
+            WebSocketSession() : connected(false), id(0)
             {
                  
             }
