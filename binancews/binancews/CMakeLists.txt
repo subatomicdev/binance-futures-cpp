@@ -10,6 +10,7 @@ include_directories("../../vcpkg_linux/packages/boost-winapi_x64-linux/include")
 include_directories("../../vcpkg_linux/packages/boost-predef_x64-linux/include")
 include_directories("../../vcpkg_linux/packages/boost-date-time_x64-linux/include")
 include_directories("../../vcpkg_linux/packages/boost-throw-exception_x64-linux/include")
+include_directories("../../vcpkg_linux/packages/boost-assert_x64-linux/include")
 include_directories("../../vcpkg_linux/packages/openssl_x64-windows-static/include")
 include_directories("../binancewslib")
 
