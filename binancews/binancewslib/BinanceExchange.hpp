@@ -273,13 +273,19 @@ namespace binancews
 
                 }, session->cancelTokenSource.get_token()).wait();
 
-
+                
                 // we have the message as a string, pass to the json parser and extract fields if no error
                 if (web::json::value jsonVal = web::json::value::parse(strMsg); jsonVal.size())
                 {
-                    if (jsonVal.has_string_field(L"code") && jsonVal.has_string_field(L"msg"))
+                    const utility::string_t CodeField = utility::conversions::to_string_t("Code");
+                    const utility::string_t MsgField = utility::conversions::to_string_t("msg");
+                    const utility::string_t SymbolField = utility::conversions::to_string_t("s");
+                    const utility::string_t CloseField = utility::conversions::to_string_t("c");
+
+
+                    if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
                     {
-                        std::wcout << "\nError: " << jsonVal.at(L"code").as_string() << " : " << jsonVal.at(L"msg").as_string();
+                        std::wcout << "\nError: " << jsonVal.at(CodeField).as_string() << " : " << jsonVal.at(MsgField).as_string();
                     }
                     else
                     {
@@ -289,10 +295,10 @@ namespace binancews
 
                             for (const auto& v : arr)
                             {
-                                if (v.has_string_field(L"s") && v.has_string_field(L"c"))
+                                if (v.has_string_field(SymbolField) && v.has_string_field(CloseField))
                                 {
-                                    auto& symbol = v.at(L"s").as_string();
-                                    auto& price = v.at(L"c").as_string();
+                                    auto& symbol = v.at(SymbolField).as_string();
+                                    auto& price = v.at(CloseField).as_string();
 
                                     values[std::string{ symbol.begin(), symbol.end() }] = std::string{ price.begin(), price.end() };
                                 }
