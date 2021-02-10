@@ -7,6 +7,6 @@ project ("binancews")
 
 # Include sub-projects.
 add_subdirectory("binancews")
-add_subdirectory("binancewslib)
+add_subdirectory("binancewslib")
 
 
