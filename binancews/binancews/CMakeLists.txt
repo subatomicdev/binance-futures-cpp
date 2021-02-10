@@ -9,8 +9,9 @@ include_directories("../../vcpkg_linux/packages/boost-system_x64-linux/include")
 include_directories("../../vcpkg_linux/packages/boost-winapi_x64-linux/include")
 include_directories("../../vcpkg_linux/packages/boost-predef_x64-linux/include")
 include_directories("../../vcpkg_linux/packages/boost-date-time_x64-linux/include")
+include_directories("../../vcpkg_linux/packages/boost-throw-exception_x64-linux/include")
 include_directories("../../vcpkg_linux/packages/openssl_x64-windows-static/include")
-include_directories("../../binancewslib")
+include_directories("../binancewslib")
 
 
 LINK_DIRECTORIES("../../vcpkg_linux/packages/poco_x64-linux/lib")
@@ -28,3 +29,4 @@ add_executable (binancews "binancews.cpp")
 
 target_link_libraries(binancews -lPocoFoundation -lpthread -lredis++ -lcrypto -lssl -lboost_system -lboost_date_time -lcpprest)
 target_link_libraries(binancews binancewslib)
+
