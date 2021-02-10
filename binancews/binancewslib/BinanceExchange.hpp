@@ -126,6 +126,11 @@ namespace binancews
 
         virtual void disconnect() override
         {
+            for (auto& session : m_idToSession)
+            {
+                disconnect(session.first);
+            }
+            /*
             try
             {
                 // set cancel token
@@ -158,6 +163,7 @@ namespace binancews
 
             m_sessions.clear();
             m_idToSession.clear();
+            */
 
         }
 
