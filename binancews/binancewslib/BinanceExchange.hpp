@@ -285,7 +285,12 @@ namespace binancews
 
                     if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
                     {
+#ifdef WIN32
                         std::wcout << "\nError: " << jsonVal.at(CodeField).as_string() << " : " << jsonVal.at(MsgField).as_string();
+#else
+                        std::cout << "\nError: " << jsonVal.at(CodeField).as_string() << " : " << jsonVal.at(MsgField).as_string();
+#endif
+                        
                     }
                     else
                     {
