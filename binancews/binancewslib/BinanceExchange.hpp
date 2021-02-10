@@ -84,7 +84,7 @@ namespace binancews
             std::atomic_bool connected;
 
             ws::client::websocket_client client;
-            Concurrency::task<void> receiveTask;
+            pplx::task<void> receiveTask;
             
             pplx::cancellation_token_source cancelTokenSource;
 
