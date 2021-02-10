@@ -38,13 +38,13 @@ int main(int argc, char** argv)
             for (const auto& sym : data)
             {
                 web::json::value exchangeValue ;
-                exchangeValue[L"exchange"] = web::json::value{ L"binance" };
+                exchangeValue[(utility::string_t)L"exchange"] = web::json::value{ L"binance" };
 
                 web::json::value instrumentValue;
-                instrumentValue[L"instrument"] = web::json::value{ std::wstring{sym.first.cbegin(), sym.first.cend()} };
+                instrumentValue[(utility::string_t)L"instrument"] = web::json::value{ std::wstring{sym.first.cbegin(), sym.first.cend()} };
 
                 web::json::value priceValue;
-                priceValue[L"price"] = web::json::value{ std::wstring{sym.second.cbegin(), sym.second.cend()} };
+                priceValue[(utility::string_t)L"price"] = web::json::value{ std::wstring{sym.second.cbegin(), sym.second.cend()} };
 
                 web::json::value val;
                 val[0] = exchangeValue;
