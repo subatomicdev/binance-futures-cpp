@@ -15,6 +15,7 @@ include_directories("../../vcpkg_linux/packages/openssl_x64-windows-static/inclu
 add_library(binancewslib STATIC "BinanceExchange.hpp" "binancewsCommon.hpp" "Logger.hpp" "Redis.hpp")
 
 SET_TARGET_PROPERTIES(binancewslib PROPERTIES LINKER_LANGUAGE CXX)
+SET_TARGET_PROPERTIES(binancewslib PROPERTIES CXX_STANDARD 17)
 
 #add_library(binancewslib STATIC)
 #target_sources(binancewslib PUBLIC "BinanceExchange.hpp" binancewsCommon.hpp Logger.hpp Redis.hpp)

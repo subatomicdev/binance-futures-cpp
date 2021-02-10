@@ -29,14 +29,16 @@ LINK_DIRECTORIES("../../vcpkg_linux/packages/cpprestsdk_x64-linux/lib")
 LINK_DIRECTORIES("../../vcpkg_linux/packages/redis-plus-plus_x64-linux/lib")
 LINK_DIRECTORIES("../../vcpkg_linux/packages/boost-system_x64-linux/lib")
 LINK_DIRECTORIES("../../vcpkg_linux/packages/boost-date-time_x64-linux/lib")
-LINK_DIRECTORIES("../../vcpkg_linux/packages/openssl_x64-windows-static/lib")
+LINK_DIRECTORIES("../../vcpkg_linux/packages/openssl_x64-linux/lib")
+LINK_DIRECTORIES("../../vcpkg_linux/packages/hiredis_x64-linux/lib")
+LINK_DIRECTORIES("../../vcpkg_linux/packages/zlib_x64-linux/lib")
 
 
 # Add source to this project's executable.
 add_executable (binancews "binancews.cpp")
 
-# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT")
+set_target_properties(binancews PROPERTIES CXX_STANDARD 17)
 
-target_link_libraries(binancews -lPocoFoundation -lpthread -lredis++ -lcrypto -lssl -lboost_system -lboost_date_time -lcpprest)
+target_link_libraries(binancews -lPocoFoundation -lpthread -lredis++ -lboost_system -lboost_date_time -lcpprest -lhiredis -lssl -lcrypto -lz -ldl)
 target_link_libraries(binancews binancewslib)
 
