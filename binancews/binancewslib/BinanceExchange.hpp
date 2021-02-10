@@ -201,12 +201,10 @@ namespace binancews
             auto session = std::make_shared<WebSocketSession>();
             session->uri = uri;
 
-            wchar_t wstr[512];
-            std::mbstowcs(wstr, uri.c_str(), 512);
 
             try
             {
-                web::uri wsUri(wstr);
+                web::uri wsUri (utility::conversions::to_string_t(uri));
                 session->client.connect(wsUri).then([&session]
                 {
                     session->connected = true;
