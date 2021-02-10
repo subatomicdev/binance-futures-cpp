@@ -3,7 +3,7 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-project ("binancews")
+project (binancews C CXX)
 
 # Include sub-projects.
 add_subdirectory("binancews")

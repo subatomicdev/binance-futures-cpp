@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sw\redis++\redis.h>
+#include <sw/redis++/redis.h>
 #include <functional>
 #include "Logger.hpp"
 
