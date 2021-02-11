@@ -7,7 +7,7 @@
 #include <any>
 #include <cpprest/ws_client.h>
 #include <cpprest/json.h>
-
+#include "Logger.hpp"
 
 // Binance Web Sockets
 namespace binancews
@@ -170,19 +170,24 @@ namespace binancews
 
         virtual void disconnect(const MonitorToken& mt)
         {
-            if (auto it = m_idToSession.find(mt.id); it != m_idToSession.end())
+            if (auto itIdToSession = m_idToSession.find(mt.id); itIdToSession != m_idToSession.end())
             {
-                auto session = it->second;
+                auto& session = itIdToSession->second;
 
+                logg("Calling session->cancel()");
                 session->cancel();
+
+                logg("Calling session->receiveTask.wait()");
                 session->receiveTask.wait();
 
+                logg("Calling session->client.close()");
                 session->client.close(ws::client::websocket_close_status::normal).then([&session]()
                 {
+                    logg("Calling session->client.close().then()");
                     session->connected = false;
                 }).wait();
 
-
+                logg("Calling session->client.close() complete");
                 auto storedSessionIt = std::find_if(m_sessions.cbegin(), m_sessions.cend(), [this, &mt](auto& sesh) { return sesh->id == mt.id; });
 
                 if (storedSessionIt != m_sessions.end())
@@ -190,7 +195,7 @@ namespace binancews
                     m_sessions.erase(storedSessionIt);
                 }
 
-                m_idToSession.erase(it);
+                m_idToSession.erase(itIdToSession);
 
             }
         }
