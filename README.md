@@ -5,9 +5,6 @@ The project uses Microsoft's cpprestsdk for asynchronous websocket functionality
 
 These dependencies are handled by vcpkg, a cross platform package manager.
 
-**Note**
-1. This expects a Redis server on 127.22.253.65  :  Change in bincancews.cpp 
-2. This expects the Binance exchange websocket URI at wss://stream.binance.com:9443  :  Change in BinanceExchange.hpp
 
 ## Build
 
@@ -23,4 +20,17 @@ These dependencies are handled by vcpkg, a cross platform package manager.
 
 
 ### Linux
-Coming soon
+1. Build vcpkg: open shell in vcpkg_linux and run:  bootstrap-vcpkg.sh
+2. Install dependencies: in the same prompt run:
+```
+.\vcpkg.exe install cpprestsdk[websockets]:x64-linux poco:x64-linux boost-asio:x64-linux redis-plus-plus[cxx17]:x64-linux
+```
+3. Go up a directory then into 'binancews' directory and run:   ```cmake .```
+4. Then run: ```make```
+5. The binary is in the 'binancews' sub-dir ('binancews/binancews' from the top level directory) 
+
+
+## Run
+1. To use without Redis, run with no command line args
+2. Redis IP and port are set via command line args:   ./binancews [ip] [port]  , i.e. ```./binancews 192.168.10.10 6379``` 
+3. This expects the Binance exchange websocket URI at wss://stream.binance.com:9443  :  Change in BinanceExchange.hpp
