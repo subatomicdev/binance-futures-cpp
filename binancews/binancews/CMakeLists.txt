@@ -4,7 +4,7 @@ include_directories("../../vcpkg_linux/installed/x64-linux/include")
 include_directories("../binancewslib")
 
 
-LINK_DIRECTORIES("../../vcpkg_linux/packages/x64-linux/lib")
+LINK_DIRECTORIES("../../vcpkg_linux/installed/x64-linux/lib")
 
 
 # Add source to this project's executable.
