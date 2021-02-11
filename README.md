@@ -31,5 +31,6 @@ These dependencies are handled by vcpkg, a cross platform package manager.
 
 
 ## Run
-1. Redis IP and port are set via command line args:   ./binancews [ip] [port]  , i.e. ```./binancews 192.168.10.10 6379``` 
-2. This expects the Binance exchange websocket URI at wss://stream.binance.com:9443  :  Change in BinanceExchange.hpp
+1. To use without Redis, run with no command line args
+2. Redis IP and port are set via command line args:   ./binancews [ip] [port]  , i.e. ```./binancews 192.168.10.10 6379``` 
+3. This expects the Binance exchange websocket URI at wss://stream.binance.com:9443  :  Change in BinanceExchange.hpp
