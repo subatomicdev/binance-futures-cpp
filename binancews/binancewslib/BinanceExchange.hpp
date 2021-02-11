@@ -65,14 +65,14 @@ namespace binancews
     private:
         struct WebSocketSession
         {
-            WebSocketSession() : connected(false), id(0)
+            WebSocketSession() : connected(false), id(0), cancelToken(cancelTokenSource.get_token())
             {
-                 
+                
             }
 
             WebSocketSession(WebSocketSession&& other) noexcept :   uri(std::move(uri)), client(std::move(other.client)), receiveTask(std::move(other.receiveTask)),
                                                                     cancelTokenSource(std::move(other.cancelTokenSource)), id(other.id),
-                                                                    onDataUserCallback(std::move(other.onDataUserCallback))
+                                                                    onDataUserCallback(std::move(other.onDataUserCallback)), cancelToken(std::move(other.cancelToken))
             {
                 connected.store(other.connected ? true : false);
             }
@@ -85,8 +85,6 @@ namespace binancews
 
             ws::client::websocket_client client;
             pplx::task<void> receiveTask;
-            
-            pplx::cancellation_token_source cancelTokenSource;
 
             std::function<void(std::map<string, string>)> onDataUserCallback;
 
@@ -98,8 +96,16 @@ namespace binancews
                 cancelTokenSource.cancel();
             }
 
-        private:
             
+            pplx::cancellation_token getCancelToken()
+            {
+                return cancelToken;
+            }
+            
+
+        private:
+            pplx::cancellation_token_source cancelTokenSource;
+            pplx::cancellation_token cancelToken;
         };
 
        
@@ -262,7 +268,7 @@ namespace binancews
             try
             {
                 std::string strMsg;
-                websocketInMessage.extract_string().then([=, &strMsg, cancelToken = session->cancelTokenSource.get_token()](pplx::task<std::string> str_tsk)
+                websocketInMessage.extract_string().then([=, &strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
                 {
                     try
                     {
@@ -274,7 +280,7 @@ namespace binancews
 
                     }
 
-                }, session->cancelTokenSource.get_token()).wait();
+                }, session->getCancelToken()).wait();
 
                 
                 // we have the message as a string, pass to the json parser and extract fields if no error
@@ -332,7 +338,7 @@ namespace binancews
 
             try
             {
-                auto token = session->cancelTokenSource.get_token();
+                auto token = session->getCancelToken();
 
                 session->receiveTask = pplx::create_task([session, token, this]   // capture by value so 'session' shared_ptr ref count incremented
                 {
