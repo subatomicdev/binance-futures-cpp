@@ -35,7 +35,8 @@ int main(int argc, char** argv)
         }
         else
         {
-            logg("Usage:  [RedisIP] [RedisPort]\n\ni.e:  ./binancews 192.168.10.10 6379");
+            logg("Not using Redis to do use: [RedisIP] [RedisPort] command line args, i.e.:");
+            logg("./binancews 192.168.10.10 6379");
         }
 
 
