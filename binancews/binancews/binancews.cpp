@@ -20,11 +20,33 @@ int main(int argc, char** argv)
 {
     try
     {
-        string redisIp = argc == 2 ? argv[1] : "172.20.34.246";
+        string redisIp;
+        int redisPort = 6379;
+
+        if (argc == 1)
+        {
+            redisIp = "172.20.34.246";
+            redisPort = 7379;
+        }
+        else if (argc == 3)
+        {
+            redisIp = argv[1];
+            redisPort = std::stoi(argv[2]);
+        }
+        else
+        {
+            logg("Usage:  [RedisIP] [RedisPort]\n\ni.e:  ./binancews 192.168.10.10 6379");
+        }
+
 
         // create and connect to Redis
-        auto redis = std::make_shared<Redis>();
-        redis->init(redisIp, 7379);
+        shared_ptr<Redis> redis;
+
+        if (!redisIp.empty())
+        {
+            redis = std::make_shared<Redis>();
+            redis->init(redisIp, redisPort);
+        }
 
 
         auto onAllSymbolsDataFunc = [redis] (std::map<std::string, std::string> data)
@@ -32,32 +54,41 @@ int main(int argc, char** argv)
             static string ChannelNameStart = "binance_";
             static string ChannelNameEnd = "_EXCHANGE_INSTRUMENT_PRICE_CHANNEL";
 
-            std::stringstream ss;
-            ss << "Publishing " << data.size() << " symbol updates";
-            logg(ss.str());
-
-
-            for (const auto& sym : data)
+            if (redis)
             {
-                web::json::value exchangeValue ;
-                exchangeValue[utility::conversions::to_string_t("exchange")] = web::json::value{ L"binance" };
+                std::stringstream ss;
+                ss << "Publishing " << data.size() << " symbol updates";
+                logg(ss.str());
 
-                web::json::value instrumentValue;
-                instrumentValue[utility::conversions::to_string_t("instrument")] = web::json::value{ utility::conversions::to_string_t(sym.first) };
 
-                web::json::value priceValue;
-                priceValue[utility::conversions::to_string_t("price")] = web::json::value{ utility::conversions::to_string_t(sym.second) };
+                for (const auto& sym : data)
+                {
+                    web::json::value exchangeValue;
+                    exchangeValue[utility::conversions::to_string_t("exchange")] = web::json::value{ L"binance" };
 
-                web::json::value val;
-                val[0] = exchangeValue;
-                val[1] = instrumentValue;
-                val[2] = priceValue;
+                    web::json::value instrumentValue;
+                    instrumentValue[utility::conversions::to_string_t("instrument")] = web::json::value{ utility::conversions::to_string_t(sym.first) };
 
-                auto wideString = val.serialize();
-                auto asString = std::string{ wideString.cbegin(), wideString.cend() };
+                    web::json::value priceValue;
+                    priceValue[utility::conversions::to_string_t("price")] = web::json::value{ utility::conversions::to_string_t(sym.second) };
 
-                redis->publish(ChannelNameStart + sym.first + ChannelNameEnd, asString);
+                    web::json::value val;
+                    val[0] = exchangeValue;
+                    val[1] = instrumentValue;
+                    val[2] = priceValue;
+
+                    auto wideString = val.serialize();
+                    auto asString = std::string{ wideString.cbegin(), wideString.cend() };
+
+                    redis->publish(ChannelNameStart + sym.first + ChannelNameEnd, asString);
+                }
             }
+            else
+            {
+                std::stringstream ss;
+                ss << "Received " << data.size() << " symbol updates";
+                logg(ss.str());
+            }            
         };
 
 
