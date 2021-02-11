@@ -22,7 +22,7 @@ namespace binancews
 
     class Exchange
     {
-    protected:
+    public:
         typedef size_t MonitorTokenId;
 
         struct MonitorToken
@@ -35,44 +35,17 @@ namespace binancews
             bool isValid() { return id > 0; }
         };
 
-    public:
-        virtual ~Exchange()
-        {
-
-        }
-                
-        virtual void disconnect() = 0;
-        virtual void disconnect(const MonitorToken& mt) = 0;
-
-        virtual MonitorToken monitorAllSymbols(std::function<void(std::map<string, string>)> onData) = 0;
-        virtual void cancelMonitor(const MonitorToken& mt) = 0;
-
     protected:
-        Exchange(string name) : m_name(name)
-        {
-
-        }
-
-
-    protected:
-        string m_name;
-    };
-
-
-
-    class Binance : public Exchange
-    {
-    private:
         struct WebSocketSession
         {
             WebSocketSession() : connected(false), id(0), cancelToken(cancelTokenSource.get_token())
             {
-                
+
             }
 
-            WebSocketSession(WebSocketSession&& other) noexcept :   uri(std::move(uri)), client(std::move(other.client)), receiveTask(std::move(other.receiveTask)),
-                                                                    cancelTokenSource(std::move(other.cancelTokenSource)), id(other.id),
-                                                                    onDataUserCallback(std::move(other.onDataUserCallback)), cancelToken(std::move(other.cancelToken))
+            WebSocketSession(WebSocketSession&& other) noexcept : uri(std::move(uri)), client(std::move(other.client)), receiveTask(std::move(other.receiveTask)),
+                cancelTokenSource(std::move(other.cancelTokenSource)), id(other.id),
+                onDataUserCallback(std::move(other.onDataUserCallback)), cancelToken(std::move(other.cancelToken))
             {
                 connected.store(other.connected ? true : false);
             }
@@ -96,17 +69,47 @@ namespace binancews
                 cancelTokenSource.cancel();
             }
 
-            
+
             pplx::cancellation_token getCancelToken()
             {
                 return cancelToken;
             }
-            
+
 
         private:
             pplx::cancellation_token_source cancelTokenSource;
             pplx::cancellation_token cancelToken;
         };
+  
+
+    public:
+        virtual ~Exchange()
+        {
+
+        }
+                
+        virtual void disconnect() = 0;
+        virtual map<size_t, shared_ptr<WebSocketSession>>::iterator disconnect(const MonitorToken& mt) = 0;
+
+        virtual MonitorToken monitorAllSymbols(std::function<void(std::map<string, string>)> onData) = 0;
+        virtual void cancelMonitor(const MonitorToken& mt) = 0;
+
+    protected:
+        Exchange(string name) : m_name(name)
+        {
+
+        }
+
+
+    protected:
+        string m_name;
+    };
+
+
+
+    class Binance : public Exchange
+    {
+    
 
        
 
@@ -132,9 +135,9 @@ namespace binancews
 
         virtual void disconnect() override
         {
-            for (auto& session : m_idToSession)
+            for (auto sessionIt = m_idToSession.begin() ; sessionIt != m_idToSession.end() ; )
             {
-                disconnect(session.first);
+                sessionIt  = disconnect(sessionIt->first);
             }
             /*
             try
@@ -174,26 +177,28 @@ namespace binancews
         }
 
 
-        virtual void disconnect(const MonitorToken& mt)
+        map<size_t, shared_ptr<WebSocketSession>>::iterator disconnect(const MonitorToken& mt)
         {
+            map<size_t, shared_ptr<WebSocketSession>>::iterator newIdToSessionIterator = m_idToSession.end();
+
             if (auto itIdToSession = m_idToSession.find(mt.id); itIdToSession != m_idToSession.end())
             {
                 auto& session = itIdToSession->second;
 
-                logg("Calling session->cancel()");
+                //logg("Calling session->cancel()");
                 session->cancel();
 
-                logg("Calling session->receiveTask.wait()");
+                //logg("Calling session->receiveTask.wait()");
                 session->receiveTask.wait();
 
-                logg("Calling session->client.close()");
+                //logg("Calling session->client.close()");
                 session->client.close(ws::client::websocket_close_status::normal).then([&session]()
                 {
-                    logg("Calling session->client.close().then()");
+                    //logg("Calling session->client.close().then()");
                     session->connected = false;
                 }).wait();
 
-                logg("Calling session->client.close() complete");
+                //logg("Calling session->client.close() complete");
                 auto storedSessionIt = std::find_if(m_sessions.cbegin(), m_sessions.cend(), [this, &mt](auto& sesh) { return sesh->id == mt.id; });
 
                 if (storedSessionIt != m_sessions.end())
@@ -201,9 +206,10 @@ namespace binancews
                     m_sessions.erase(storedSessionIt);
                 }
 
-                m_idToSession.erase(itIdToSession);
-
+                newIdToSessionIterator = m_idToSession.erase(itIdToSession);
             }
+
+            return newIdToSessionIterator;
         }
 
 
@@ -332,6 +338,7 @@ namespace binancews
             }
         }
 
+
         MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session)
         {
             MonitorToken monitorToken;
@@ -344,7 +351,7 @@ namespace binancews
                 {
                     while (!token.is_canceled())
                     {
-                        session->client.receive().then([=, cancelToken = token](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
+                        session->client.receive().then([=](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
                         {
                             if (!token.is_canceled())
                             {
@@ -353,7 +360,7 @@ namespace binancews
                             else
                             {
                                 pplx::cancel_current_task();
-                            }                            
+                            }
 
                         }, token).wait();
                     }
