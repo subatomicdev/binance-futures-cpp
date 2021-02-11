@@ -139,41 +139,6 @@ namespace binancews
             {
                 sessionIt  = disconnect(sessionIt->first);
             }
-            /*
-            try
-            {
-                // set cancel token
-                std::for_each(m_sessions.begin(), m_sessions.end(), [this](auto& sesh) { sesh->cancel(); });
-                // wait for each task (receiver) to end
-                std::for_each(m_sessions.begin(), m_sessions.end(), [this](auto& sesh) { sesh->receiveTask.wait(); });
-                
-                vector<Concurrency::task<void>> closeTasks;
-
-                for (auto& sesh : m_sessions)
-                {
-                    auto t = pplx::create_task([&]
-                    {
-                        sesh->client.close(ws::client::websocket_close_status::normal).then([&sesh]()
-                        {
-                            sesh->connected = false;
-                        }).wait();
-                    });
-
-                    closeTasks.emplace_back(std::move(t));                    
-                }
-
-                auto closeJoin = Concurrency::when_all(closeTasks.begin(), closeTasks.end());
-                closeJoin.wait();
-            }
-            catch (const std::exception ex)
-            {
-                std::cout << ex.what();
-            }
-
-            m_sessions.clear();
-            m_idToSession.clear();
-            */
-
         }
 
 
@@ -185,20 +150,15 @@ namespace binancews
             {
                 auto& session = itIdToSession->second;
 
-                //logg("Calling session->cancel()");
                 session->cancel();
-
-                //logg("Calling session->receiveTask.wait()");
                 session->receiveTask.wait();
 
-                //logg("Calling session->client.close()");
                 session->client.close(ws::client::websocket_close_status::normal).then([&session]()
                 {
-                    //logg("Calling session->client.close().then()");
                     session->connected = false;
                 }).wait();
 
-                //logg("Calling session->client.close() complete");
+
                 auto storedSessionIt = std::find_if(m_sessions.cbegin(), m_sessions.cend(), [this, &mt](auto& sesh) { return sesh->id == mt.id; });
 
                 if (storedSessionIt != m_sessions.end())
@@ -217,7 +177,6 @@ namespace binancews
         {
             auto session = std::make_shared<WebSocketSession>();
             session->uri = uri;
-
 
             try
             {
