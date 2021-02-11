@@ -23,12 +23,7 @@ int main(int argc, char** argv)
         string redisIp;
         int redisPort = 6379;
 
-        if (argc == 1)
-        {
-            redisIp = "172.20.34.246";
-            redisPort = 7379;
-        }
-        else if (argc == 3)
+        if (argc == 3)
         {
             redisIp = argv[1];
             redisPort = std::stoi(argv[2]);
