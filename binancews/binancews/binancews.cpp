@@ -20,9 +20,11 @@ int main(int argc, char** argv)
 {
     try
     {
+        string redisIp = argc == 2 ? argv[1] : "172.20.34.246";
+
         // create and connect to Redis
         auto redis = std::make_shared<Redis>();
-        redis->init("172.22.253.65", 7379);
+        redis->init(redisIp, 7379);
 
 
         auto onAllSymbolsDataFunc = [redis] (std::map<std::string, std::string> data)
