@@ -23,7 +23,7 @@ These dependencies are handled by vcpkg, a cross platform package manager.
 1. Build vcpkg: open shell in vcpkg_linux and run:  bootstrap-vcpkg.sh
 2. Install dependencies: in the same prompt run:
 ```
-.\vcpkg.exe install cpprestsdk[websockets]:x64-linux poco:x64-linux boost-asio:x64-linux redis-plus-plus[cxx17]:x64-linux
+./vcpkg install cpprestsdk[websockets]:x64-linux poco:x64-linux boost-asio:x64-linux redis-plus-plus[cxx17]:x64-linux
 ```
 3. Go up a directory then into 'binancews' directory and run:   ```cmake .```
 4. Then run: ```make```
