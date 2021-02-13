@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 
                 for (const auto& sym : data)
                 {
-                    redis->publish(ChannelNameStart + sym.first + ChannelNameEnd, { " {\"exchange\":\"binance\", \"instrument\":\"" + sym.first + "\", \"price\":\"" + sym.second + "\"}" });
+                    redis->publish(ChannelNameStart + sym.first + ChannelNameEnd, { "{\"exchange\":\"binance\", \"instrument\":\"" + sym.first + "\", \"price\":\"" + sym.second + "\"}" });
                 }
             }
             else
