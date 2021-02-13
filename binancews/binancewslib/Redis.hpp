@@ -51,11 +51,6 @@ namespace binancews
             m_redis->publish(channel, msg); // TODO return value useful?
         }
 
-        void publish(const string& channel, string&& msg)
-        {
-            m_redis->publish(channel, msg); // TODO return value useful?
-        }
-
     private:
         shared_ptr<sw::redis::Redis> m_redis;
     };

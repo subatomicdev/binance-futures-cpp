@@ -59,24 +59,7 @@ int main(int argc, char** argv)
 
                 for (const auto& sym : data)
                 {
-                    web::json::value exchangeValue;
-                    exchangeValue[utility::conversions::to_string_t("exchange")] = web::json::value{ L"binance" };
-
-                    web::json::value instrumentValue;
-                    instrumentValue[utility::conversions::to_string_t("instrument")] = web::json::value{ utility::conversions::to_string_t(sym.first) };
-
-                    web::json::value priceValue;
-                    priceValue[utility::conversions::to_string_t("price")] = web::json::value{ utility::conversions::to_string_t(sym.second) };
-
-                    web::json::value val;
-                    val[0] = exchangeValue;
-                    val[1] = instrumentValue;
-                    val[2] = priceValue;
-
-                    auto wideString = val.serialize();
-                    auto asString = std::string{ wideString.cbegin(), wideString.cend() };
-
-                    redis->publish(ChannelNameStart + sym.first + ChannelNameEnd, asString);
+                    redis->publish(ChannelNameStart + sym.first + ChannelNameEnd, { " {\"exchange\":\"binance\", \"instrument\":\"" + sym.first + "\", \"price\":\"" + sym.second + "\"}" });
                 }
             }
             else
