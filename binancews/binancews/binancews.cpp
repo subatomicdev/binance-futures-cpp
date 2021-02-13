@@ -50,12 +50,12 @@ int main(int argc, char** argv)
             static string ChannelNameStart = "binance_";
             static string ChannelNameEnd = "_EXCHANGE_INSTRUMENT_PRICE_CHANNEL";
 
+            std::stringstream ss;
+
             if (redis)
             {
-                std::stringstream ss;
                 ss << "Publishing " << data.size() << " symbol updates";
                 logg(ss.str());
-
 
                 for (const auto& sym : data)
                 {
@@ -64,7 +64,6 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::stringstream ss;
                 ss << "Received " << data.size() << " symbol updates";
                 logg(ss.str());
             }            
