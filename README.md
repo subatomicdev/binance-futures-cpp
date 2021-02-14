@@ -3,7 +3,7 @@ binancews is a C++ library which receives market data from the Binance crypto cu
 
 The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data.
 
-This is a new and ongoing project, with features being added every week - I'm hoping to keep breaking changes to a minimum.
+This is a new and ongoing project with features add regularly. I'm hoping to keep breaking changes to a minimum.
 
 
 **binancewslib**
@@ -11,6 +11,40 @@ The library which handles all communications with the exchange
 
 **binancews**
 A test app to show how to use the library. 
+
+
+```
+#include <BinanceExchange.hpp>
+#include <Logger.hpp>
+
+
+int main(int argc, char** argv)
+{
+  auto loggAllValues = [](std::map<std::string, std::string> data)
+  {
+      for (auto& p : data)
+      {
+          logg(p.first + "=" + p.second);
+      }
+  };
+
+
+  Binance be;
+  
+  // receive from the "Individual Symbol Mini Ticker Stream"
+  be.monitorAllSymbols(loggAllValues);
+
+
+  bool run = true;
+  std::string cmd;
+  while (run && std::getline(std::cin, cmd))
+  {
+      run = (cmd != "stop");
+  }
+
+  return 0;
+}
+```
 
 
 ## Build
