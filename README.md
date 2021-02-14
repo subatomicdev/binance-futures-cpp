@@ -20,7 +20,7 @@ A test app to show how to use the library.
 
 int main(int argc, char** argv)
 {
-  auto handleKeyValueData = [&silent](Binance::BinanceKeyValueData data)
+  auto handleKeyValueData = [](Binance::BinanceKeyValueData data)
   {
       for (auto& p : data.values)
       {
@@ -32,7 +32,7 @@ int main(int argc, char** argv)
   };
 
 
-  auto handleKeyMultipleValueData = [&silent](Binance::BinanceKeyMultiValueData data)
+  auto handleKeyMultipleValueData = [](Binance::BinanceKeyMultiValueData data)
   {
       if (!silent)
       {
