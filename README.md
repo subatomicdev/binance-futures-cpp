@@ -5,9 +5,11 @@ The project uses Microsoft's cpprestsdk for asynchronous websocket functionality
 
 This is a new and ongoing project with features add regularly. I'm hoping to keep breaking changes to a minimum.
 
+---
 
 **binancewslib**
 The library which handles all communications with the exchange
+
 
 **binancews**
 A test app to show how to use the library. 
@@ -50,7 +52,7 @@ ZENUSDT
 }
 ```
 
-```
+```cpp
 #include <BinanceExchange.hpp>
 #include <Logger.hpp>
 
@@ -116,6 +118,7 @@ int main(int argc, char** argv)
 }
 ```
 
+---
 
 ## Build
 
