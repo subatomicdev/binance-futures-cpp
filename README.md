@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 
   Binance be;
   
-  // receive from the "Individual Symbol Mini Ticker Stream"
+  // receive from the "All Market Mini Tickers Stream"
   be.monitorAllSymbols(loggAllValues);
 
 
