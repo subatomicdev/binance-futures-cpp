@@ -56,46 +56,52 @@ ZENUSDT
 #include <BinanceExchange.hpp>
 #include <Logger.hpp>
 
+
 int main(int argc, char** argv)
 {
+  // lambda for a map<string, string> monitor function
   auto handleKeyValueData = [](Binance::BinanceKeyValueData data)
   {
     for (auto& p : data.values)
     {
-    logg(p.first + "=" + p.second);
+      logg(p.first + "=" + p.second);
     }
   };
 
 
+  // lambda for a map<string, map<string, string>>  monitor function
   auto handleKeyMultipleValueData = [](Binance::BinanceKeyMultiValueData data)
   {
     std::stringstream ss;
 
     for (auto& s : data.values)
     {
-    ss << s.first << "\n{";
+      ss << s.first << "\n{";
 
-    for (auto& value : s.second)
-    {
-      ss << "\n" << value.first << "=" << value.second;
-    }
+      for (auto& value : s.second)
+      {
+        ss << "\n" << value.first << "=" << value.second;
+      }
 
-    ss << s.first << "\n}";
+      ss << s.first << "\n}";
     }
 
     logg(ss.str());
   };
 
+
+  
   Binance be;
   
+  // symbols always lower case
   if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
   {
-      logg("monitorTradeStream failed");
+    logg("monitorTradeStream failed");
   }
 
   if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
   {
-      logg("monitorAllSymbols failed");
+    logg("monitorAllSymbols failed");
   }
 
 
@@ -103,7 +109,7 @@ int main(int argc, char** argv)
   std::string cmd;
   while (run && std::getline(std::cin, cmd))
   {
-      run = (cmd != "stop");
+    run = (cmd != "stop");
   }
 
   return 0;
