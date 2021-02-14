@@ -56,43 +56,35 @@ ZENUSDT
 #include <BinanceExchange.hpp>
 #include <Logger.hpp>
 
-
 int main(int argc, char** argv)
 {
   auto handleKeyValueData = [](Binance::BinanceKeyValueData data)
   {
-      for (auto& p : data.values)
-      {
-          if (!silent)
-          {
-              logg(p.first + "=" + p.second);
-          }
-      }
+    for (auto& p : data.values)
+    {
+    logg(p.first + "=" + p.second);
+    }
   };
 
 
   auto handleKeyMultipleValueData = [](Binance::BinanceKeyMultiValueData data)
   {
-      if (!silent)
-      {
-          std::stringstream ss;
+    std::stringstream ss;
 
-          for (auto& s : data.values)
-          {
-              ss << s.first << "\n{";
+    for (auto& s : data.values)
+    {
+    ss << s.first << "\n{";
 
-              for (auto& value : s.second)
-              {
-                  ss << "\n" << value.first << "=" << value.second;
-              }
+    for (auto& value : s.second)
+    {
+      ss << "\n" << value.first << "=" << value.second;
+    }
 
-              ss << s.first << "\n}";
-          }
+    ss << s.first << "\n}";
+    }
 
-          logg(ss.str());
-      }           
+    logg(ss.str());
   };
-
 
   Binance be;
   
