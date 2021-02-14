@@ -106,7 +106,6 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 5. The binary is in the 'binancews' sub-dir ('binancews/binancews' from the top level directory) 
 
 
-## Run
-1. To use without Redis, run with no command line args
-2. Redis IP and port are set via command line args:   ./binancews [ip] [port]  , i.e. ```./binancews 192.168.10.10 6379``` 
-3. This expects the Binance exchange websocket URI at wss://stream.binance.com:9443  :  Change in BinanceExchange.hpp
+# Run
+This expects the Binance exchange websocket URI at wss://stream.binance.com:9443 .
+This is unlikely to change, but if so the it can be updated in BinanceExchange.hpp
