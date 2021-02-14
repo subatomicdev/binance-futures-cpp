@@ -1,12 +1,21 @@
 # Binance WebSockets
 binancews is a C++ library which receives market data from the Binance crypto currency exchange. 
 
-The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data which is then published to Redis using the RedisPlusPlus library.
+The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data.
 
-These dependencies are handled by vcpkg, a cross platform package manager.
+This is a new and ongoing project, with features being added every week - I'm hoping to keep breaking changes to a minimum.
+
+
+**binancewslib**
+The library which handles all communications with the exchange
+
+**binancews**
+A test app to show how to use the library. 
 
 
 ## Build
+
+Dependencies are handled by vcpkg, a cross platform package manager.
 
 ### Windows
 1. Build vcpkg: open a command prompt in vcpkg_win and run:   bootstrap-vcpkg.bat
