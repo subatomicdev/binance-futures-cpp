@@ -3,7 +3,7 @@ binancews is a C++ library which receives market data from the Binance crypto cu
 
 The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data.
 
-This is a new and ongoing project with features add regularly. I'm hoping to keep breaking changes to a minimum.
+This is a new and ongoing project with features added regularly. I'm hoping to keep breaking changes to a minimum.
 
 ---
 
