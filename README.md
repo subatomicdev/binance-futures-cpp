@@ -12,6 +12,43 @@ The library which handles all communications with the exchange
 **binancews**
 A test app to show how to use the library. 
 
+Use the monitor functions to receive updates from streams via callback.
+
+There are two types of callback signatures which differ in there argument, either Binance::BinanceKeyValueData or Binance::BinanceKeyMultiValueData.
+
+Binance::BinanceKeyValueData contains a map<string, string> with the key being what the Binance API returns:
+
+```
+s=GRTUSDT
+t=17825723
+E=1613316912873
+M=true
+T=1613316912872
+a=157236111
+b=157236141
+e=trade
+m=false
+p=1.99867000
+q=32.30000000
+```
+
+
+Binance::BinanceKeyMultiValueData contains a map<string, map<string, string>> with the outer key being the symbol:
+
+```
+ZENUSDT
+{
+	E=1613317084088
+	c=50.54400000
+	e=24hrMiniTicker
+	h=58.13300000
+	l=49.79400000
+	o=50.52900000
+	q=18580149.39067900
+	s=ZENUSDT
+	v=337519.15900000ZENUSDT
+}
+```
 
 ```
 #include <BinanceExchange.hpp>
