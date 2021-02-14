@@ -41,14 +41,14 @@ int main(int argc, char** argv)
 
                 for (auto& s : data.values)
                 {
-                    ss << s.first << "\n{";
+                    ss << "\n" << s.first << "\n{";
 
                     for (auto& value : s.second)
                     {
-                        ss << "\n" << value.first << "=" << value.second;
+                        ss << "\n\t" << value.first << "=" << value.second;
                     }
 
-                    ss << s.first << "\n}";
+                    ss << "\n}";
                 }
 
                 logg(ss.str());
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
 
         Binance be;
         
-        if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
+        //if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
         {
             logg("monitorTradeStream failed");
         }
