@@ -22,9 +22,9 @@ int main(int argc, char** argv)
 
         auto handleKeyValueData = [&silent](Binance::BinanceKeyValueData data)
         {
-            for (auto& p : data.values)
+            if (!silent)
             {
-                if (!silent)
+                for (auto& p : data.values)
                 {
                     logg(p.first + "=" + p.second);
                 }
@@ -76,10 +76,11 @@ int main(int argc, char** argv)
 
         Binance be;
         
+        // symbols are always lower case
         //if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
-        {
-            logg("monitorTradeStream failed");
-        }
+        //{
+            //logg("monitorTradeStream failed");
+        //}
 
         if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
         {

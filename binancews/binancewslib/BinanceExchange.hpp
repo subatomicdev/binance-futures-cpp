@@ -22,7 +22,25 @@ namespace binancews
     using std::map;
 
 
-
+    /// <summary>
+    /// Provides an API to the Binance exchange. Currently only websocket streams are available, see the monitor*() functions.
+    /// 
+    /// A monitor function requires an std::function which is your callback function. There are two types of callback args: 
+    ///     
+    /// 1) std::function<void(BinanceKeyValueData)>
+    /// - Functions which take the BinanceKeyValueData put market data as plain key/value as returned by the API:  map<string, string>
+    /// 
+    /// {"s", "GRTUSDT}, {"p", "1.99867000"} ... etc
+    /// 
+    /// 
+    /// 2) std::function<void(BinanceKeyMultiValueData)>
+    /// - Functions which take the BinanceKeyMultiValueData put data in:  map<string, map<string, string>>. The outer key is the symbol. The value (inner map) is
+    ///   key/value data for that symbol.
+    /// 
+    ///  { "ZENUSDT", {"l", "49.79400000"}, {"o", "50.52900000"}, ... etc},
+    ///  { "GRTUSDT", {"l", "1249.45340000"}, {"o", "1251.25340000"}, ... etc},
+    /// 
+    /// </summary>
     class Binance 
     {
     public:
@@ -101,7 +119,9 @@ namespace binancews
 
     public:
         
-
+        /// <summary>
+        /// Returned by monitor functions, containing an ID for use with cancelMonitor() to close this stream.
+        /// </summary>
         struct MonitorToken
         {
             MonitorToken() : id(0) {}
@@ -129,32 +149,6 @@ namespace binancews
         Binance(Binance&&) = delete;    // TODO implement this
         Binance operator=(const Binance&) = delete;
 
-
-
-        shared_ptr<WebSocketSession> connect(const string& uri)
-        {
-            auto session = std::make_shared<WebSocketSession>();
-            session->uri = uri;
-
-            try
-            {
-                web::uri wsUri (utility::conversions::to_string_t(uri));
-                session->client.connect(wsUri).then([&session]
-                {
-                    session->connected = true;
-                }).wait();
-            }
-            catch (const web::websockets::client::websocket_exception we)
-            {
-                std::cout << we.what();
-            }
-            catch (const std::exception ex)
-            {
-                std::cout << ex.what();
-            }
-
-            return session;
-        }
 
 
         /// <summary>
@@ -248,6 +242,10 @@ namespace binancews
         }
 
 
+        /// <summary>
+        /// CLose stream for the given token.
+        /// </summary>
+        /// <param name="mt"></param>
         void cancelMonitor(const MonitorToken& mt)
         {
             if (auto it = m_idToSession.find(mt.id); it != m_idToSession.end())
@@ -257,6 +255,9 @@ namespace binancews
         }
 
 
+        /// <summary>
+        /// Close all streams.
+        /// </summary>
         void cancelMonitors()
         {
             disconnect();
@@ -264,6 +265,32 @@ namespace binancews
 
 
     private:
+        shared_ptr<WebSocketSession> connect(const string& uri)
+        {
+            auto session = std::make_shared<WebSocketSession>();
+            session->uri = uri;
+
+            try
+            {
+                web::uri wsUri(utility::conversions::to_string_t(uri));
+                session->client.connect(wsUri).then([&session]
+                    {
+                        session->connected = true;
+                    }).wait();
+            }
+            catch (const web::websockets::client::websocket_exception we)
+            {
+                std::cout << we.what();
+            }
+            catch (const std::exception ex)
+            {
+                std::cout << ex.what();
+            }
+
+            return session;
+        }
+
+
         void disconnect(const MonitorToken& mt, const bool deleteSession)
         {
             if (auto itIdToSession = m_idToSession.find(mt.id); itIdToSession != m_idToSession.end())
@@ -304,72 +331,6 @@ namespace binancews
 
             m_idToSession.clear();
             m_sessions.clear();
-        }
-
-
-        void extractAllTradesMessage(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session)
-        {
-            try
-            {
-                std::string strMsg;
-                websocketInMessage.extract_string().then([=, &strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
-                {
-                    try
-                    {
-                        if (!cancelToken.is_canceled())
-                            strMsg = str_tsk.get();
-                    }
-                    catch (...)
-                    {
-
-                    }
-
-                }, session->getCancelToken()).wait();
-
-                
-                // we have the message as a string, pass to the json parser and extract fields if no error
-                if (web::json::value jsonVal = web::json::value::parse(strMsg); jsonVal.size())
-                {
-                    const utility::string_t CodeField = utility::conversions::to_string_t("Code");
-                    const utility::string_t MsgField = utility::conversions::to_string_t("msg");
-                    const utility::string_t SymbolField = utility::conversions::to_string_t("s");
-                    const utility::string_t CloseField = utility::conversions::to_string_t("c");
-
-
-                    if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
-                    {
-#ifdef WIN32
-                        std::wcout << "\nError: " << jsonVal.at(CodeField).as_string() << " : " << jsonVal.at(MsgField).as_string();
-#else
-                        std::cout << "\nError: " << jsonVal.at(CodeField).as_string() << " : " << jsonVal.at(MsgField).as_string();
-#endif                        
-                    }
-                    else if (session->onDataUserCallback)
-                    {
-                        if (auto arr = jsonVal.as_array(); arr.size())
-                        {
-                            map<string, string> values;
-
-                            for (const auto& v : arr)
-                            {
-                                if (v.has_string_field(SymbolField) && v.has_string_field(CloseField))
-                                {
-                                    auto& symbol = v.at(SymbolField).as_string();
-                                    auto& price = v.at(CloseField).as_string();
-
-                                    values[std::string{ symbol.begin(), symbol.end() }] = std::string{ price.begin(), price.end() };
-                                }
-                            }
-
-                            session->onDataUserCallback(std::move(values));    // TODO async?
-                        }
-                    }
-                }
-            }
-            catch (...)
-            {
-
-            }
         }
 
 
