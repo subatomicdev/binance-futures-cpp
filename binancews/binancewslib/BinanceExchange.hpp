@@ -465,23 +465,22 @@ namespace binancews
 
                 if (jsonVal.has_field(keyJsonString))
                 {
-                    utility::string_t valueString;
-                    string valueStr;
+                    string valueString;
 
                     switch (auto t = jsonVal[keyJsonString].type(); t)
                     {
                         // [[likely]] TODO attribute in C++20
                     case json::value::value_type::String:
-                        valueString = jsonVal[keyJsonString].as_string();
+                        valueString = utility::conversions::to_utf8string(jsonVal[keyJsonString].as_string());
                         break;
 
                     case json::value::value_type::Number:
-                        valueString = std::to_wstring(jsonVal[keyJsonString].as_number().to_int64());
+                        valueString = std::to_string(jsonVal[keyJsonString].as_number().to_int64());
                         break;
 
                         // [[unlikely]] TODO attribute in C++20
                     case json::value::value_type::Boolean:
-                        valueString = jsonVal[keyJsonString].as_bool() ? utility::conversions::to_string_t("true") : utility::conversions::to_string_t("false");
+                        valueString = jsonVal[keyJsonString].as_bool() ? utility::conversions::to_utf8string("true") : utility::conversions::to_utf8string("false");
                         break;
 
                     default:
@@ -489,7 +488,7 @@ namespace binancews
                         break;
                     }
 
-                    values[k] = string{ valueString.cbegin(), valueString.cend() };
+                    values[k] = std::move(valueString);
                 }
             }
         }
