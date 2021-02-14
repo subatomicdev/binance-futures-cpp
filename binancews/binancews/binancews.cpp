@@ -4,9 +4,6 @@
 #include <iostream>
 #include <future>
 
-#include <cpprest/ws_client.h>
-#include <cpprest/json.h>
-
 #include <BinanceExchange.hpp>
 #include <Logger.hpp>
 #include <Redis.hpp>
@@ -20,76 +17,77 @@ int main(int argc, char** argv)
 {
     try
     {
-        string redisIp;
-        int redisPort = 6379;
+        // flags
+        std::atomic_bool silent = false;
 
-        if (argc == 3)
+
+        auto handleKeyValueData = [&silent](Binance::BinanceKeyValueData data)
         {
-            redisIp = argv[1];
-            redisPort = std::stoi(argv[2]);
-        }
-        else
-        {
-            logg("Not using Redis to do use: [RedisIP] [RedisPort] command line args, i.e.:");
-            logg("./binancews 192.168.10.10 6379");
-        }
-
-
-        // create and connect to Redis
-        shared_ptr<Redis> redis;
-
-        if (!redisIp.empty())
-        {
-            redis = std::make_shared<Redis>();
-            redis->init(redisIp, redisPort);
-        }
-
-
-        auto onAllSymbolsDataFunc = [redis] (std::map<std::string, std::string> data)
-        {
-            static string ChannelNameStart = "binance_";
-            static string ChannelNameEnd = "_EXCHANGE_INSTRUMENT_PRICE_CHANNEL";
-
-            std::stringstream ss;
-
-            if (redis)
+            for (auto& p : data.values)
             {
-                ss << "Publishing " << data.size() << " symbol updates";
-                logg(ss.str());
-
-                for (const auto& sym : data)
+                if (!silent)
                 {
-                    redis->publish(ChannelNameStart + sym.first + ChannelNameEnd, { "{\"exchange\":\"binance\", \"instrument\":\"" + sym.first + "\", \"price\":\"" + sym.second + "\"}" });
+                    logg(p.first + "=" + p.second);
                 }
             }
-            else
-            {
-                ss << "Received " << data.size() << " symbol updates";
-                logg(ss.str());
-            }            
         };
 
 
-        auto consoleFuture = std::async(std::launch::async, []()
+        auto handleKeyMultipleValueData = [&silent](Binance::BinanceKeyMultiValueData data)
         {
+            if (!silent)
+            {
+                std::stringstream ss;
+
+                for (auto& s : data.values)
+                {
+                    ss << s.first << "\n{";
+
+                    for (auto& value : s.second)
+                    {
+                        ss << "\n" << value.first << "=" << value.second;
+                    }
+
+                    ss << s.first << "\n}";
+                }
+
+                logg(ss.str());
+            }           
+        };
+
+
+
+        auto consoleFuture = std::async(std::launch::async, [&silent]()
+        {
+            std::cout << "Commands:\nstop : exit\nsilent (s): no output to console\nverbose (v): output to console";
+                
             bool run = true;
             std::string cmd;
             while (run && std::getline(std::cin, cmd))
             {
                 run = (cmd != "stop");
+                
+                if (cmd == "silent" || cmd == "s")
+                    silent = true;
+                else if (cmd == "verbose" || cmd == "v")
+                    silent = false;
             }
         });
 
 
         Binance be;
-        if (auto allSymbolsToken = be.monitorAllSymbols(onAllSymbolsDataFunc) ;  allSymbolsToken.isValid())
+        
+        if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
         {
-            consoleFuture.wait();
+            logg("monitorTradeStream failed");
         }
-        else
+
+        if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
         {
-            logg("Failed to create monitor for All Symbols");
-        }        
+            logg("monitorAllSymbols failed");
+        }
+        
+        consoleFuture.wait();
     }
     catch (const std::exception ex)
     {
