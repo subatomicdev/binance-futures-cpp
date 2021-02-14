@@ -12,6 +12,6 @@ add_executable (binancews "binancews.cpp")
 
 set_target_properties(binancews PROPERTIES CXX_STANDARD 17)
 
-target_link_libraries(binancews -lPocoFoundation -lpthread -lredis++ -lboost_system -lboost_date_time -lcpprest -lhiredis -lssl -lcrypto -lz -ldl)
+target_link_libraries(binancews -lPocoFoundation -lpthread -lboost_system -lboost_date_time -lcpprest -lssl -lcrypto -lz -ldl)
 target_link_libraries(binancews binancewslib)
 

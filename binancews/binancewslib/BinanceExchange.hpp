@@ -455,8 +455,6 @@ namespace binancews
 
             }
         }
-
-
         
 
         void getJsonValues(web::json::value jsonVal, map<string, string>& values, const std::set<string>& keys)
@@ -468,6 +466,7 @@ namespace binancews
                 if (jsonVal.has_field(keyJsonString))
                 {
                     utility::string_t valueString;
+                    string valueStr;
 
                     switch (auto t = jsonVal[keyJsonString].type(); t)
                     {
@@ -482,7 +481,7 @@ namespace binancews
 
                         // [[unlikely]] TODO attribute in C++20
                     case json::value::value_type::Boolean:
-                        valueString = jsonVal[keyJsonString].as_bool() ? L"true" : L"false";
+                        valueString = jsonVal[keyJsonString].as_bool() ? utility::conversions::to_string_t("true") : utility::conversions::to_string_t("false");
                         break;
 
                     default:
