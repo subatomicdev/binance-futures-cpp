@@ -1,12 +1,88 @@
 # Binance WebSockets
 binancews is a C++ library which receives market data from the Binance crypto currency exchange. 
 
-The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data which is then published to Redis using the RedisPlusPlus library.
+The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data.
 
-These dependencies are handled by vcpkg, a cross platform package manager.
+This is a new and ongoing project with features add regularly. I'm hoping to keep breaking changes to a minimum.
+
+
+**binancewslib**
+The library which handles all communications with the exchange
+
+**binancews**
+A test app to show how to use the library. 
+
+
+```
+#include <BinanceExchange.hpp>
+#include <Logger.hpp>
+
+
+int main(int argc, char** argv)
+{
+  auto handleKeyValueData = [](Binance::BinanceKeyValueData data)
+  {
+      for (auto& p : data.values)
+      {
+          if (!silent)
+          {
+              logg(p.first + "=" + p.second);
+          }
+      }
+  };
+
+
+  auto handleKeyMultipleValueData = [](Binance::BinanceKeyMultiValueData data)
+  {
+      if (!silent)
+      {
+          std::stringstream ss;
+
+          for (auto& s : data.values)
+          {
+              ss << s.first << "\n{";
+
+              for (auto& value : s.second)
+              {
+                  ss << "\n" << value.first << "=" << value.second;
+              }
+
+              ss << s.first << "\n}";
+          }
+
+          logg(ss.str());
+      }           
+  };
+
+
+  Binance be;
+  
+  if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
+  {
+      logg("monitorTradeStream failed");
+  }
+
+  if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
+  {
+      logg("monitorAllSymbols failed");
+  }
+
+
+  bool run = true;
+  std::string cmd;
+  while (run && std::getline(std::cin, cmd))
+  {
+      run = (cmd != "stop");
+  }
+
+  return 0;
+}
+```
 
 
 ## Build
+
+Dependencies are handled by vcpkg, a cross platform package manager.
 
 ### Windows
 1. Build vcpkg: open a command prompt in vcpkg_win and run:   bootstrap-vcpkg.bat
