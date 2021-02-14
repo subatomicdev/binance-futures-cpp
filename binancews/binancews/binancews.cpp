@@ -6,7 +6,6 @@
 
 #include <BinanceExchange.hpp>
 #include <Logger.hpp>
-#include <Redis.hpp>
 
 
 using namespace std::chrono_literals;

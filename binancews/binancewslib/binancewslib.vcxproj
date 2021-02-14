@@ -22,7 +22,6 @@
     <ClInclude Include="BinanceExchange.hpp" />
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="pglibCommon.hpp" />
-    <ClInclude Include="Redis.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
