@@ -40,15 +40,15 @@ Binance::BinanceKeyMultiValueData contains a map<string, map<string, string>> wi
 ```
 ZENUSDT
 {
-	E=1613317084088
-	c=50.54400000
-	e=24hrMiniTicker
-	h=58.13300000
-	l=49.79400000
-	o=50.52900000
-	q=18580149.39067900
-	s=ZENUSDT
-	v=337519.15900000ZENUSDT
+  E=1613317084088
+  c=50.54400000
+  e=24hrMiniTicker
+  h=58.13300000
+  l=49.79400000
+  o=50.52900000
+  q=18580149.39067900
+  s=ZENUSDT
+  v=337519.15900000ZENUSDT
 }
 ```
 
@@ -146,4 +146,4 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 
 # Run
 This expects the Binance exchange websocket URI at wss://stream.binance.com:9443 .
-This is unlikely to change, but if so the it can be updated in BinanceExchange.hpp
+This is unlikely to change, but if so it can be updated in BinanceExchange.hpp.
