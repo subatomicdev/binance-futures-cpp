@@ -126,7 +126,7 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 1. Build vcpkg: open a command prompt in vcpkg_win and run:   bootstrap-vcpkg.bat
 2. Install dependencies: in the same prompt run:
 ```
-   .\vcpkg.exe install cpprestsdk[websockets]:x64-windows-static poco:x64-windows-static boost-asio:x64-windows-static redis-plus-plus[cxx17]:x64-windows-static
+   .\vcpkg install cpprestsdk[websockets] poco boost-asio --triplet x64-windows-static
 ```
 3. Open the VS solution binancews/binancews.sln
 4. Change to 'Release', right-click on the 'binancews' project and select "Setup as startup project"
@@ -137,7 +137,7 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 1. Build vcpkg: open shell in vcpkg_linux and run:  bootstrap-vcpkg.sh
 2. Install dependencies: in the same prompt run:
 ```
-./vcpkg install cpprestsdk[websockets]:x64-linux poco:x64-linux boost-asio:x64-linux redis-plus-plus[cxx17]:x64-linux
+./vcpkg install cpprestsdk[websockets] poco boost-asio --triplet x64-linux
 ```
 3. Go up a directory then into 'binancews' directory and run:   ```cmake .```
 4. Then run: ```make```
