@@ -20,19 +20,52 @@ A test app to show how to use the library.
 
 int main(int argc, char** argv)
 {
-  auto loggAllValues = [](std::map<std::string, std::string> data)
+  auto handleKeyValueData = [&silent](Binance::BinanceKeyValueData data)
   {
-      for (auto& p : data)
+      for (auto& p : data.values)
       {
-          logg(p.first + "=" + p.second);
+          if (!silent)
+          {
+              logg(p.first + "=" + p.second);
+          }
       }
+  };
+
+
+  auto handleKeyMultipleValueData = [&silent](Binance::BinanceKeyMultiValueData data)
+  {
+      if (!silent)
+      {
+          std::stringstream ss;
+
+          for (auto& s : data.values)
+          {
+              ss << s.first << "\n{";
+
+              for (auto& value : s.second)
+              {
+                  ss << "\n" << value.first << "=" << value.second;
+              }
+
+              ss << s.first << "\n}";
+          }
+
+          logg(ss.str());
+      }           
   };
 
 
   Binance be;
   
-  // receive from the "All Market Mini Tickers Stream"
-  be.monitorAllSymbols(loggAllValues);
+  if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
+  {
+      logg("monitorTradeStream failed");
+  }
+
+  if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
+  {
+      logg("monitorAllSymbols failed");
+  }
 
 
   bool run = true;
