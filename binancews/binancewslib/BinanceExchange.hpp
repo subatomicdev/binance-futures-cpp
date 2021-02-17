@@ -20,6 +20,7 @@ namespace binancews
     using std::vector;
     using std::shared_ptr;
     using std::map;
+    using std::set;
 
 
     /// <summary>
@@ -116,6 +117,7 @@ namespace binancews
             pplx::cancellation_token cancelToken;
         };
 
+        typedef map<string, set<string>> JsonKeys;
 
     public:
         
@@ -153,92 +155,150 @@ namespace binancews
 
         /// <summary>
         /// Receives from the miniTicker stream for all symbols (https://binance-docs.github.io/apidocs/spot/en/#all-market-mini-tickers-stream).
-        /// he updates are every 1000ms (limited by the Binance API).
+        /// Updates every 1000ms (limited by the Binance API).
         /// </summary>
-        /// <param name="onData">A map with pairs of: [symbol, close price] </param>
+        /// <param name="onData">Your callback function. See this classes docs for an explanation</param>
         /// <returns>A MonitorToken. If MonitorToken::isValid() is a problem occured.</returns>
         MonitorToken monitorAllSymbols(std::function<void(BinanceKeyMultiValueData)> onData)
         {
-            MonitorToken monitor;
-
-            if (auto session = connect(m_exchangeBaseUri + "/ws/!miniTicker@arr"); session)
+            static const JsonKeys keys
             {
-                static const std::set<string> keys = { "e", "E", "s", "c", "o", "h", "l", "v", "q" };
+                { {"s"}, {"e", "E", "s", "c", "o", "h", "l", "v", "q"} }
+            };
 
-                auto extractFunction = std::bind(&Binance::extractAllKeys, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+            auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!miniTicker@arr", keys, "s");
 
-                if (monitor = createReceiveTask(session, extractFunction, keys);  monitor.isValid())
-                {
-                    session->id = monitor.id;
-                    session->onMultiValueDataUserCallback = onData;
-
-                    m_sessions.push_back(session);
-                    m_idToSession[monitor.id] = session;
-                }
+            if (std::get<0>(tokenAndSession).isValid())
+            {
+                std::get<1>(tokenAndSession)->onMultiValueDataUserCallback = onData;
             }
 
-            return monitor;
+            return std::get<0>(tokenAndSession);
         }
 
     
+        /// <summary>
+        /// Receives from the symbol mini ticker (https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-mini-ticker-stream).
+        /// Updated every 1000ms (limited by the Binance API).
+        /// </summary>
+        /// <param name="symbol">The symbtol to monitor</param>
+        /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
+        /// <returns></returns>
+        MonitorToken monitorSymbol(const string& symbol, std::function<void(BinanceKeyValueData)> onData)
+        {
+            static const JsonKeys keys
+            {
+                {"e", {}},
+                {"E", {}},
+                {"s", {}},
+                {"c", {}},
+                {"o", {}},
+                {"h", {}},
+                {"l", {}},
+                {"v", {}},
+                {"q", {}}
+            };
+
+            auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@miniTicker", keys);
+
+            if (std::get<0>(tokenAndSession).isValid())
+            {
+                std::get<1>(tokenAndSession)->onDataUserCallback = onData;
+            }
+
+            return std::get<0>(tokenAndSession);
+        }
+
+
         /// <summary>
         /// Receives from the Trade Streams for a given symbol (https://binance-docs.github.io/apidocs/spot/en/#trade-streams).
         /// The updates in real time.
         /// </summary>
         /// <param name="symbol">The symbol to receive trades information</param>
-        /// <param name="onData">A map with pairs of: [symbol, close price] </param>
+        /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
         /// <returns>A MonitorToken. If MonitorToken::isValid() is a problem occured.</returns>
         MonitorToken monitorTradeStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData)
         {
-            MonitorToken monitor;
+            static const JsonKeys keys
+            {
+                {"e", {}},
+                {"E", {}},
+                {"s", {}},
+                {"t", {}},
+                {"p", {}},
+                {"q", {}},
+                {"b", {}},
+                {"a", {}},
+                {"T", {}},
+                {"m", {}},
+                {"M", {}}
+            };
 
-            if (auto session = connect(m_exchangeBaseUri + "/ws/" + symbol + "@trade"); session)
-            {   
-                static const std::set<string> keys = { "e", "E", "s", "t", "p", "q", "b", "a", "T", "m", "M" };
+            auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@trade", keys);
 
-                auto extractFunction = std::bind(&Binance::extractAllKeys, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-
-                if (monitor = createReceiveTask(session, extractFunction, keys);  monitor.isValid())
-                {
-                    session->id = monitor.id;
-                    session->onDataUserCallback = onData;
-
-                    m_sessions.push_back(session);
-                    m_idToSession[monitor.id] = session;
-                }
+            if (std::get<0>(tokenAndSession).isValid())
+            {
+                std::get<1>(tokenAndSession)->onDataUserCallback = onData;
             }
 
-            return monitor;
+            return std::get<0>(tokenAndSession);
         }
 
         
         /// <summary>
         /// Receives from the Individual Symbol Book stream for a given symbol (https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-book-ticker-streams)
         /// </summary>
-        /// <param name="symbol"></param>
-        /// <param name="onData"></param>
+        /// <param name="symbol">The symbol</param>
+        /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
         /// <returns></returns>
         MonitorToken monitorSymbolBookStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData)
         {
-            MonitorToken monitor;
-
-            if (auto session = connect(m_exchangeBaseUri + "/ws/" + symbol + "@bookTicker"); session)
+            static const JsonKeys keys
             {
-                static const std::set<string> keys = { "U", "s", "b", "B", "a", "A"};
+                {"u", {}},
+                {"s", {}},
+                {"b", {}},
+                {"B", {}},
+                {"a", {}},
+                {"A", {}}
+            };
 
-                auto extractFunction = std::bind(&Binance::extractAllKeys, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+            auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@bookTicker", keys);
 
-                if (monitor = createReceiveTask(session, extractFunction, keys);  monitor.isValid())
-                {
-                    session->id = monitor.id;
-                    session->onDataUserCallback = onData;
-
-                    m_sessions.push_back(session);
-                    m_idToSession[monitor.id] = session;
-                }
+            if (std::get<0>(tokenAndSession).isValid())
+            {
+                std::get<1>(tokenAndSession)->onDataUserCallback = onData;
             }
 
-            return monitor;
+            return std::get<0>(tokenAndSession);
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <param name="onData"></param>
+        /// <returns></returns>
+        MonitorToken monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(BinanceKeyMultiValueData)> onData)
+        {
+            static const JsonKeys keys2
+            {
+                {"e", {}},
+                {"E", {}},
+                {"s", {}},
+                {"k", {"t", "T", "s", "i", "f", "L", "o", "c", "h", "l", "v", "n", "x", "q", "V", "Q", "B"}}
+            };
+
+
+            auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@kline_"+ interval, keys2);
+
+            if (std::get<0>(tokenAndSession).isValid())
+            {
+                std::get<1>(tokenAndSession)->onMultiValueDataUserCallback = onData;
+            }
+
+            return std::get<0>(tokenAndSession);
         }
 
 
@@ -291,6 +351,30 @@ namespace binancews
         }
 
 
+        std::tuple<MonitorToken, shared_ptr<WebSocketSession>> createMonitor(const string& uri, const JsonKeys& keys, const string& arrayKey = {})
+        {
+            std::tuple<MonitorToken, shared_ptr<WebSocketSession>> tokenAndSession;
+
+            if (auto session = connect(uri); session)
+            {
+                auto extractFunction = std::bind(&Binance::extractKeys, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+
+                if (MonitorToken monitor = createReceiveTask(session, extractFunction, keys, arrayKey);  monitor.isValid())
+                {
+                    session->id = monitor.id;
+
+
+                    m_sessions.push_back(session);
+                    m_idToSession[monitor.id] = session;
+
+                    tokenAndSession = std::make_tuple(monitor, session);
+                }
+            }
+
+            return tokenAndSession;
+        }
+
+
         void disconnect(const MonitorToken& mt, const bool deleteSession)
         {
             if (auto itIdToSession = m_idToSession.find(mt.id); itIdToSession != m_idToSession.end())
@@ -334,10 +418,11 @@ namespace binancews
         }
 
 
-        void extractAllKeys(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session, const std::set<string>& keys)
+        void extractKeys(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session, const JsonKeys& keys, const string& arrayKey = {})
         {
             try
             {
+                // get the payload synchronously
                 std::string strMsg;
                 websocketInMessage.extract_string().then([=, &strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
                 {
@@ -350,7 +435,6 @@ namespace binancews
                     {
 
                     }
-
                 }, session->getCancelToken()).wait();
 
 
@@ -362,54 +446,64 @@ namespace binancews
 
                     if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
                     {
-#ifdef WIN32
-                        std::wcout << "\nError: " << jsonVal.at(CodeField).as_string() << " : " << jsonVal.at(MsgField).as_string();
-#else
-                        std::cout << "\nError: " << jsonVal.at(CodeField).as_string() << " : " << jsonVal.at(MsgField).as_string();
-#endif
+                        std::cout << "\nError: " << utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) << " : " << utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string());
                     }
                     else if (session->onDataUserCallback)
                     {
                         map<string, string> values;
 
-                        if (jsonVal.is_array())
+                        for (const auto& key : keys)
                         {
-                            for (auto& val : jsonVal.as_array())
-                            {
-                                getJsonValues(val, values, keys);
-                            }
-                        }
-                        else
-                        {
-                            getJsonValues(jsonVal, values, keys);
+                            getJsonValues(jsonVal, values, key.first);
                         }
                         
-
                         session->onDataUserCallback(std::move(values));    // TODO async?
                     }
                     else if (session->onMultiValueDataUserCallback)
                     {
+                        map<string, map<string, string>> values;
+
                         if (jsonVal.is_array())
                         {
-                            map<string, map<string, string>> values;
-
                             for (auto& val : jsonVal.as_array())
                             {
                                 map<string, string> innerValues;
 
-                                getJsonValues(val, innerValues, keys);
+                                getJsonValues(val, innerValues, keys.find(arrayKey)->second);
 
-                                values[innerValues["s"]] = std::move(innerValues);
-                            }
-
-                            session->onMultiValueDataUserCallback(std::move(values));    // TODO async?
+                                values[innerValues[arrayKey]] = std::move(innerValues);
+                            }                            
                         }
                         else
                         {
-                            //TODO don't think this is possible, decide
+                            for (const auto& key : keys)
+                            {
+                                if (key.second.empty())
+                                {
+                                    map<string, string> inner;
+
+                                    getJsonValues(jsonVal, inner, key.first);
+
+                                    values[key.first] = std::move(inner);
+                                }
+                                else
+                                {
+                                    map<string, string> inner;
+
+                                    // key has nested keys
+                                    if (jsonVal.at(utility::conversions::to_string_t(key.first)).is_object())
+                                    {
+                                        getJsonValues(jsonVal.at(utility::conversions::to_string_t(key.first)).as_object(), inner, key.second);
+                                    }
+
+                                    values[key.first] = std::move(inner);
+                                }
+                            }
                         }
+
+                        session->onMultiValueDataUserCallback(std::move(values));    // TODO async?
                     }
-                }                
+                }
             }
             catch (...)
             {
@@ -418,30 +512,41 @@ namespace binancews
         }
         
 
-        void getJsonValues(web::json::value jsonVal, map<string, string>& values, const std::set<string>& keys)
+        void getJsonValues(web::json::value& jsonVal, map<string, string>& values, const std::set<string>& keys)
         {
-            for (const auto& k : keys)
+            for (auto& k : keys)
             {
-                auto keyJsonString = utility::conversions::to_string_t(k);
+                getJsonValues(jsonVal, values, k);
+            }
+        }
 
-                if (jsonVal.has_field(keyJsonString))
+
+        void getJsonValues(web::json::object& jsonObj, map<string, string>& values, const std::set<string>& keys)
+        {
+            for (auto& v : jsonObj)
+            {
+                auto keyUtf8String = utility::conversions::to_utf8string(v.first);
+
+                if (keys.find(utility::conversions::to_utf8string(v.first)) != keys.cend())
                 {
+                    auto& keyJsonString = utility::conversions::to_string_t(v.first);
+
                     string valueString;
 
-                    switch (auto t = jsonVal[keyJsonString].type(); t)
+                    switch (auto t = v.second.type(); t)
                     {
                         // [[likely]] TODO attribute in C++20
                     case json::value::value_type::String:
-                        valueString = utility::conversions::to_utf8string(jsonVal[keyJsonString].as_string());
+                        valueString = utility::conversions::to_utf8string(v.second.as_string());
                         break;
 
                     case json::value::value_type::Number:
-                        valueString = std::to_string(jsonVal[keyJsonString].as_number().to_int64());
+                        valueString = std::to_string(v.second.as_number().to_int64());
                         break;
 
                         // [[unlikely]] TODO attribute in C++20
                     case json::value::value_type::Boolean:
-                        valueString = jsonVal[keyJsonString].as_bool() ? utility::conversions::to_utf8string("true") : utility::conversions::to_utf8string("false");
+                        valueString = v.second.as_bool() ? utility::conversions::to_utf8string("true") : utility::conversions::to_utf8string("false");
                         break;
 
                     default:
@@ -449,13 +554,47 @@ namespace binancews
                         break;
                     }
 
-                    values[k] = std::move(valueString);
-                }
+                    values[keyUtf8String] = std::move(valueString);
+                }                
             }
         }
 
 
-        MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const std::set<string>&)> extractFunc, const std::set<string>& keys = std::set<string>{})
+        void getJsonValues(web::json::value& jsonVal, map<string, string>& values, const string& key)
+        {
+            auto keyJsonString = utility::conversions::to_string_t(key);
+
+            if (jsonVal.has_field(keyJsonString))
+            {
+                string valueString;
+
+                switch (auto t = jsonVal[keyJsonString].type(); t)
+                {
+                    // [[likely]] TODO attribute in C++20
+                case json::value::value_type::String:
+                    valueString = utility::conversions::to_utf8string(jsonVal[keyJsonString].as_string());
+                    break;
+
+                case json::value::value_type::Number:
+                    valueString = std::to_string(jsonVal[keyJsonString].as_number().to_int64());
+                    break;
+
+                    // [[unlikely]] TODO attribute in C++20
+                case json::value::value_type::Boolean:
+                    valueString = jsonVal[keyJsonString].as_bool() ? utility::conversions::to_utf8string("true") : utility::conversions::to_utf8string("false");
+                    break;
+
+                default:
+                    logg("No handler for JSON type: " + std::to_string(static_cast<int>(t)));
+                    break;
+                }
+
+                values[key] = std::move(valueString);
+            }
+        }
+
+
+        MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey)
         {
             MonitorToken monitorToken;
 
@@ -463,7 +602,7 @@ namespace binancews
             {
                 auto token = session->getCancelToken();
 
-                session->receiveTask = pplx::create_task([session, token, extractFunc, keys, this]   // capture by value so 'session' shared_ptr ref count incremented
+                session->receiveTask = pplx::create_task([session, token, extractFunc, keys, arrayKey, this] 
                 {
                     while (!token.is_canceled())
                     {
@@ -471,7 +610,7 @@ namespace binancews
                         {
                             if (!token.is_canceled())
                             {
-                                extractFunc(websocketInMessage.get(), session, keys);
+                                extractFunc(websocketInMessage.get(), session, keys, arrayKey);
                             }
                             else
                             {
@@ -487,8 +626,8 @@ namespace binancews
 
 
                 monitorToken.id = m_monitorId;
-                
-                ++m_monitorId;                
+
+                ++m_monitorId;
             }
             catch (const web::websockets::client::websocket_exception we)
             {

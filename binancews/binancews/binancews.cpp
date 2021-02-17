@@ -77,6 +77,8 @@ int main(int argc, char** argv)
         Binance be;
         
         // symbols are always lower case
+
+
         //if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
         //{
             //logg("monitorTradeStream failed");
@@ -86,6 +88,21 @@ int main(int argc, char** argv)
         {
             logg("monitorAllSymbols failed");
         }
+
+        //if (auto valid = be.monitorSymbol("zilusdt", handleKeyValueData); !valid.isValid())
+        //{
+            //logg("monitorSymbol failed");
+        //}
+
+        //if (auto valid = be.monitorSymbolBookStream("zilusdt", handleKeyValueData); !valid.isValid())
+        //{
+            //logg("monitorSymbolBookStream failed");
+        //}
+
+        //if (auto valid = be.monitorKlineCandlestickStream("zilusdt", "5m", handleKeyMultipleValueData); !valid.isValid())
+        //{
+            //logg("monitorSymbolBookStream failed");
+        //}
         
         consoleFuture.wait();
     }
