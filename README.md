@@ -1,4 +1,7 @@
-NOTE: this is an active project in the early stages so I don't recommend relying on the API until it's stable.
+# Binance WebSockets
+
+**This is an active project in the early stages so I don't recommend relying on the API until it's stable.**
+
 
 # Current State
 General:
@@ -13,7 +16,6 @@ Futures:
 
 ---
 
-# Binance WebSockets
 binancews is a C++17 library which receives market data from the Binance crypto currency exchange. 
 
 The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data.
