@@ -1,9 +1,22 @@
+NOTE: this is an active project in the early stages so I don't recommend relying on the API until it's stable.
+
+# Current State
+General:
+- API needs tidying because not all streams are valid for both Spot and Futures
+
+Spot:
+- Many streams for Spot market
+- User data stream for Spot market added, requires more testing
+
+Futures:
+- Added mark price
+
+---
+
 # Binance WebSockets
 binancews is a C++17 library which receives market data from the Binance crypto currency exchange. 
 
 The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data.
-
-This is a new and ongoing project with features added regularly. I'm hoping to keep breaking changes to a minimum.
 
 ---
 
