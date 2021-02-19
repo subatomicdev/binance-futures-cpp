@@ -114,7 +114,7 @@ int main(int argc, char** argv)
     logg("monitorTradeStream failed");
   }
 
-  if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
+  if (auto valid = be.monitorMiniTicker(handleKeyMultipleValueData); !valid.isValid())
   {
     logg("monitorAllSymbols failed");
   }
