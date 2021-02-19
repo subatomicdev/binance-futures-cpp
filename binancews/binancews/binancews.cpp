@@ -128,7 +128,7 @@ int main(int argc, char** argv)
 
             std::cout << "\n--- Futures";
             std::this_thread::sleep_for(10s);
-            std::cout << "\nReceived " << count.load() << " updates on 2 streams in 10s";
+            std::cout << "\nReceived " << count.load() << " updates on 2 streams in 10s\n";
         }
         
 
@@ -142,7 +142,7 @@ int main(int argc, char** argv)
             std::cout << "\n--- Spot";
             std::this_thread::sleep_for(10s);
 
-            std::cout << "\nReceived " << count.load() << " updates on 1 stream in 10s";
+            std::cout << "\nReceived " << count.load() << " updates on 1 stream in 10s\n";
         }
         
 
@@ -156,7 +156,7 @@ int main(int argc, char** argv)
 
             std::cout << "\n--- Futures";
             std::this_thread::sleep_for(10s);
-            std::cout << "\nReceived " << count.load() << " updates on 1 stream in 10s";
+            std::cout << "\nReceived " << count.load() << " updates on 1 stream in 10s\n";
         }
 
 
@@ -170,7 +170,7 @@ int main(int argc, char** argv)
 
             std::cout << "\n--- Spot";
             std::this_thread::sleep_for(10s);
-            std::cout << "\nReceived " << count.load() << " updates on 1 stream in 10s";
+            std::cout << "\nReceived " << count.load() << " updates on 1 stream in 10s\n";
         }
         
 
