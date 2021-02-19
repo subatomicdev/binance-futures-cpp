@@ -857,21 +857,26 @@ namespace binancews
         // user data stream
         bool createListenKey()
         {
+            const auto HeaderKeyName = utility::conversions::to_string_t("X-MBX-APIKEY");
+            const auto SpotRequestUri = utility::conversions::to_string_t("/api/v3/userDataStream");
+            const auto ListenKeyName = utility::conversions::to_string_t("listenKey");
+
+
             bool ok = false;
 
             web::uri userDataUri (utility::conversions::to_string_t("https://api.binance.com"));
             web::http::client::http_client client{ userDataUri };
 
             web::http::http_request request{ web::http::methods::POST };
-            request.headers().add(L"X-MBX-APIKEY", utility::conversions::to_string_t(m_apiKey));
-            request.set_request_uri(L"/api/v3/userDataStream");
+            request.headers().add(HeaderKeyName, utility::conversions::to_string_t(m_apiKey));
+            request.set_request_uri(SpotRequestUri);
 
-            client.request(request).then([&ok, this](web::http::http_response response)
+            client.request(request).then([&ok, &ListenKeyName, this](web::http::http_response response)
             {
                 if (response.status_code() == web::http::status_codes::OK)
                 {
                     ok = true;
-                    m_listenKey = utility::conversions::to_utf8string(response.extract_json().get()[L"listenKey"].as_string());
+                    m_listenKey = utility::conversions::to_utf8string(response.extract_json().get()[ListenKeyName].as_string());
                 }
             }).wait();
 
