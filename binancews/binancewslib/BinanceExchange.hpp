@@ -423,8 +423,6 @@ namespace binancews
                                             // we will receive a 'ping' from bianance, which cpprestsdk sends to here but we can ignore it
                                             if (web::json::value jsonVal = web::json::value::parse(strMsg); jsonVal.size())
                                             {
-                                                std::wcout << "\n" << jsonVal;
-
                                                 const utility::string_t CodeField = utility::conversions::to_string_t("code");
                                                 const utility::string_t MsgField = utility::conversions::to_string_t("msg");
 
