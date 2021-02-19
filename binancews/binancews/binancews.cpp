@@ -54,6 +54,37 @@ int main(int argc, char** argv)
             }           
         };
 
+        
+        auto handleUserDataSpot = [&silent](Binance::UserDataStreamData data)
+        {
+            if (!silent)
+            {
+                for (auto& p : data.data)
+                {
+                    logg(p.first + "=" + p.second);
+                }
+
+                if (data.type == Binance::UserDataStreamData::EventType::AccountUpdate)
+                {
+                    std::stringstream ss;
+
+                    for (auto& asset : data.balances)
+                    {
+                        ss << "\n" << asset.first << "\n{"; // asset symbol
+
+                        for (const auto& balance : asset.second)
+                        {
+                            ss << "\n\t" << asset.first << "=" << balance.second;   // the asset symbol, free and locked values for this symbol
+                        }
+
+                        ss << "\n}";
+                    }
+
+                    logg(ss.str());
+                }
+            }
+        };
+
 
 
         auto consoleFuture = std::async(std::launch::async, [&silent]()
@@ -76,18 +107,17 @@ int main(int argc, char** argv)
 
         Binance be;
         
-        // symbols are always lower case
-
+        be.monitorUserData("YOUR API KEY", handleUserDataSpot);
 
         //if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
         //{
             //logg("monitorTradeStream failed");
         //}
 
-        if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
-        {
-            logg("monitorAllSymbols failed");
-        }
+        //if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
+        //{
+            //logg("monitorAllSymbols failed");
+        //}
 
         //if (auto valid = be.monitorSymbol("zilusdt", handleKeyValueData); !valid.isValid())
         //{
