@@ -8,6 +8,7 @@
 #include <set>
 #include <cpprest/ws_client.h>
 #include <cpprest/json.h>
+#include <cpprest/http_client.h>
 #include "Logger.hpp"
 
 // Binance Web Sockets
@@ -49,6 +50,8 @@ namespace binancews
 
         struct BinanceKeyValueData
         {
+            BinanceKeyValueData() = default;
+
             BinanceKeyValueData(map<string, string>&& vals) : values(std::move(vals))
             {
 
@@ -60,6 +63,8 @@ namespace binancews
 
         struct BinanceKeyMultiValueData
         {
+            BinanceKeyMultiValueData() = default;
+
             BinanceKeyMultiValueData(map<string, map<string, string>>&& vals) : values(std::move(vals))
             {
 
@@ -67,6 +72,27 @@ namespace binancews
 
             map<string, map<string, string>> values;
         };
+
+        struct UserDataStreamData
+        {
+            enum class EventType { Unknown, AccountUpdate, BalanceUpdate, OrderUpdate };
+
+            UserDataStreamData() = delete;
+
+            UserDataStreamData(const EventType t) : type(t)
+            {
+
+            }
+
+            map<string, string> data;
+            map<string, map<string, string>> balances; // only for EventType::AccountUpdate
+
+            EventType type;
+        };
+
+
+
+        enum class UserDataStreamMode { Spot };
 
 
     private:
@@ -95,6 +121,7 @@ namespace binancews
 
             std::function<void(BinanceKeyValueData)> onDataUserCallback;
             std::function<void(BinanceKeyMultiValueData)> onMultiValueDataUserCallback;
+            std::function<void(UserDataStreamData)> onUserDataStreamCallback;
 
 
             MonitorTokenId id;
@@ -282,7 +309,7 @@ namespace binancews
         /// <returns></returns>
         MonitorToken monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(BinanceKeyMultiValueData)> onData)
         {
-            static const JsonKeys keys2
+            static const JsonKeys keys
             {
                 {"e", {}},
                 {"E", {}},
@@ -291,7 +318,7 @@ namespace binancews
             };
 
 
-            auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@kline_"+ interval, keys2);
+            auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@kline_"+ interval, keys);
 
             if (std::get<0>(tokenAndSession).isValid())
             {
@@ -324,6 +351,163 @@ namespace binancews
         }
 
 
+        // User Data Stream
+        MonitorToken monitorUserData(const string& apiKey, std::function<void(UserDataStreamData)> onData, const UserDataStreamMode mode = UserDataStreamMode::Spot)
+        {
+            m_apiKey = apiKey;
+            MonitorToken monitorToken;
+
+            if (createListenKey())
+            {
+                if (auto session = connect(m_exchangeBaseUri + "/ws/" + m_listenKey); session)
+                {
+                    try
+                    {
+                        auto token = session->getCancelToken();
+
+                        session->receiveTask = pplx::create_task([session, token, this]
+                        {
+                            while (!token.is_canceled())
+                            {
+                                session->client.receive().then([=](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
+                                {
+                                    if (!token.is_canceled())
+                                    {
+                                        try
+                                        {
+                                            // get the payload synchronously
+                                            std::string strMsg;
+                                            websocketInMessage.get().extract_string().then([=, &strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
+                                            {
+                                                try
+                                                {
+                                                    if (!cancelToken.is_canceled())
+                                                        strMsg = str_tsk.get();
+                                                }
+                                                catch (...)
+                                                {
+
+                                                }
+                                            }, session->getCancelToken()).wait();
+
+
+                                            // we will receive a 'ping' from bianance, which cpprestsdk sends to here but we can ignore it
+                                            if (web::json::value jsonVal = web::json::value::parse(strMsg); jsonVal.size())
+                                            {
+                                                std::wcout << "\n" << jsonVal;
+
+                                                const utility::string_t CodeField = utility::conversions::to_string_t("code");
+                                                const utility::string_t MsgField = utility::conversions::to_string_t("msg");
+
+                                                if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
+                                                {
+                                                    std::cout << "\nError: " << utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) << " : " << utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string());
+                                                }
+                                                else
+                                                {
+                                                    const utility::string_t EventTypeField = utility::conversions::to_string_t("e");
+                                                    const utility::string_t BalancesField = utility::conversions::to_string_t("B");
+
+                                                    const utility::string_t EventOutboundAccountPosition = utility::conversions::to_string_t("outboundAccountPosition");
+                                                    const utility::string_t EventBalanceUpdate = utility::conversions::to_string_t("balanceUpdate");
+                                                    const utility::string_t EventExecutionReport = utility::conversions::to_string_t("executionReport");
+                                                    
+
+
+                                                    UserDataStreamData::EventType type = UserDataStreamData::EventType::Unknown;
+
+                                                    if (jsonVal.at(EventTypeField).as_string() == EventOutboundAccountPosition)
+                                                    {
+                                                        type = UserDataStreamData::EventType::AccountUpdate;
+                                                    }
+                                                    else if (jsonVal.at(EventTypeField).as_string() == EventBalanceUpdate)
+                                                    {
+                                                        type = UserDataStreamData::EventType::BalanceUpdate;
+                                                    }
+                                                    else if (jsonVal.at(EventTypeField).as_string() == EventExecutionReport)
+                                                    {
+                                                        type = UserDataStreamData::EventType::OrderUpdate;
+                                                    }
+
+                                                    
+                                                    UserDataStreamData userData(type);
+
+                                                    if (type != UserDataStreamData::EventType::Unknown)
+                                                    {
+                                                        switch (type)
+                                                        {
+
+                                                        case UserDataStreamData::EventType::AccountUpdate:
+                                                        {
+                                                            getJsonValues(jsonVal, userData.data, { "e", "E", "u" });
+
+                                                            for (auto& balance : jsonVal[BalancesField].as_array())
+                                                            {
+                                                                map<string, string> values;
+                                                                getJsonValues(balance, values, { "a", "f", "l" });
+
+                                                                userData.balances[values["a"]] = std::move(values);
+                                                            }
+                                                        }
+                                                        break;
+
+
+                                                        case UserDataStreamData::EventType::BalanceUpdate:
+                                                            getJsonValues(jsonVal, userData.data, { "e", "E", "a", "d", "T" });
+                                                            break;
+
+
+                                                        case UserDataStreamData::EventType::OrderUpdate:
+                                                            getJsonValues(jsonVal, userData.data, { "e", "E", "s", "c", "S", "o", "f", "q", "p", "P", "F", "g", "C", "x", "X", "r", "i", "l", "z",
+                                                                                                    "L", "n", "N", "T", "t", "I", "w", "m", "M", "O", "Z", "Y", "Q" });
+                                                            break;
+
+
+                                                        default:
+                                                            // handled above
+                                                            break;
+                                                        }
+
+
+                                                        session->onUserDataStreamCallback(std::move(userData));
+                                                    }
+                                                }                                                
+                                            }                                            
+                                        }
+                                        catch (...)
+                                        {
+
+                                        }
+                                    }
+                                    else
+                                    {
+                                        pplx::cancel_current_task();
+                                    }
+
+                                }, token).wait();
+                            }
+
+                            pplx::cancel_current_task();
+
+                        }, token);
+
+                        monitorToken.id = m_monitorId++;
+                        session->id = monitorToken.id;
+
+                        m_sessions.push_back(session);                        
+                        m_idToSession[monitorToken.id] = session;                        
+                    }
+                    catch (...)
+                    {
+
+                    }
+                }
+            }
+
+            return monitorToken;
+        }
+
+
     private:
         shared_ptr<WebSocketSession> connect(const string& uri)
         {
@@ -334,9 +518,9 @@ namespace binancews
             {
                 web::uri wsUri(utility::conversions::to_string_t(uri));
                 session->client.connect(wsUri).then([&session]
-                    {
-                        session->connected = true;
-                    }).wait();
+                {
+                    session->connected = true;
+                }).wait();
             }
             catch (const web::websockets::client::websocket_exception we)
             {
@@ -362,7 +546,6 @@ namespace binancews
                 if (MonitorToken monitor = createReceiveTask(session, extractFunction, keys, arrayKey);  monitor.isValid())
                 {
                     session->id = monitor.id;
-
 
                     m_sessions.push_back(session);
                     m_idToSession[monitor.id] = session;
@@ -441,7 +624,7 @@ namespace binancews
                 // we have the message as a string, pass to the json parser and extract fields if no error
                 if (web::json::value jsonVal = web::json::value::parse(strMsg); jsonVal.size())
                 {
-                    const utility::string_t CodeField = utility::conversions::to_string_t("Code");
+                    const utility::string_t CodeField = utility::conversions::to_string_t("code");
                     const utility::string_t MsgField = utility::conversions::to_string_t("msg");
 
                     if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
@@ -488,15 +671,14 @@ namespace binancews
                                 }
                                 else
                                 {
-                                    map<string, string> inner;
-
                                     // key has nested keys
+                                    map<string, string> inner;
+                                    
                                     if (jsonVal.at(utility::conversions::to_string_t(key.first)).is_object())
                                     {
                                         getJsonValues(jsonVal.at(utility::conversions::to_string_t(key.first)).as_object(), inner, key.second);
+                                        values[key.first] = std::move(inner);
                                     }
-
-                                    values[key.first] = std::move(inner);
                                 }
                             }
                         }
@@ -642,6 +824,32 @@ namespace binancews
         }
 
 
+
+        // user data stream
+        bool createListenKey()
+        {
+            bool ok = false;
+
+            web::uri userDataUri (utility::conversions::to_string_t("https://api.binance.com"));
+            web::http::client::http_client client{ userDataUri };
+
+            web::http::http_request request{ web::http::methods::POST };
+            request.headers().add(L"X-MBX-APIKEY", utility::conversions::to_string_t(m_apiKey));
+            request.set_request_uri(L"/api/v3/userDataStream");
+
+            client.request(request).then([&ok, this](web::http::http_response response)
+            {
+                if (response.status_code() == web::http::status_codes::OK)
+                {
+                    ok = true;
+                    m_listenKey = utility::conversions::to_utf8string(response.extract_json().get()[L"listenKey"].as_string());
+                }
+            }).wait();
+
+            return ok;
+        }
+
+
     private:
         vector<shared_ptr<WebSocketSession>> m_sessions;
         map<size_t, shared_ptr<WebSocketSession>> m_idToSession;
@@ -650,6 +858,8 @@ namespace binancews
         string m_exchangeBaseUri;
         std::atomic_bool m_connected;
         std::atomic_bool m_running;
+        string m_apiKey;
+        string m_listenKey;
 
     };
 }
