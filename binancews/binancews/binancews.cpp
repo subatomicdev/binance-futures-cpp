@@ -105,20 +105,18 @@ int main(int argc, char** argv)
         });
 
 
-        Binance be;
+        Binance be{ Binance::Market::Futures };
         
-        be.monitorUserData("YOUR API KEY", handleUserDataSpot);
+        be.monitorMarkPrice(handleKeyMultipleValueData);
+        be.monitorMiniTicker(handleKeyMultipleValueData);
+
 
         //if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
         //{
             //logg("monitorTradeStream failed");
         //}
 
-        //if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
-        //{
-            //logg("monitorAllSymbols failed");
-        //}
-
+        
         //if (auto valid = be.monitorSymbol("zilusdt", handleKeyValueData); !valid.isValid())
         //{
             //logg("monitorSymbol failed");

@@ -46,6 +46,9 @@ namespace binancews
     class Binance 
     {
     public:
+        enum class Market { Spot, Futures };
+
+
         typedef size_t MonitorTokenId;
 
         struct BinanceKeyValueData
@@ -96,6 +99,10 @@ namespace binancews
 
 
     private:
+        const string SpotWebSockUri         = "wss://stream.binance.com:9443";
+        const string FuturestWebSockAddress = "wss://fstream.binance.com";
+
+
         struct WebSocketSession
         {
             WebSocketSession() : connected(false), id(0), cancelToken(cancelTokenSource.get_token())
@@ -162,9 +169,9 @@ namespace binancews
         };
 
 
-        Binance(const string uri = "wss://stream.binance.com:9443") : m_connected(false), m_running(false), m_exchangeBaseUri(uri), m_monitorId(1)
+        Binance(const Market market) : m_connected(false), m_running(false), m_monitorId(1)
         {
-
+            m_exchangeBaseUri = market == Market::Spot ? SpotWebSockUri : FuturestWebSockAddress;
         }
 
 
@@ -181,12 +188,12 @@ namespace binancews
 
 
         /// <summary>
-        /// Receives from the miniTicker stream for all symbols (https://binance-docs.github.io/apidocs/spot/en/#all-market-mini-tickers-stream).
+        /// Receives from the miniTicker stream for all symbols
         /// Updates every 1000ms (limited by the Binance API).
         /// </summary>
         /// <param name="onData">Your callback function. See this classes docs for an explanation</param>
         /// <returns>A MonitorToken. If MonitorToken::isValid() is a problem occured.</returns>
-        MonitorToken monitorAllSymbols(std::function<void(BinanceKeyMultiValueData)> onData)
+        MonitorToken monitorMiniTicker(std::function<void(BinanceKeyMultiValueData)> onData)
         {
             static const JsonKeys keys
             {
@@ -205,7 +212,7 @@ namespace binancews
 
     
         /// <summary>
-        /// Receives from the symbol mini ticker (https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-mini-ticker-stream).
+        /// Receives from the symbol mini ticker
         /// Updated every 1000ms (limited by the Binance API).
         /// </summary>
         /// <param name="symbol">The symbtol to monitor</param>
@@ -238,7 +245,7 @@ namespace binancews
 
 
         /// <summary>
-        /// Receives from the Trade Streams for a given symbol (https://binance-docs.github.io/apidocs/spot/en/#trade-streams).
+        /// Receives from the Trade Streams for a given symbol 
         /// The updates in real time.
         /// </summary>
         /// <param name="symbol">The symbol to receive trades information</param>
@@ -273,7 +280,7 @@ namespace binancews
 
         
         /// <summary>
-        /// Receives from the Individual Symbol Book stream for a given symbol (https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-book-ticker-streams)
+        /// Receives from the Individual Symbol Book stream for a given symbol.
         /// </summary>
         /// <param name="symbol">The symbol</param>
         /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
@@ -302,7 +309,7 @@ namespace binancews
 
 
         /// <summary>
-        /// 
+        /// Receives from the 
         /// </summary>
         /// <param name="symbol"></param>
         /// <param name="onData"></param>
@@ -328,6 +335,28 @@ namespace binancews
             return std::get<0>(tokenAndSession);
         }
 
+
+        /// <summary>
+        /// Futures Only. Receives data from here: https://binance-docs.github.io/apidocs/futures/en/#mark-price-stream-for-all-market
+        /// </summary>
+        /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
+        /// <returns></returns>
+        MonitorToken monitorMarkPrice(std::function<void(BinanceKeyMultiValueData)> onData)
+        {
+            static const JsonKeys keys
+            {
+                {"s", {"e", "E","s","p","i","P","r","T"}}
+            };
+
+            auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!markPrice@arr@1s", keys, "s");
+
+            if (std::get<0>(tokenAndSession).isValid())
+            {
+                std::get<1>(tokenAndSession)->onMultiValueDataUserCallback = onData;
+            }
+
+            return std::get<0>(tokenAndSession);
+        }
 
         /// <summary>
         /// CLose stream for the given token.
