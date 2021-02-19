@@ -12,6 +12,10 @@ using namespace std::chrono_literals;
 using namespace binancews;
 
 
+std::atomic_size_t count;
+
+
+
 int main(int argc, char** argv)
 {
     try
@@ -20,7 +24,7 @@ int main(int argc, char** argv)
         std::atomic_bool silent = false;
 
 
-        auto handleKeyValueData = [&silent](Binance::BinanceKeyValueData data)
+        auto handleKeyValueData = [&silent](Market::BinanceKeyValueData data)
         {
             if (!silent)
             {
@@ -29,42 +33,49 @@ int main(int argc, char** argv)
                     logg(p.first + "=" + p.second);
                 }
             }
+
+            count += data.values.size();
         };
 
 
-        auto handleKeyMultipleValueData = [&silent](Binance::BinanceKeyMultiValueData data)
+        auto handleKeyMultipleValueData = [&silent](Market::BinanceKeyMultiValueData data)
         {
-            if (!silent)
+            std::stringstream ss;
+
+            for (auto& s : data.values)
             {
-                std::stringstream ss;
+                ss << "\n" << s.first << "\n{";
 
-                for (auto& s : data.values)
+                for (auto& value : s.second)
                 {
-                    ss << "\n" << s.first << "\n{";
-
-                    for (auto& value : s.second)
-                    {
-                        ss << "\n\t" << value.first << "=" << value.second;
-                    }
-
-                    ss << "\n}";
+                    ss << "\n\t" << value.first << "=" << value.second;
                 }
 
+                ss << "\n}";
+
+                ++count;
+            }
+
+            if (!silent)
+            {
                 logg(ss.str());
-            }           
+            }                     
         };
 
         
-        auto handleUserDataSpot = [&silent](Binance::UserDataStreamData data)
+        auto handleUserDataSpot = [&silent](Market::UserDataStreamData data)
         {
+            count += data.data.size();
+
             if (!silent)
             {
                 for (auto& p : data.data)
                 {
-                    logg(p.first + "=" + p.second);
+                    logg(p.first + "=" + p.second);                    
                 }
 
-                if (data.type == Binance::UserDataStreamData::EventType::AccountUpdate)
+
+                if (data.type == Market::UserDataStreamData::EventType::AccountUpdate)
                 {
                     std::stringstream ss;
 
@@ -105,33 +116,67 @@ int main(int argc, char** argv)
         });
 
 
-        Binance be{ Binance::Market::Futures };
         
-        be.monitorMarkPrice(handleKeyMultipleValueData);
-        be.monitorMiniTicker(handleKeyMultipleValueData);
+        count = 0;
 
+        // USD futures
+        {
+            UsdFuturesMarket usdFutures;
 
-        //if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
-        //{
-            //logg("monitorTradeStream failed");
-        //}
+            usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
+            usdFutures.monitorMiniTicker(handleKeyMultipleValueData);
 
+            std::cout << "\n--- Futures";
+            std::this_thread::sleep_for(10s);
+            std::cout << "\nReceived " << count.load() << " updates on 2 streams in 10s";
+        }
         
-        //if (auto valid = be.monitorSymbol("zilusdt", handleKeyValueData); !valid.isValid())
-        //{
-            //logg("monitorSymbol failed");
-        //}
 
-        //if (auto valid = be.monitorSymbolBookStream("zilusdt", handleKeyValueData); !valid.isValid())
-        //{
-            //logg("monitorSymbolBookStream failed");
-        //}
-
-        //if (auto valid = be.monitorKlineCandlestickStream("zilusdt", "5m", handleKeyMultipleValueData); !valid.isValid())
-        //{
-            //logg("monitorSymbolBookStream failed");
-        //}
+        count = 0;
         
+        // spot
+        {
+            SpotMarket spot;
+            spot.monitorMiniTicker(handleKeyMultipleValueData);
+
+            std::cout << "\n--- Spot";
+            std::this_thread::sleep_for(10s);
+
+            std::cout << "\nReceived " << count.load() << " updates on 1 stream in 10s";
+        }
+        
+
+        count = 0;
+
+        // Use Market base ptr
+        {
+            shared_ptr<Market> usdFutures = std::make_shared<UsdFuturesMarket>();
+
+            usdFutures->monitorMiniTicker(handleKeyMultipleValueData);
+
+            std::cout << "\n--- Futures";
+            std::this_thread::sleep_for(10s);
+            std::cout << "\nReceived " << count.load() << " updates on 1 stream in 10s";
+        }
+
+
+        count = 0;
+
+        // Use Market base ptr
+        {
+            shared_ptr<Market> spot = std::make_shared<SpotMarket>();
+
+            spot->monitorMiniTicker(handleKeyMultipleValueData);
+
+            std::cout << "\n--- Spot";
+            std::this_thread::sleep_for(10s);
+            std::cout << "\nReceived " << count.load() << " updates on 1 stream in 10s";
+        }
+        
+
+
+        std::cout << "\n\n-------\nDone. Type 'stop' and press enter to exit";
+
         consoleFuture.wait();
     }
     catch (const std::exception ex)
