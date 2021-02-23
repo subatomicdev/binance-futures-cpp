@@ -2,18 +2,6 @@
 
 **This is an active project in the early stages so I don't recommend relying on the API until it's stable.**
 
-
-# Current State
-General:
-- API needs tidying because not all streams are valid for both Spot and Futures
-
-Spot:
-- Many streams for Spot market
-- User data stream for Spot market added, requires more testing
-
-Futures:
-- Added mark price
-
 ---
 
 binancews is a C++17 library which receives market data from the Binance crypto currency exchange. 
@@ -74,16 +62,6 @@ ZENUSDT
 
 int main(int argc, char** argv)
 {
-  // lambda for a map<string, string> monitor function
-  auto handleKeyValueData = [](Binance::BinanceKeyValueData data)
-  {
-    for (auto& p : data.values)
-    {
-      logg(p.first + "=" + p.second);
-    }
-  };
-
-
   // lambda for a map<string, map<string, string>>  monitor function
   auto handleKeyMultipleValueData = [](Binance::BinanceKeyMultiValueData data)
   {
@@ -104,28 +82,14 @@ int main(int argc, char** argv)
     logg(ss.str());
   };
 
-
+ 
   
-  Binance be;
-  
-  // symbols always lower case
-  if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
-  {
-    logg("monitorTradeStream failed");
-  }
+  UsdFuturesMarket usdFutures;
 
-  if (auto valid = be.monitorMiniTicker(handleKeyMultipleValueData); !valid.isValid())
-  {
-    logg("monitorAllSymbols failed");
-  }
+  usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
+  usdFutures.monitorMiniTicker(handleKeyMultipleValueData);
 
-
-  bool run = true;
-  std::string cmd;
-  while (run && std::getline(std::cin, cmd))
-  {
-    run = (cmd != "stop");
-  }
+  std::this_thread::sleep_for(10s);
 
   return 0;
 }
