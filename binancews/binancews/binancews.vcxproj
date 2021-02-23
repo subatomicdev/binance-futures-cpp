@@ -133,7 +133,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>PocoFoundationmtd.lib;cpprest_2_10d.lib;crypt32.lib;libssl.lib;libcrypto.lib;zlibd.lib;brotlienc-static.lib;brotlidec-static.lib;brotlicommon-static.lib;%(AdditionalDependencies);Winhttp.lib</AdditionalDependencies>
+      <AdditionalDependencies>PocoFoundationmtd.lib;cpprest_2_10d.lib;crypt32.lib;libssl.lib;libcrypto.lib;zlibd.lib;brotlienc-static.lib;brotlidec-static.lib;brotlicommon-static.lib;Winhttp.lib;$(OutDir)\binancewslib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\vcpkg_win\installed\x64-windows-static\debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -154,7 +154,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>PocoFoundationmt.lib;cpprest_2_10.lib;crypt32.lib;libssl.lib;libcrypto.lib;zlib.lib;brotlienc-static.lib;brotlidec-static.lib;brotlicommon-static.lib;%(AdditionalDependencies);Winhttp.lib</AdditionalDependencies>
+      <AdditionalDependencies>PocoFoundationmt.lib;cpprest_2_10.lib;crypt32.lib;libssl.lib;libcrypto.lib;zlib.lib;brotlienc-static.lib;brotlidec-static.lib;brotlicommon-static.lib;Winhttp.lib;$(OutDir)\binancewslib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\vcpkg_win\installed\x64-windows-static\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

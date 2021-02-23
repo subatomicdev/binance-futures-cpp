@@ -24,5 +24,13 @@
     <ClInclude Include="BinanceExchange.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="IntervalTimer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="IntervalTimer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

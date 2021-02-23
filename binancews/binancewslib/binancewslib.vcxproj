@@ -20,8 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BinanceExchange.hpp" />
+    <ClInclude Include="IntervalTimer.hpp" />
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="pglibCommon.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="IntervalTimer.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -136,6 +140,7 @@
       </PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)..\vcpkg_win\packages\cpprestsdk_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\redis-plus-plus_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\poco_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-asio_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-config_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-system_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-winapi_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-predef_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-date-time_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\openssl_x64-windows-static\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -160,6 +165,7 @@
       </PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)..\vcpkg_win\packages\cpprestsdk_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\redis-plus-plus_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\poco_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-asio_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-config_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-system_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-winapi_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-predef_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-date-time_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\openssl_x64-windows-static\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
