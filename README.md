@@ -76,7 +76,7 @@ int main(int argc, char** argv)
         ss << "\n" << value.first << "=" << value.second;
       }
 
-      ss << s.first << "\n}";
+      ss << "\n}";
     }
 
     logg(ss.str());
