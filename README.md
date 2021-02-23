@@ -124,5 +124,4 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 
 
 # Run
-This expects the Binance exchange websocket URI at wss://stream.binance.com:9443 .
-This is unlikely to change, but if so it can be updated in BinanceExchange.hpp.
+The provided ```binancews/binancews.cpp``` has a few functions to show the basics.
