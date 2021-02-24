@@ -1,6 +1,6 @@
 # Binance WebSockets
 
-**This is an active project in the early stages so I don't recommend relying on the API until it's stable.**
+**This is an active project in the early stages so I don't recommend relying on the library until it's fully tested and the API is stable.**
 
 ---
 
