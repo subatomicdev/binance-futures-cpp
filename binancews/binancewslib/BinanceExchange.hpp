@@ -20,7 +20,7 @@
 
 
 namespace binancews
-{    
+{
     /// <summary>
     /// Access the Spot Market.
     /// </summary>
@@ -98,9 +98,9 @@ namespace binancews
                         auto token = session->getCancelToken();
 
                         session->receiveTask = pplx::create_task([session, token, &onData, this]
-                        {
-                            handleUserData(session, onData);
-                        }, token);
+                            {
+                                handleUserData(session, onData);
+                            }, token);
 
                         monitorToken.id = m_monitorId++;
                         session->id = monitorToken.id;
@@ -118,7 +118,7 @@ namespace binancews
 
             return monitorToken;
         }
-    
+
 
     private:
 
@@ -323,29 +323,29 @@ namespace binancews
 
                         auto token = session->getCancelToken();
                         session->receiveTask = pplx::create_task([session, token, &onData, this]
-                        {
-                            try
                             {
-                                handleUserData(session, onData);
-                            }
-                            catch (pplx::task_canceled tc)
-                            {
-                                // the receive task was cancelled, not triggered by us, most likely the server we need to disconnect this client.
-                                logg("task cancelled exception " + string{ tc.what() } + " on " + utility::conversions::to_utf8string(session->client.uri().to_string()));
-                                logg("this stream will be disconnected");
+                                try
+                                {
+                                    handleUserData(session, onData);
+                                }
+                                catch (pplx::task_canceled tc)
+                                {
+                                    // the receive task was cancelled, not triggered by us, most likely the server we need to disconnect this client.
+                                    logg("task cancelled exception " + string{ tc.what() } + " on " + utility::conversions::to_utf8string(session->client.uri().to_string()));
+                                    logg("this stream will be disconnected");
 
-                                disconnect(session->id, true);
-                            }
-                            catch (std::exception ex)
-                            {
-                                logg(ex.what());
-                            }
+                                    disconnect(session->id, true);
+                                }
+                                catch (std::exception ex)
+                                {
+                                    logg(ex.what());
+                                }
 
-                        }, token);
+                            }, token);
 
 
                         auto timerFunc = std::bind(&UsdFuturesMarket::onUserDataTimer, this);
-                        
+
                         if (m_marketType == MarketType::FuturesTest)
                         {
                             //TODO ISSUE this doesn't seem to please the testnet, creating orders on the site keeps the connection alive
@@ -401,12 +401,12 @@ namespace binancews
             web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(uri)} };
 
             client.request(request).then([this](web::http::http_response response)
-            {
-                if (response.status_code() != web::http::status_codes::OK)
                 {
-                    logg("ERROR : keepalive for listen key failed");
-                }
-            }).wait();
+                    if (response.status_code() != web::http::status_codes::OK)
+                    {
+                        logg("ERROR : keepalive for listen key failed");
+                    }
+                }).wait();
         }
 
 
@@ -590,7 +590,7 @@ namespace binancews
         }
     };
 
-    
+
 
     /// <summary>
     ///  Uses Binance's Test Net market. Most endpoints are available, including data streams for orders. 

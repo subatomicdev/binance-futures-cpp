@@ -218,7 +218,7 @@ void usdFutureTestNetDataStream(const string& apiKey, const string& secretKey)
     std::cout << "\n\n--- USD-M Futures TestNet User Data ---\n";
     std::cout << "You must create/cancel etc an order for anything to show here\n";
 
-    UsdFuturesTestMarket futuresTest; 
+    UsdFuturesTestMarket futuresTest;
     futuresTest.monitorUserData(apiKey, secretKey, handleUserDataUsdFutures);
 
     std::this_thread::sleep_for(10s);
@@ -248,14 +248,14 @@ int main(int argc, char** argv)
     try
     {
         // api and secret keys
-        const string apiKeyUsdFuturesTest       = "e40fd4783309eed8285e5f00d60e19aa712ce0ecb4d449f015f8702ab1794abf";
-        const string secretKeyUsdFuturesTest    = "6c3d765d9223d2cdf6fe7a16340721d58689e26d10e6a22903dd76e1d01969f0";
+        const string apiKeyUsdFuturesTest = "";
+        const string secretKeyUsdFuturesTest = "";
 
-        const string apiKeySpotMarket       = "yGQbDsteOhR6glu9jDkDIWYCdAAxNqQrW4AoBXzvSAOnLm7H5S38KX11OB275ghS";
-        const string secretKeySpotMarket    = "vZfSlh0sdc6tyyVIuIKy6T5itsvNmGATVXE1G6Mm0k2JQxQhUxv0aj6mUoUde80k";
+        const string apiKeySpotMarket = "";
+        const string secretKeySpotMarket = "";
 
-        const string apiKeyUsdFutures       = "8LBwbPvSu22FYGKFcXwVXWTaLlFwp7OFpQunm2cub5GHtxLgWDZnYomcTE1V1m23";
-        const string secretKeyUsdFutures    = "wvMj4wNyQkS7HYhcpilPNOpqV32J6xXmDZs5tm6IflZwDj2r5JDvkSx0pnampkgb";
+        const string apiKeyUsdFutures = "";
+        const string secretKeyUsdFutures = "";
 
 
 
@@ -264,19 +264,19 @@ int main(int argc, char** argv)
         //  2. these functions are synchronous
 
 
-        //markPrice();
+        markPrice();
 
         //multipleStreams();
-        
+
         //usdFutureTestNetDataStream(apiKeyUsdFuturesTest, secretKeyUsdFuturesTest);
 
         //usdFutureDataStream(apiKeyUsdFutures, secretKeyUsdFutures);
-        
+
     }
     catch (const std::exception ex)
     {
         logg(ex.what());
     }
-    
+
     return 0;
 }
