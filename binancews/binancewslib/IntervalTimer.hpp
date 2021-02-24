@@ -1,4 +1,6 @@
-#pragma once
+#ifndef __BINANCE_INTERVALTIMER_HPP 
+#define __BINANCE_INTERVALTIMER_HPP
+
 
 #include <chrono>
 #include <functional>
@@ -28,3 +30,5 @@ namespace binancews
 		std::function<void()> m_callback;
 	};
 }
+
+#endif

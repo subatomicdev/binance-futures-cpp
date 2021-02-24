@@ -1,6 +1,5 @@
-#pragma once
-
-#define NOMINMAX
+#ifndef __BINANCE_COMMON_HPP 
+#define __BINANCE_COMMON_HPP
 
 #include <functional>
 #include <vector>
@@ -53,3 +52,5 @@ namespace binancews
         return out.str();
     }
 }
+
+#endif

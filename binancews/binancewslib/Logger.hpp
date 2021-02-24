@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __BINANCE_LOGGER_HPP 
+#define __BINANCE_LOGGER_HPP
 
 #include <string>
 #include <iostream>
@@ -31,3 +32,5 @@ namespace binancews
         }
     }
 }
+
+#endif

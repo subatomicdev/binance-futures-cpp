@@ -12,7 +12,6 @@ using namespace std::chrono_literals;
 using namespace binancews;
 
 
-std::atomic_size_t count;
 std::atomic_bool silent = false;
 
 
@@ -22,7 +21,7 @@ auto handleKeyMultipleValueData = [](Market::BinanceKeyMultiValueData data)
     {
         std::stringstream ss;
 
-        for (auto& s : data.values)
+        for (const auto& s : data.values)
         {
             ss << "\n" << s.first << "\n{";
 
@@ -36,8 +35,6 @@ auto handleKeyMultipleValueData = [](Market::BinanceKeyMultiValueData data)
 
         logg(ss.str());
     }
-
-    count += data.values.size();
 };
 
 
@@ -45,39 +42,34 @@ auto handleKeyValueData = [](Market::BinanceKeyValueData data)
 {
     if (!silent)
     {
-        for (auto& p : data.values)
+        for (const auto& p : data.values)
         {
             logg(p.first + "=" + p.second);
         }
     }
-
-    count += data.values.size();
 };
 
 
 auto handleUserDataSpot = [](Market::SpotUserData data)
 {
-    count += data.data.size();
-
     if (!silent)
     {
-        for (auto& p : data.data)
+        for (const auto& p : data.data)
         {
             logg(p.first + "=" + p.second);
         }
-
 
         if (data.type == Market::SpotUserData::EventType::AccountUpdate)
         {
             std::stringstream ss;
 
-            for (auto& asset : data.balances)
+            for (auto& asset : data.au.balances)
             {
                 ss << "\n" << asset.first << "\n{"; // asset symbol
 
                 for (const auto& balance : asset.second)
                 {
-                    ss << "\n\t" << asset.first << "=" << balance.second;   // the asset symbol, free and locked values for this symbol
+                    ss << "\n\t" << balance.first << "=" << balance.second;   // the asset symbol, free and locked values for this symbol
                 }
 
                 ss << "\n}";
@@ -91,8 +83,6 @@ auto handleUserDataSpot = [](Market::SpotUserData data)
 
 auto handleUserDataUsdFutures = [](Market::UsdFutureUserData data)
 {
-    count += data.mc.data.size();
-
     if (!silent)
     {
         if (data.type == Market::UsdFutureUserData::EventType::MarginCall)
@@ -186,12 +176,12 @@ auto handleUserDataUsdFutures = [](Market::UsdFutureUserData data)
 
 
 
-
+/// <summary>
+/// A simple function to receive mark price from the Future's market for all symbols.
+/// </summary>
 void markPrice()
 {
     std::cout << "\n\n--- Mark Price ---\n";
-
-    count = 0;
 
     UsdFuturesMarket usdFutures;
 
@@ -201,11 +191,12 @@ void markPrice()
 }
 
 
+/// <summary>
+/// Shows it's easy to receive multiple streams.
+/// </summary>
 void multipleStreams()
 {
     std::cout << "\n\n--- Multiple Streams on Futures ---\n";
-
-    count = 0;
 
     UsdFuturesMarket usdFutures;
 
@@ -216,71 +207,64 @@ void multipleStreams()
 }
 
 
+/// <summary>
+/// Receive user data from the Future's TestNet market: https://testnet.binancefuture.com/en/futures/BTC_USDT
+/// Note, they seem to disconnect clients after a few orders are created/closed.
+/// </summary>
+/// <param name="apiKey">Create an account on the above URL. This key is available at the bottom of the page</param>
+/// <param name="secretKey">Create an account on the above URL. This key is available at the bottom of the page</param>
 void usdFutureTestNetDataStream(const string& apiKey, const string& secretKey)
 {
     std::cout << "\n\n--- USD-M Futures TestNet User Data ---\n";
     std::cout << "You must create/cancel etc an order for anything to show here\n";
 
-    UsdFuturesTestMarket futuresTest;
+    UsdFuturesTestMarket futuresTest; 
     futuresTest.monitorUserData(apiKey, secretKey, handleUserDataUsdFutures);
 
     std::this_thread::sleep_for(10s);
 }
 
 
+/// <summary>
+/// Receive from the real Future market.
+/// </summary>
+/// <param name="apiKey"></param>
+/// <param name="secretKey"></param>
 void usdFutureDataStream(const string& apiKey, const string& secretKey)
 {
-    std::cout << "\n\n--- USD-M Futures TestNet User Data ---\n";
+    std::cout << "\n\n--- USD-M Futures User Data ---\n";
     std::cout << "You must create/cancel etc an order for anything to show here\n";
 
     UsdFuturesMarket futures;
     futures.monitorUserData(apiKey, secretKey, handleUserDataUsdFutures);
 
-    std::this_thread::sleep_for(10s);
+    std::this_thread::sleep_for(7200s);
 }
+
 
 
 int main(int argc, char** argv)
 {
     try
     {
-        /*
-        std::cout << "Commands:\nstop : exit\nsilent (s): no output to console\nverbose (v): output to console\n\n";
-        auto consoleFuture = std::async(std::launch::async, []()
-        {
-            bool run = true;
-            std::string cmd;
-            while (run && std::getline(std::cin, cmd))
-            {
-                run = (cmd != "stop");
-                
-                if (cmd == "silent" || cmd == "s")
-                    silent = true;
-                else if (cmd == "verbose" || cmd == "v")
-                    silent = false;
-            }
-        });*/
-        
-        
         // api and secret keys
-        const string apiKeyUsdFuturesTest = "";
-        const string secretKeyUsdFuturesTest = "";
+        const string apiKeyUsdFuturesTest       = "e40fd4783309eed8285e5f00d60e19aa712ce0ecb4d449f015f8702ab1794abf";
+        const string secretKeyUsdFuturesTest    = "6c3d765d9223d2cdf6fe7a16340721d58689e26d10e6a22903dd76e1d01969f0";
 
-        const string apiKeySpotMarket = "";
-        const string secretKeySpotMarket = "";
+        const string apiKeySpotMarket       = "yGQbDsteOhR6glu9jDkDIWYCdAAxNqQrW4AoBXzvSAOnLm7H5S38KX11OB275ghS";
+        const string secretKeySpotMarket    = "vZfSlh0sdc6tyyVIuIKy6T5itsvNmGATVXE1G6Mm0k2JQxQhUxv0aj6mUoUde80k";
 
-        const string apiKeyUsdFutures = "";
-        const string secretKeyUsdFutures = "";
+        const string apiKeyUsdFutures       = "8LBwbPvSu22FYGKFcXwVXWTaLlFwp7OFpQunm2cub5GHtxLgWDZnYomcTE1V1m23";
+        const string secretKeyUsdFutures    = "wvMj4wNyQkS7HYhcpilPNOpqV32J6xXmDZs5tm6IflZwDj2r5JDvkSx0pnampkgb";
 
 
 
         // NOTE 
-        //  1. if a function does take api/secret keys as args, you can run without
+        //  1. if a function does not take api/secret keys as args, you can run without
         //  2. these functions are synchronous
 
 
-
-        markPrice();
+        //markPrice();
 
         //multipleStreams();
         
@@ -293,7 +277,6 @@ int main(int argc, char** argv)
     {
         logg(ex.what());
     }
-
     
     return 0;
 }

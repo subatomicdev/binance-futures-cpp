@@ -20,12 +20,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BinanceExchange.hpp" />
+    <ClInclude Include="binancewsCommon.hpp" />
     <ClInclude Include="IntervalTimer.hpp" />
     <ClInclude Include="Logger.hpp" />
-    <ClInclude Include="pglibCommon.hpp" />
+    <ClInclude Include="Market.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IntervalTimer.cpp" />
+    <ClCompile Include="Market.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -94,6 +96,12 @@
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <VcpkgUseStatic>true</VcpkgUseStatic>
     <VcpkgTriplet>x64-windows-static</VcpkgTriplet>
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <VcpkgEnabled>false</VcpkgEnabled>
+    <VcpkgTriplet>x64-windows-static</VcpkgTriplet>
+    <VcpkgUseStatic>true</VcpkgUseStatic>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -133,13 +141,13 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;_WIN32_WINNT=_WIN32_WINNT_WIN10;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\vcpkg_win\packages\cpprestsdk_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\redis-plus-plus_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\poco_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-asio_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-config_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-system_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-winapi_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-predef_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-date-time_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\openssl_x64-windows-static\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\vcpkg_win\installed\x64-windows-static\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -158,13 +166,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;_WIN32_WINNT=_WIN32_WINNT_WIN10;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\vcpkg_win\packages\cpprestsdk_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\redis-plus-plus_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\poco_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-asio_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-config_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-system_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-winapi_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-predef_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\boost-date-time_x64-windows-static\include;$(SolutionDir)..\vcpkg_win\packages\openssl_x64-windows-static\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\vcpkg_win\installed\x64-windows-static\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -176,6 +184,7 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(SolutionDir)..\vcpkg_win\installed\x64-windows-static\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>PocoFoundationmt.lib;cpprest_2_10.lib;crypt32.lib;</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
