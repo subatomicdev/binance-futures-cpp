@@ -410,7 +410,7 @@ namespace binancews
                 }
                 else if (response.status_code() == web::http::status_codes::Unauthorized)
                 {
-                    throw std::exception{"Binance returned HTTP 401 error whilst creating listen key. Ensure your API and secret keys have permissions enabled for this market"};
+                    throw std::runtime_error{"Binance returned HTTP 401 error whilst creating listen key. Ensure your API and secret keys have permissions enabled for this market"};
                 }
             }).wait();
         }
