@@ -53,7 +53,7 @@ namespace binancews
     class Market
     {
     public:
-        enum class MarketType { Spot, Futures, FuturesTest };
+        enum class MarketType { Spot, Futures, FuturesTest, SpotTest };
 
         typedef size_t MonitorTokenId;
 
@@ -179,14 +179,18 @@ namespace binancews
         };
 
 
-        enum class UserDataStreamMode { Spot };
 
         const string SpotWebSockUri = "wss://stream.binance.com:9443";
+        const string TestSpotWebSockUri = "wss://testnet.binance.vision";
         const string FuturestWebSockUri = "wss://fstream.binance.com";
         const string TestFuturestWebSockUri = "wss://stream.binancefuture.com";
 
+        
+        const string SpotRestUri = "https://api.binance.com";
+        const string TestSpotRestUri = "https://testnet.binance.vision";
         const string UsdFuturesRestUri = "https://fapi.binance.com";
         const string TestUsdFuturestRestUri = "https://testnet.binancefuture.com";
+
 
         const string SpotRequestPath = "/api/v3/userDataStream";
         const string UsdFuturesRequestPath = "/fapi/v1/listenKey";
@@ -195,9 +199,7 @@ namespace binancews
         const string ListenKeyName = "listenKey";
         const string ClientSDKVersionName = "client_SDK_Version";
         const string ContentTypeName = "Content-Type";
-
-
-        const string SpotRestUri = "https://api.binance.com";
+               
 
 
         struct WebSocketSession

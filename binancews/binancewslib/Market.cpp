@@ -44,7 +44,6 @@ namespace binancews
             {"k", {"t", "T", "s", "i", "f", "L", "o", "c", "h", "l", "v", "n", "x", "q", "V", "Q", "B"}}
         };
 
-
         auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@kline_" + interval, keys);
 
         if (std::get<0>(tokenAndSession).isValid())
@@ -116,24 +115,26 @@ namespace binancews
 
             // calling wait() on a task that's already cancelled throws an exception
             if (!session->receiveTask.is_done())
+            {
                 session->receiveTask.wait();
+            }                
 
             session->client.close(ws::client::websocket_close_status::normal).then([&session]()
-                {
-                    session->connected = false;
-                }).wait();
+            {
+                session->connected = false;
+            }).wait();
 
-                // when called from disconnect() this flag is false to avoid invalidating iterators in m_idToSession, 
-                // this is tidier than returning the new iterator from erase()
-                if (deleteSession)
+            // when called from disconnect() this flag is false to avoid invalidating iterators in m_idToSession, 
+            // this is tidier than returning the new iterator from erase()
+            if (deleteSession)
+            {
+                if (auto storedSessionIt = std::find_if(m_sessions.cbegin(), m_sessions.cend(), [this, &mt](auto& sesh) { return sesh->id == mt.id; });  storedSessionIt != m_sessions.end())
                 {
-                    if (auto storedSessionIt = std::find_if(m_sessions.cbegin(), m_sessions.cend(), [this, &mt](auto& sesh) { return sesh->id == mt.id; });  storedSessionIt != m_sessions.end())
-                    {
-                        m_sessions.erase(storedSessionIt);
-                    }
-
-                    m_idToSession.erase(itIdToSession);
+                    m_sessions.erase(storedSessionIt);
                 }
+
+                m_idToSession.erase(itIdToSession);
+            }
         }
     }
 
@@ -145,9 +146,9 @@ namespace binancews
         for (const auto& idToSession : m_idToSession)
         {
             disconnectTasks.emplace_back(pplx::create_task([&idToSession, this]
-                {
-                    disconnect(idToSession.first, false);
-                }));
+            {
+                disconnect(idToSession.first, false);
+            }));
         }
 
         pplx::when_all(disconnectTasks.begin(), disconnectTasks.end()).wait();
@@ -167,9 +168,9 @@ namespace binancews
         {
             web::uri wsUri(utility::conversions::to_string_t(uri));
             session->client.connect(wsUri).then([&session]
-                {
-                    session->connected = true;
-                }).wait();
+            {
+                session->connected = true;
+            }).wait();
         }
         catch (const web::websockets::client::websocket_exception we)
         {
@@ -309,26 +310,26 @@ namespace binancews
             auto token = session->getCancelToken();
 
             session->receiveTask = pplx::create_task([session, token, extractFunc, keys, arrayKey, this]
+            {
+                while (!token.is_canceled())
                 {
-                    while (!token.is_canceled())
+                    session->client.receive().then([=](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
                     {
-                        session->client.receive().then([=](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
-                            {
-                                if (!token.is_canceled())
-                                {
-                                    extractFunc(websocketInMessage.get(), session, keys, arrayKey);
-                                }
-                                else
-                                {
-                                    pplx::cancel_current_task();
-                                }
+                        if (!token.is_canceled())
+                        {
+                            extractFunc(websocketInMessage.get(), session, keys, arrayKey);
+                        }
+                        else
+                        {
+                            pplx::cancel_current_task();
+                        }
 
-                            }, token).wait();
-                    }
+                    }, token).wait();
+                }
 
-                    pplx::cancel_current_task();
+                pplx::cancel_current_task();
 
-                }, token);
+            }, token);
 
 
             monitorToken.id = m_monitorId;
@@ -364,6 +365,11 @@ namespace binancews
                 path = SpotRequestPath;
                 break;
 
+            case MarketType::SpotTest:
+                uri = TestSpotRestUri;
+                path = SpotRequestPath;
+                break;
+
             case MarketType::Futures:
                 uri = UsdFuturesRestUri;
                 path = UsdFuturesRequestPath;
@@ -376,13 +382,13 @@ namespace binancews
             }
 
             string queryString;
+            if (marketType == MarketType::Futures || marketType == MarketType::FuturesTest)
             {
                 std::stringstream query;
                 query << "timestamp=" << get_current_ms_epoch() << "&recvWindow=5000";
 
                 queryString = query.str() + "&signature=" + createSignature(m_secretKey, query.str());
             }
-
 
             // build the request, with appropriate headers, the API key and the query string with the signature appended
             web::uri requstUri(utility::conversions::to_string_t(path + "?" + queryString));

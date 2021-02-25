@@ -238,22 +238,47 @@ void usdFutureDataStream(const string& apiKey, const string& secretKey)
     UsdFuturesMarket futures;
     futures.monitorUserData(apiKey, secretKey, handleUserDataUsdFutures);
 
-    std::this_thread::sleep_for(7200s);
+    std::this_thread::sleep_for(10s);
 }
 
+
+void spotTestNetDataStream(const string& apiKey, const string& secretKey)
+{
+    std::cout << "\n\n--- Spot TestNet User Data ---\n";
+    std::cout << "You must create/cancel etc an order for anything to show here\n";
+
+    SpotTestMarket spotTest;
+    spotTest.monitorUserData(apiKey, secretKey, handleUserDataSpot);
+
+    std::this_thread::sleep_for(10s);
+}
+
+void spotDataStream(const string& apiKey, const string& secretKey)
+{
+    std::cout << "\n\n--- Spot User Data ---\n";
+    std::cout << "You must create/cancel etc an order for anything to show here\n";
+
+    SpotMarket spot;
+    spot.monitorUserData(apiKey, secretKey, handleUserDataSpot);
+
+    std::this_thread::sleep_for(10s);
+}
 
 
 int main(int argc, char** argv)
 {
     try
-    {
-        // api and secret keys
-        const string apiKeyUsdFuturesTest = "";
-        const string secretKeyUsdFuturesTest = "";
-
+    {        
+        // spot testnet
+        const string apiKeySpotTest = "";
+        const string secretKeySpotTest = "";
+        // spot 'real'
         const string apiKeySpotMarket = "";
         const string secretKeySpotMarket = "";
-
+        // futures testnet
+        const string apiKeyUsdFuturesTest = "";
+        const string secretKeyUsdFuturesTest = "";
+        // futures 'real'
         const string apiKeyUsdFutures = "";
         const string secretKeyUsdFutures = "";
 
@@ -272,6 +297,9 @@ int main(int argc, char** argv)
 
         //usdFutureDataStream(apiKeyUsdFutures, secretKeyUsdFutures);
 
+        //spotTestNetDataStream(apiKeySpotTest, secretKeySpotTest);
+
+        //spotDataStream(apiKeySpotMarket, secretKeySpotMarket);
     }
     catch (const std::exception ex)
     {

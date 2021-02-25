@@ -26,8 +26,13 @@ namespace binancews
     /// </summary>
     class SpotMarket : public Market
     {
+    protected:
+        SpotMarket(MarketType mt, const string& exchangeUri) : Market(mt, exchangeUri)
+        {
+        }
+
     public:
-        SpotMarket() : Market(MarketType::Spot, SpotWebSockUri)
+        SpotMarket() : SpotMarket(MarketType::Spot, SpotWebSockUri)
         {
 
         }
@@ -89,7 +94,7 @@ namespace binancews
 
             MonitorToken monitorToken;
 
-            if (createListenKey(MarketType::Spot))
+            if (createListenKey(m_marketType))
             {
                 if (auto session = connect(m_exchangeBaseUri + "/ws/" + m_listenKey); session)
                 {
@@ -98,9 +103,9 @@ namespace binancews
                         auto token = session->getCancelToken();
 
                         session->receiveTask = pplx::create_task([session, token, &onData, this]
-                            {
-                                handleUserData(session, onData);
-                            }, token);
+                        {
+                            handleUserData(session, onData);
+                        }, token);
 
                         monitorToken.id = m_monitorId++;
                         session->id = monitorToken.id;
@@ -109,9 +114,17 @@ namespace binancews
                         m_sessions.push_back(session);
                         m_idToSession[monitorToken.id] = session;
                     }
-                    catch (...)
+                    catch (pplx::task_canceled tc)
                     {
+                        // the receive task was cancelled, not triggered by us, most likely the server we need to disconnect this client.
+                        logg("task cancelled exception " + string{ tc.what() } + " on " + utility::conversions::to_utf8string(session->client.uri().to_string()));
+                        logg("this stream will be disconnected");
 
+                        disconnect(session->id, true);
+                    }
+                    catch (std::exception ex)
+                    {
+                        logg(ex.what());
                     }
                 }
             }
@@ -126,118 +139,129 @@ namespace binancews
         {
             while (!session->getCancelToken().is_canceled())
             {
-                session->client.receive().then([=, token = session->getCancelToken()](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
+                try
                 {
-                    if (!token.is_canceled())
+                    session->client.receive().then([=, token = session->getCancelToken()](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
                     {
-                        try
+                        if (!token.is_canceled())
                         {
-                            // get the payload synchronously
-                            std::string strMsg;
-                            websocketInMessage.get().extract_string().then([=, &strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
+                            try
                             {
-                                try
+                                // get the payload synchronously
+                                std::string strMsg;
+                                websocketInMessage.get().extract_string().then([=, &strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
                                 {
-                                    if (!cancelToken.is_canceled())
-                                        strMsg = str_tsk.get();
-                                }
-                                catch (...)
-                                {
-
-                                }
-                            }, session->getCancelToken()).wait();
-
-
-                            if (web::json::value jsonVal = web::json::value::parse(strMsg); jsonVal.size())
-                            {
-                                const utility::string_t CodeField = utility::conversions::to_string_t("code");
-                                const utility::string_t MsgField = utility::conversions::to_string_t("msg");
-
-                                if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
-                                {
-                                    std::cout << "\nError: " << utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) << " : " << utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string());
-                                }
-                                else
-                                {
-                                    const utility::string_t EventTypeField = utility::conversions::to_string_t("e");
-                                    const utility::string_t BalancesField = utility::conversions::to_string_t("B");
-
-                                    const utility::string_t EventOutboundAccountPosition = utility::conversions::to_string_t("outboundAccountPosition");
-                                    const utility::string_t EventBalanceUpdate = utility::conversions::to_string_t("balanceUpdate");
-                                    const utility::string_t EventExecutionReport = utility::conversions::to_string_t("executionReport");
-
-
-                                    SpotUserData::EventType type = SpotUserData::EventType::Unknown;
-
-                                    if (jsonVal.at(EventTypeField).as_string() == EventOutboundAccountPosition)
+                                    try
                                     {
-                                        type = SpotUserData::EventType::AccountUpdate;
+                                        if (!cancelToken.is_canceled())
+                                            strMsg = str_tsk.get();
                                     }
-                                    else if (jsonVal.at(EventTypeField).as_string() == EventBalanceUpdate)
+                                    catch (...)
                                     {
-                                        type = SpotUserData::EventType::BalanceUpdate;
+
                                     }
-                                    else if (jsonVal.at(EventTypeField).as_string() == EventExecutionReport)
+                                }, session->getCancelToken()).wait();
+
+
+                                if (web::json::value jsonVal = web::json::value::parse(strMsg); jsonVal.size())
+                                {
+                                    const utility::string_t CodeField = utility::conversions::to_string_t("code");
+                                    const utility::string_t MsgField = utility::conversions::to_string_t("msg");
+
+                                    if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
                                     {
-                                        type = SpotUserData::EventType::OrderUpdate;
+                                        std::cout << "\nError: " << utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) << " : " << utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string());
                                     }
-
-
-                                    SpotUserData userData(type);
-
-                                    if (type != SpotUserData::EventType::Unknown)
+                                    else
                                     {
-                                        switch (type)
+                                        const utility::string_t EventTypeField = utility::conversions::to_string_t("e");
+                                        const utility::string_t BalancesField = utility::conversions::to_string_t("B");
+
+                                        const utility::string_t EventOutboundAccountPosition = utility::conversions::to_string_t("outboundAccountPosition");
+                                        const utility::string_t EventBalanceUpdate = utility::conversions::to_string_t("balanceUpdate");
+                                        const utility::string_t EventExecutionReport = utility::conversions::to_string_t("executionReport");
+
+
+                                        SpotUserData::EventType type = SpotUserData::EventType::Unknown;
+
+                                        if (jsonVal.at(EventTypeField).as_string() == EventOutboundAccountPosition)
                                         {
-
-                                        case SpotUserData::EventType::AccountUpdate:
+                                            type = SpotUserData::EventType::AccountUpdate;
+                                        }
+                                        else if (jsonVal.at(EventTypeField).as_string() == EventBalanceUpdate)
                                         {
-                                            getJsonValues(jsonVal, userData.data, { "e", "E", "u" });
+                                            type = SpotUserData::EventType::BalanceUpdate;
+                                        }
+                                        else if (jsonVal.at(EventTypeField).as_string() == EventExecutionReport)
+                                        {
+                                            type = SpotUserData::EventType::OrderUpdate;
+                                        }
 
-                                            for (auto& balance : jsonVal[BalancesField].as_array())
+
+                                        SpotUserData userData(type);
+
+                                        if (type != SpotUserData::EventType::Unknown)
+                                        {
+                                            switch (type)
                                             {
-                                                map<string, string> values;
-                                                getJsonValues(balance, values, { "a", "f", "l" });
 
-                                                userData.au.balances[values["a"]] = std::move(values);
+                                            case SpotUserData::EventType::AccountUpdate:
+                                            {
+                                                getJsonValues(jsonVal, userData.data, { "e", "E", "u" });
+
+                                                for (auto& balance : jsonVal[BalancesField].as_array())
+                                                {
+                                                    map<string, string> values;
+                                                    getJsonValues(balance, values, { "a", "f", "l" });
+
+                                                    userData.au.balances[values["a"]] = std::move(values);
+                                                }
                                             }
+                                            break;
+
+
+                                            case SpotUserData::EventType::BalanceUpdate:
+                                                getJsonValues(jsonVal, userData.data, { "e", "E", "a", "d", "T" });
+                                                break;
+
+
+                                            case SpotUserData::EventType::OrderUpdate:
+                                                getJsonValues(jsonVal, userData.data, { "e", "E", "s", "c", "S", "o", "f", "q", "p", "P", "F", "g", "C", "x", "X", "r", "i", "l", "z",
+                                                                                        "L", "n", "N", "T", "t", "I", "w", "m", "M", "O", "Z", "Y", "Q" });
+                                                break;
+
+
+                                            default:
+                                                // handled above
+                                                break;
+                                            }
+
+
+                                            session->onSpotUserDataCallback(std::move(userData));
                                         }
-                                        break;
-
-
-                                        case SpotUserData::EventType::BalanceUpdate:
-                                            getJsonValues(jsonVal, userData.data, { "e", "E", "a", "d", "T" });
-                                            break;
-
-
-                                        case SpotUserData::EventType::OrderUpdate:
-                                            getJsonValues(jsonVal, userData.data, { "e", "E", "s", "c", "S", "o", "f", "q", "p", "P", "F", "g", "C", "x", "X", "r", "i", "l", "z",
-                                                                                    "L", "n", "N", "T", "t", "I", "w", "m", "M", "O", "Z", "Y", "Q" });
-                                            break;
-
-
-                                        default:
-                                            // handled above
-                                            break;
-                                        }
-
-
-                                        session->onSpotUserDataCallback(std::move(userData));
                                     }
                                 }
                             }
+                            catch (pplx::task_canceled tc)
+                            {
+                                throw;
+                            }
+                            catch (std::exception ex)
+                            {
+                                throw;
+                            }
                         }
-                        catch (...)
+                        else
                         {
-
+                            pplx::cancel_current_task();
                         }
-                    }
-                    else
-                    {
-                        pplx::cancel_current_task();
-                    }
 
-                }, session->getCancelToken()).wait();
+                    }, session->getCancelToken()).wait();
+                }
+                catch (...)
+                {
+                    throw;
+                }
             }
 
             pplx::cancel_current_task();
@@ -245,6 +269,20 @@ namespace binancews
     };
 
 
+
+
+    class SpotTestMarket : public SpotMarket
+    {
+    public:
+        SpotTestMarket() : SpotMarket(MarketType::SpotTest, TestSpotWebSockUri)
+        {
+
+        }
+
+        virtual ~SpotTestMarket()
+        {
+        }
+    };
 
 
     /// <summary>
@@ -611,6 +649,7 @@ namespace binancews
         {
         }
     };
+
 }
 
 #endif
