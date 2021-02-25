@@ -408,6 +408,10 @@ namespace binancews
                     ok = true;
                     m_listenKey = utility::conversions::to_utf8string(response.extract_json().get()[utility::conversions::to_string_t(ListenKeyName)].as_string());
                 }
+                else if (response.status_code() == web::http::status_codes::Unauthorized)
+                {
+                    throw std::exception{"Binance returned HTTP 401 error whilst creating listen key. Ensure your API and secret keys have permissions enabled for this market"};
+                }
             }).wait();
         }
         catch (const web::websockets::client::websocket_exception we)
