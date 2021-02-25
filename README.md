@@ -118,9 +118,8 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 ```
 ./vcpkg install cpprestsdk[websockets] poco boost-asio --triplet x64-linux
 ```
-3. Go up a directory then into 'binancews' directory and run:   ```cmake .```
-4. Then run: ```make```
-5. The binary is in the 'binancews' sub-dir ('binancews/binancews' from the top level directory) 
+3. Go up a directory then into 'binancews' directory and run:   ```cmake . && make```
+4. The binary is in the 'binancews' sub-dir ('binancews/binancews' from the top level directory) 
 
 
 # Run
