@@ -19,11 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BinanceExchange.hpp" />
     <ClInclude Include="binancewsCommon.hpp" />
+    <ClInclude Include="Futures.hpp" />
     <ClInclude Include="IntervalTimer.hpp" />
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="Market.hpp" />
+    <ClInclude Include="Spot.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IntervalTimer.cpp" />

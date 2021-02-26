@@ -18,9 +18,6 @@
     <ClInclude Include="Logger.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BinanceExchange.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="IntervalTimer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -28,6 +25,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="binancewsCommon.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Futures.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Spot.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

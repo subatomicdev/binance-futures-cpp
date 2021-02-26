@@ -4,7 +4,8 @@
 #include <iostream>
 #include <future>
 
-#include <BinanceExchange.hpp>
+#include <Futures.hpp>
+#include <Spot.hpp>
 #include <Logger.hpp>
 
 
@@ -12,22 +13,53 @@ using namespace std::chrono_literals;
 using namespace binancews;
 
 
-std::atomic_bool silent = false;
-
-
 auto handleKeyMultipleValueData = [](Market::BinanceKeyMultiValueData data)
 {
-    if (!silent)
+    std::stringstream ss;
+
+    for (const auto& s : data.values)
+    {
+        ss << "\n" << s.first << "\n{";
+
+        for (auto& value : s.second)
+        {
+            ss << "\n\t" << value.first << "=" << value.second;
+        }
+
+        ss << "\n}";
+    }
+
+    logg(ss.str());
+};
+
+
+auto handleKeyValueData = [](Market::BinanceKeyValueData data)
+{
+    for (const auto& p : data.values)
+    {
+        logg(p.first + "=" + p.second);
+    }
+};
+
+
+auto handleUserDataSpot = [](Market::SpotUserData data)
+{
+    for (const auto& p : data.data)
+    {
+        logg(p.first + "=" + p.second);
+    }
+
+    if (data.type == Market::SpotUserData::EventType::AccountUpdate)
     {
         std::stringstream ss;
 
-        for (const auto& s : data.values)
+        for (auto& asset : data.au.balances)
         {
-            ss << "\n" << s.first << "\n{";
+            ss << "\n" << asset.first << "\n{"; // asset symbol
 
-            for (auto& value : s.second)
+            for (const auto& balance : asset.second)
             {
-                ss << "\n\t" << value.first << "=" << value.second;
+                ss << "\n\t" << balance.first << "=" << balance.second;   // the asset symbol, free and locked values for this symbol
             }
 
             ss << "\n}";
@@ -38,139 +70,93 @@ auto handleKeyMultipleValueData = [](Market::BinanceKeyMultiValueData data)
 };
 
 
-auto handleKeyValueData = [](Market::BinanceKeyValueData data)
-{
-    if (!silent)
-    {
-        for (const auto& p : data.values)
-        {
-            logg(p.first + "=" + p.second);
-        }
-    }
-};
-
-
-auto handleUserDataSpot = [](Market::SpotUserData data)
-{
-    if (!silent)
-    {
-        for (const auto& p : data.data)
-        {
-            logg(p.first + "=" + p.second);
-        }
-
-        if (data.type == Market::SpotUserData::EventType::AccountUpdate)
-        {
-            std::stringstream ss;
-
-            for (auto& asset : data.au.balances)
-            {
-                ss << "\n" << asset.first << "\n{"; // asset symbol
-
-                for (const auto& balance : asset.second)
-                {
-                    ss << "\n\t" << balance.first << "=" << balance.second;   // the asset symbol, free and locked values for this symbol
-                }
-
-                ss << "\n}";
-            }
-
-            logg(ss.str());
-        }
-    }
-};
-
-
 auto handleUserDataUsdFutures = [](Market::UsdFutureUserData data)
 {
-    if (!silent)
+    if (data.type == Market::UsdFutureUserData::EventType::MarginCall)
     {
-        if (data.type == Market::UsdFutureUserData::EventType::MarginCall)
+        std::stringstream ss;
+        ss << "\nMargin Call\n{";
+
+        for (auto& p : data.mc.data)
         {
-            std::stringstream ss;
-            ss << "\nMargin Call\n{";
+            logg(p.first + "=" + p.second);
+        }
 
-            for (auto& p : data.mc.data)
+        for (auto& asset : data.mc.positions)
+        {
+            ss << "\n" << asset.first << "\n{"; // asset symbol
+
+            for (const auto& balance : asset.second)
             {
-                logg(p.first + "=" + p.second);
-            }
-
-            for (auto& asset : data.mc.positions)
-            {
-                ss << "\n" << asset.first << "\n{"; // asset symbol
-
-                for (const auto& balance : asset.second)
-                {
-                    ss << "\n\t" << balance.first << "=" << balance.second;   // the asset symbol, free and locked values for this symbol
-                }
-
-                ss << "\n}";
+                ss << "\n\t" << balance.first << "=" << balance.second;   // the asset symbol, free and locked values for this symbol
             }
 
             ss << "\n}";
-
-            logg(ss.str());
         }
-        else if (data.type == Market::UsdFutureUserData::EventType::OrderUpdate)
+
+        ss << "\n}";
+
+        logg(ss.str());
+    }
+    else if (data.type == Market::UsdFutureUserData::EventType::OrderUpdate)
+    {
+        std::stringstream ss;
+        ss << "\nOrder Update\n{";
+
+        for (auto& p : data.ou.data)
         {
-            std::stringstream ss;
-            ss << "\nOrder Update\n{";
+            ss << "\n" << p.first << "=" << p.second;
+        }
 
-            for (auto& p : data.ou.data)
+        for (auto& asset : data.ou.orders)
+        {
+            ss << "\n" << asset.first << "\n{"; // asset symbol
+
+            for (const auto& order : asset.second)
             {
-                ss << "\n" << p.first << "=" << p.second;
-            }
-
-            for (auto& asset : data.ou.orders)
-            {
-                ss << "\n" << asset.first << "\n{"; // asset symbol
-
-                for (const auto& order : asset.second)
-                {
-                    ss << "\n\t" << order.first << "=" << order.second;
-                }
-
-                ss << "\n}";
+                ss << "\n\t" << order.first << "=" << order.second;
             }
 
             ss << "\n}";
-
-            logg(ss.str());
         }
-        else if (data.type == Market::UsdFutureUserData::EventType::AccountUpdate)
+
+        ss << "\n}";
+
+        logg(ss.str());
+    }
+    else if (data.type == Market::UsdFutureUserData::EventType::AccountUpdate)
+    {
+        std::stringstream ss;
+        ss << "\nAccount Update\n{";
+
+        for (auto& p : data.au.data)
         {
-            std::stringstream ss;
-            ss << "\nAccount Update\n{";
-
-            for (auto& p : data.au.data)
-            {
-                ss << "\n" << p.first << "=" << p.second;
-            }
-
-            ss << "\nReason: " << data.au.reason;
-
-            ss << "\nBalances:";
-            for (const auto& balance : data.au.balances)
-            {
-                for (auto& asset : balance)
-                {
-                    ss << "\n\t" << asset.first << "=" << asset.second;
-                }
-            }
-
-            ss << "\nPositions:";
-            for (const auto& positions : data.au.positions)
-            {
-                for (auto& asset : positions)
-                {
-                    ss << "\n\t" << asset.first << "=" << asset.second;
-                }
-            }
-
-            ss << "\n}";
-
-            logg(ss.str());
+            ss << "\n" << p.first << "=" << p.second;
         }
+
+        ss << "\nReason: " << data.au.reason;
+
+        ss << "\nBalances:";
+        for (const auto& balance : data.au.balances)
+        {
+            for (auto& asset : balance)
+            {
+                ss << "\n\t" << asset.first << "=" << asset.second;
+            }
+        }
+
+        ss << "\nPositions:";
+        for (const auto& positions : data.au.positions)
+        {
+            for (auto& asset : positions)
+            {
+                ss << "\n\t" << asset.first << "=" << asset.second;
+            }
+        }
+
+        ss << "\n}";
+
+        logg(ss.str());
     }
 };
 
@@ -261,14 +247,14 @@ void spotDataStream(const string& apiKey, const string& secretKey)
     SpotMarket spot;
     spot.monitorUserData(apiKey, secretKey, handleUserDataSpot);
 
-    std::this_thread::sleep_for(10s);
+    std::this_thread::sleep_for(300s);
 }
 
 
 int main(int argc, char** argv)
 {
     try
-    {        
+    {
         // spot testnet
         const string apiKeySpotTest = "";
         const string secretKeySpotTest = "";
