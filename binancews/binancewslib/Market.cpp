@@ -3,7 +3,14 @@
 
 namespace binancews
 {
-    Market::Market(const MarketType market, const string& exchangeBaseUri) : m_connected(false), m_running(false), m_monitorId(1), m_marketType(market), m_exchangeBaseUri(exchangeBaseUri)
+    Market::Market(const MarketType market, const string& exchangeBaseUri, const string& apiKey, const string& secretKey) :
+        m_connected(false),
+        m_running(false),
+        m_monitorId(1),
+        m_marketType(market),
+        m_exchangeBaseUri(exchangeBaseUri),
+        m_apiKey(apiKey),
+        m_secretKey(secretKey)
     {
     }
 
@@ -355,62 +362,38 @@ namespace binancews
 
         try
         {
-            string uri;
-            string path;
-
-            switch (marketType)
-            {
-            case MarketType::Spot:
-                uri = SpotRestUri;
-                path = SpotRequestPath;
-                break;
-
-            case MarketType::SpotTest:
-                uri = TestSpotRestUri;
-                path = SpotRequestPath;
-                break;
-
-            case MarketType::Futures:
-                uri = UsdFuturesRestUri;
-                path = UsdFuturesRequestPath;
-                break;
-
-            case MarketType::FuturesTest:
-                uri = TestUsdFuturestRestUri;
-                path = UsdFuturesRequestPath;
-                break;
-            }
-
+            string uri = getApiUri();
+            string path = getApiPath(RestCall::ListenKey);
             string queryString;
+
+
             if (marketType == MarketType::Futures || marketType == MarketType::FuturesTest)
             {
-                std::stringstream query;
-                query << "timestamp=" << get_current_ms_epoch() << "&recvWindow=5000";
-
-                queryString = query.str() + "&signature=" + createSignature(m_secretKey, query.str());
-            }
+                queryString = createQueryString(map<string, string>{}, true);                
+            }            
 
             // build the request, with appropriate headers, the API key and the query string with the signature appended
             web::uri requstUri(utility::conversions::to_string_t(path + "?" + queryString));
 
             web::http::http_request request{ web::http::methods::POST };
-            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
             request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiKey));
+            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));            
             request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
             request.set_request_uri(requstUri);
-
 
             web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(uri)} };
             client.request(request).then([&ok, this](web::http::http_response response)
             {
+                auto json = response.extract_json().get();
+
                 if (response.status_code() == web::http::status_codes::OK)
                 {
                     ok = true;
-                    m_listenKey = utility::conversions::to_utf8string(response.extract_json().get()[utility::conversions::to_string_t(ListenKeyName)].as_string());
+                    m_listenKey = utility::conversions::to_utf8string(json[utility::conversions::to_string_t(ListenKeyName)].as_string());
                 }
                 else if (response.status_code() == web::http::status_codes::Unauthorized)
                 {
-                    throw std::runtime_error{"Binance returned HTTP 401 error whilst creating listen key. Ensure your API and secret keys have permissions enabled for this market"};
+                    throw std::runtime_error{ "Binance returned HTTP 401:  " + utility::conversions::to_utf8string(json.serialize()) };
                 }
             }).wait();
         }

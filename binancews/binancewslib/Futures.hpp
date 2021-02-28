@@ -15,12 +15,12 @@ namespace binancews
     class UsdFuturesMarket : public Market
     {
     protected:
-        UsdFuturesMarket(MarketType mt, const string& exchangeUri) : Market(mt, exchangeUri)
+        UsdFuturesMarket(MarketType mt, const string& exchangeUri, const string& apiKey = {}, const string& secretKey = {}) : Market(mt, exchangeUri, apiKey, secretKey)
         {
         }
 
     public:
-        UsdFuturesMarket() : UsdFuturesMarket(MarketType::Futures, FuturestWebSockUri)
+        UsdFuturesMarket(const string& apiKey = {}, const string& secretKey = {}) : UsdFuturesMarket(MarketType::Futures, FuturestWebSockUri, apiKey, secretKey)
         {
 
         }
@@ -60,11 +60,8 @@ namespace binancews
         /// <param name="onData"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        MonitorToken monitorUserData(const string& apiKey, const string& secretKey, std::function<void(UsdFutureUserData)> onData)
+        MonitorToken monitorUserData(std::function<void(UsdFutureUserData)> onData)
         {
-            m_apiKey = apiKey;
-            m_secretKey = secretKey;
-
             MonitorToken monitorToken;
 
             if (createListenKey(m_marketType))
@@ -161,12 +158,12 @@ namespace binancews
             web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(uri)} };
 
             client.request(request).then([this](web::http::http_response response)
+            {
+                if (response.status_code() != web::http::status_codes::OK)
                 {
-                    if (response.status_code() != web::http::status_codes::OK)
-                    {
-                        logg("ERROR : keepalive for listen key failed");
-                    }
-                }).wait();
+                    logg("ERROR : keepalive for listen key failed");
+                }
+            }).wait();
         }
 
 
@@ -371,7 +368,7 @@ namespace binancews
     class UsdFuturesTestMarket : public UsdFuturesMarket
     {
     public:
-        UsdFuturesTestMarket() : UsdFuturesMarket(MarketType::FuturesTest, TestFuturestWebSockUri)
+        UsdFuturesTestMarket(const string& apiKey = {}, const string& secretKey = {}) : UsdFuturesMarket(MarketType::FuturesTest, TestFuturestWebSockUri, apiKey, secretKey)
         {
 
         }

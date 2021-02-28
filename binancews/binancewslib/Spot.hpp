@@ -15,12 +15,12 @@ namespace binancews
     class SpotMarket : public Market
     {
     protected:
-        SpotMarket(MarketType mt, const string& exchangeUri) : Market(mt, exchangeUri)
+        SpotMarket(MarketType mt, const string& exchangeUri, const string& apiKey = {}, const string& secretKey = {}) : Market(mt, exchangeUri, apiKey, secretKey)
         {
         }
 
     public:
-        SpotMarket() : SpotMarket(MarketType::Spot, SpotWebSockUri)
+        SpotMarket(const string& apiKey = {}, const string& secretKey = {}) : SpotMarket(MarketType::Spot, SpotWebSockUri, apiKey, secretKey)
         {
 
         }
@@ -75,11 +75,8 @@ namespace binancews
         /// <param name="onData"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        MonitorToken monitorUserData(const string& apiKey, const string& secretKey, std::function<void(SpotUserData)> onData)
-        {
-            m_apiKey = apiKey;
-            m_secretKey = secretKey;
-
+        MonitorToken monitorUserData(std::function<void(SpotUserData)> onData)
+        {            
             MonitorToken monitorToken;
 
             if (createListenKey(m_marketType))
@@ -276,7 +273,7 @@ namespace binancews
     class SpotTestMarket : public SpotMarket
     {
     public:
-        SpotTestMarket() : SpotMarket(MarketType::SpotTest, TestSpotWebSockUri)
+        SpotTestMarket(const string& apiKey = {}, const string& secretKey = {}) : SpotMarket(MarketType::SpotTest, TestSpotWebSockUri, apiKey, secretKey)
         {
 
         }

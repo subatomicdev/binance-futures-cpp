@@ -26,10 +26,12 @@ namespace binancews
     using std::shared_ptr;
     using std::map;
     using std::set;
+    using std::stringstream;
+
 
     using namespace std::chrono_literals;
 
-
+        
 
     /// <summary>
     /// Provides an API to the Binance exchange. Currently only websocket streams are available, see the monitor*() functions.
@@ -53,7 +55,15 @@ namespace binancews
     class Market
     {
     public:
+        typedef std::string MarketStringType;
+
         enum class MarketType { Spot, Futures, FuturesTest, SpotTest };
+
+        enum class RestCall { NewOrder, ListenKey };
+
+        inline static const map<RestCall, string> FuturesCallPathMap    = { {RestCall::NewOrder, "/fapi/v1/order"}, {RestCall::ListenKey, "/fapi/v1/listenKey"} };
+        inline static const map<RestCall, string> SpotCallPathMap       = { {RestCall::NewOrder, "/api/v3/order"}, {RestCall::ListenKey, "/api/v3/userDataStream"} };
+
 
         typedef size_t MonitorTokenId;
 
@@ -164,6 +174,29 @@ namespace binancews
             EventType type;
         };
 
+
+        struct NewOrderResult
+        {
+            NewOrderResult() = default;
+            NewOrderResult(NewOrderResult&&) noexcept = default;
+            NewOrderResult(const NewOrderResult&) = default;
+            NewOrderResult& operator=(const NewOrderResult&) = default;
+            NewOrderResult& operator=(NewOrderResult&&) = default;
+
+
+            NewOrderResult(const string& id) : orderId(id)
+            {
+
+            }
+
+            NewOrderResult(const string& id, map<string, string>&& data) : orderId(id), result(std::move(data))
+            {
+
+            }
+
+            map<string, string> result;
+            string orderId;
+        };
 
         /// <summary>
         /// Returned by monitor functions, containing an ID for use with cancelMonitor() to close this stream.
@@ -291,7 +324,7 @@ namespace binancews
 
     public:
 
-        Market(const MarketType market, const string& exchangeBaseUri) ;
+        Market(const MarketType market, const string& exchangeBaseUri, const string& apiKey = {}, const string& secretKey = {});
 
         virtual ~Market();
 
@@ -300,6 +333,7 @@ namespace binancews
         Market(Market&&) = delete;
         Market operator=(const Market&) = delete;
 
+        // --- monitor functions
 
 
         /// <summary>
@@ -339,8 +373,96 @@ namespace binancews
         MonitorToken monitorSymbolBookStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData);
 
 
+        // --- order management
+
+
+        /// <summary>
+        /// Create a new order. 
+        /// 
+        /// The NewOrderResult is returned which contains the response from the Rest call,
+        /// see https://binance-docs.github.io/apidocs/futures/en/#new-order-trade.
+        /// 
+        /// If the order is successful, the User Data Stream will be updated.
+        /// 
+        /// Use the priceTransform() function to make the price value suitable.
+        /// </summary>
+        /// <param name="order">Order params, see link above.</param>
+        /// <returns>See 'response' Rest, see link above.</returns>
+        NewOrderResult newOrder(map<string, string>&& order)
+        {
+            NewOrderResult result {order.find("newClientOrderId") == order.cend() ? "" : order["newClientOrderId"]};
+
+            string queryString{ createQueryString(std::move(order), true) };
+
+            web::http::http_request request{ web::http::methods::POST };
+            request.set_request_uri(utility::conversions::to_string_t(getApiPath(RestCall::NewOrder) + "?" + queryString));
+            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
+            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiKey));
+            request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
+
+            web::uri uri { utility::conversions::to_string_t(getApiUri()) };
+            web::http::client::http_client client{ uri };
+            client.request(request).then([this, &result](web::http::http_response response) mutable
+            {
+                if (response.status_code() == web::http::status_codes::OK)
+                {
+                    auto json = response.extract_json().get();
+
+                    getJsonValues(json, result.result, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
+                                                                    "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+                }
+                else if (response.status_code() == web::http::status_codes::Unauthorized)
+                {
+                    throw std::runtime_error{ "Binance returned HTTP 401 error whilst creating listen key. Ensure your API and secret keys have permissions enabled for this market" };
+                }
+            }).wait();
+
+            return result;
+        }
+
+
+
+        /// <summary>
+        /// Set the API key(s). 
+        /// All calls require the API key. You only need secret key set if using a call which requires signing, such as newOrder.
+        /// </summary>
+        /// <param name="apiKey"></param>
+        /// <param name="secretKey"></param>
+        void setApiKeys(const string& apiKey, const string& secretKey = {})
+        {
+            m_apiKey = apiKey;
+            m_secretKey = secretKey;
+        }
+
+
+        // --- utils
+        
+        /// <summary>
+        /// Ensure price is in a suitable format for the exchange, i.e. changing precision.
+        /// </summary>
+        /// <param name="price">The unformatted price</param>
+        /// <param name="precision">The precision</param>
+        /// <returns>The price in a suitable format</returns>
+        static string priceTransform(const string& price, const std::streamsize precision = 2)
+        {
+            string p;
+
+            stringstream ss;
+            ss.precision(precision);
+            ss << std::fixed << std::stod(price);
+            ss >> p;
+
+            return p;
+        }
 
     protected:
+
+        constexpr bool mustConvertStringT()
+        {
+            return std::is_same_v<utility::string_t, MarketStringType> == false;
+        }
+
+
         void disconnect(const MonitorToken& mt, const bool deleteSession);
 
 
@@ -444,27 +566,6 @@ namespace binancews
         MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey);
 
 
-        inline int gettimeofday(struct timeval* tp, struct timezone* tzp)
-        {
-            namespace sc = std::chrono;
-            sc::system_clock::duration d = sc::system_clock::now().time_since_epoch();
-            sc::seconds s = sc::duration_cast<sc::seconds>(d);
-            tp->tv_sec = static_cast<long>(s.count());
-            tp->tv_usec = static_cast<long>(sc::duration_cast<sc::microseconds>(d - s).count());
-
-            return 0;
-        }
-
-
-        unsigned long get_current_ms_epoch()
-        {
-            struct timeval tv;
-            gettimeofday(&tv, NULL);
-
-            return tv.tv_sec * 1000 + tv.tv_usec / 1000;
-        }
-
-
         string b2a_hex(char* byte_arr, int n)
         {
             const static std::string HexCodes = "0123456789abcdef";
@@ -494,8 +595,88 @@ namespace binancews
         }
 
 
-        // user data stream
+        // User data stream functions
+        auto getTimestamp() -> std::chrono::system_clock::duration::rep
+        {            
+            return std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::system_clock::now().time_since_epoch()).count();
+        }
+
+        
         bool createListenKey(const MarketType marketType);
+
+
+        string createQueryString(map<string, string>&& queryValues, const bool sign)
+        {            
+            stringstream ss;
+
+            // can leave a trailing '&' without borking the internets
+            std::for_each(queryValues.begin(), queryValues.end(), [&ss](auto& it)
+            {
+                ss << std::move(it.first) << "=" << std::move(it.second) << "&";
+            });
+            
+            if (sign)
+            {
+                auto ts = getTimestamp();
+                ss << "recvWindow=5000&timestamp=" << ts;
+
+                string qs = ss.str();
+                return qs + "&signature=" + createSignature(m_secretKey, qs);
+            }
+            else
+            {
+                return ss.str();
+            }
+        }
+
+
+        string getApiUri()
+        {
+            switch (m_marketType)
+            {
+            case MarketType::Spot:
+                return SpotRestUri;
+                break;
+
+            case MarketType::SpotTest:
+                return TestSpotRestUri;
+                break;
+
+            case MarketType::Futures:
+                return UsdFuturesRestUri;
+                break;
+
+            case MarketType::FuturesTest:
+                return TestUsdFuturestRestUri;
+                break;
+
+            default:
+                return {};
+                break;
+            }
+        }
+
+
+        string getApiPath(const RestCall call)
+        {
+            switch (m_marketType)
+            {
+            case MarketType::Spot:
+            case MarketType::SpotTest:
+                return SpotCallPathMap.at(call);
+                break;
+
+            case MarketType::Futures:
+            case MarketType::FuturesTest:
+                return FuturesCallPathMap.at(call);
+                break;
+
+            default:
+                return {};
+                break;
+            }
+        }
+
 
     protected:
         shared_ptr<WebSocketSession> m_session;
@@ -512,9 +693,9 @@ namespace binancews
         string m_listenKey;
         string m_secretKey;
 
-
         IntervalTimer m_userDataStreamTimer;
     };
 }
 
-#endif 
+#endif
+
