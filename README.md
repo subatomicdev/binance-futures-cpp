@@ -113,7 +113,7 @@ This example uses the mark price monitor to wait for the first mark price, then 
 int main(int argc, char** argv)
 {
   string symbol = "BTCUSDT";
-  string markPriceString {0LL};
+  string markPriceString;
   std::condition_variable priceSet;
 
   auto handleMarkPrice = [&](Market::BinanceKeyMultiValueData data)
