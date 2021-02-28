@@ -57,9 +57,14 @@ ZENUSDT
 
 ## Examples
 
-### Monitor Mark Price
+### Monitor Mark Price and Mini Ticker
+This example monitors the mark price and mini tickers for all symbols.
+We can use the same callback function here because it's only printing the values.
+
 ```cpp
-#include <BinanceExchange.hpp>
+#include <iostream>
+#include <future>
+#include <Futures.hpp>
 #include <Logger.hpp>
 
 
@@ -88,7 +93,7 @@ int main(int argc, char** argv)
   UsdFuturesMarket usdFutures;
 
   usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
-  sdFutures.monitorMiniTicker(handleKeyMultipleValueData);
+  usdFutures.monitorMiniTicker(handleKeyMultipleValueData);
 
   std::this_thread::sleep_for(10s);
 
@@ -97,8 +102,14 @@ int main(int argc, char** argv)
 ```
 
 ### New Order
+This example uses the mark price monitor to wait for the first mark price, then uses this to create an order.
 
 ```cpp
+#include <iostream>
+#include <future>
+#include <Futures.hpp>
+#include <Logger.hpp>
+
 int main(int argc, char** argv)
 {
   string symbol = "BTCUSDT";
@@ -149,7 +160,7 @@ int main(int argc, char** argv)
   auto result = futuresTest.newOrder(std::move(order));
 
   stringstream ss;
-  ss << "\n";
+  ss << "\nnewOrder() returned:\n";
   for (const auto& val : result.result)
   {
       ss << val.first + "=" + val.second << "\n";
