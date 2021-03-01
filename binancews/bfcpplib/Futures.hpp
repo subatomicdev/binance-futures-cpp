@@ -5,7 +5,7 @@
 #include "Market.hpp"
 
 
-namespace binancews
+namespace bfcpp 
 {
     /// <summary>
     /// Access the USD-M Future's market. You must have a Futures account.

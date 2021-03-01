@@ -1,7 +1,7 @@
 #include "Market.hpp"
 
 
-namespace binancews
+namespace bfcpp 
 {
     Market::Market(const MarketType market, const string& exchangeBaseUri, const ApiAccess& access) :
         m_connected(false),

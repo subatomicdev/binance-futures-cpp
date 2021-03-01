@@ -5,7 +5,7 @@
 #include <future>
 
 
-namespace binancews
+namespace bfcpp 
 {
 	class IntervalTimer
 	{

@@ -7,9 +7,9 @@
 #include <Poco/DateTimeFormatter.h>
 #include <Poco/LocalDateTime.h>
 
-#include "binancewsCommon.hpp"
+#include "bfcppCommon.hpp"
 
-namespace binancews
+namespace bfcpp 
 {
     enum class LogLevel { LogDebug, LogError };
 

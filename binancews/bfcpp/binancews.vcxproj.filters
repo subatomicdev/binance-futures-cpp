@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="binancews.cpp">
+    <ClCompile Include="bcpptest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

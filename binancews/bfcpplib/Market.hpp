@@ -16,7 +16,7 @@
 #include "IntervalTimer.hpp"
 
 
-namespace binancews
+namespace bfcpp 
 {
     namespace ws = web::websockets;
     namespace json = web::json;

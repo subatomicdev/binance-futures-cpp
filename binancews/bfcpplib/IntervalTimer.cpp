@@ -1,7 +1,7 @@
 #include "IntervalTimer.hpp"
 
 
-namespace binancews
+namespace bfcpp 
 {
 	IntervalTimer::IntervalTimer() : m_running(false), m_period(std::chrono::milliseconds{ 100 })
 	{

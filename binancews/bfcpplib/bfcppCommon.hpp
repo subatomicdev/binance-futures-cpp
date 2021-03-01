@@ -14,7 +14,7 @@
 
 
 
-namespace binancews
+namespace bfcpp 
 {
     using std::shared_ptr;
     using std::vector;

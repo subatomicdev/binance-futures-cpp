@@ -24,7 +24,7 @@
     <ClInclude Include="Market.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="binancewsCommon.hpp">
+    <ClInclude Include="bfcppCommon.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Futures.hpp">

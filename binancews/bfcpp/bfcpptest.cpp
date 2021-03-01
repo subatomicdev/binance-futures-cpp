@@ -9,7 +9,7 @@
 
 
 using namespace std::chrono_literals;
-using namespace binancews;
+using namespace bfcpp;
 
 
 auto handleKeyMultipleValueData = [](Market::BinanceKeyMultiValueData data)
@@ -141,7 +141,6 @@ void markPrice()
     std::cout << "\n\n--- Mark Price ---\n";
 
     UsdFuturesMarket usdFutures;
-
     usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
 
     std::this_thread::sleep_for(10s);
@@ -156,7 +155,6 @@ void multipleStreams()
     std::cout << "\n\n--- Multiple Streams on Futures ---\n";
 
     UsdFuturesMarket usdFutures;
-
     usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
     usdFutures.monitorMiniTicker(handleKeyMultipleValueData);
 
@@ -307,10 +305,10 @@ int main(int argc, char** argv)
 
         
         // NOTE 0
-        //  1. if a function does not take a secret key, you can run without
-        //  2. these functions are synchronous              
+        //  1. if a function does not take an api/secret key, you can run without
+        //  2. these functions are synchronous
 
-        //markPrice();
+        markPrice();
 
         //monitorSymbol();
 

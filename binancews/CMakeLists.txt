@@ -3,10 +3,10 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-project (binancews C CXX)
+project (bfcpp C CXX)
 
 # Include sub-projects.
-add_subdirectory("binancews")
-add_subdirectory("binancewslib")
+add_subdirectory("bfcpp")
+add_subdirectory("bfcpplib")
 
 
