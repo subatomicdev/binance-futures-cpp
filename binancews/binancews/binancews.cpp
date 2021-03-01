@@ -199,60 +199,65 @@ void multipleStreams()
 /// </summary>
 /// <param name="apiKey">Create an account on the above URL. This key is available at the bottom of the page</param>
 /// <param name="secretKey">Create an account on the above URL. This key is available at the bottom of the page</param>
-void usdFutureTestNetDataStream(const string& apiKey, const string& secretKey)
+void usdFutureTestNetDataStream(const Market::ApiAccess& access)
 {
     std::cout << "\n\n--- USD-M Futures TestNet User Data ---\n";
     std::cout << "You must create/cancel etc an order for anything to show here\n";
 
-    UsdFuturesTestMarket futuresTest { apiKey, secretKey } ;
+    UsdFuturesTestMarket futuresTest { access} ;
     futuresTest.monitorUserData(handleUserDataUsdFutures);
 
     std::this_thread::sleep_for(10s);
 }
 
 
-void usdFutureDataStream(const string& apiKey, const string& secretKey)
+void usdFutureDataStream(const Market::ApiAccess& access)
 {
     std::cout << "\n\n--- USD-M Futures User Data ---\n";
     std::cout << "You must create/cancel etc an order for anything to show here\n";
 
-    UsdFuturesMarket futures { apiKey, secretKey };
+    UsdFuturesMarket futures { access };
     futures.monitorUserData(handleUserDataUsdFutures);
 
     std::this_thread::sleep_for(10s);
 }
 
 
-void spotTestNetDataStream(const string& apiKey)
+void spotTestNetDataStream(const Market::ApiAccess& access)
 {
     std::cout << "\n\n--- Spot TestNet User Data ---\n";
     std::cout << "You must create/cancel etc an order for anything to show here\n";
 
-    SpotTestMarket spotTest{ apiKey };
+    SpotTestMarket spotTest{ access };
     spotTest.monitorUserData(handleUserDataSpot);
 
     std::this_thread::sleep_for(10s);
 }
 
 
-void spotDataStream(const string& apiKey)
+void spotDataStream(const Market::ApiAccess& access)
 {
     std::cout << "\n\n--- Spot User Data ---\n";
     std::cout << "You must create/cancel etc an order for anything to show here\n";
 
-    SpotMarket spot{ apiKey };
+    SpotMarket spot{ access };
     spot.monitorUserData(handleUserDataSpot);
 
     std::this_thread::sleep_for(10s);
 }
 
 
-void usdTestNetFuturesNewOrder(const string& apiKey, const string& secretKey)
+/// <summary>
+/// A naive example of to open a LIMIT BUY order, lowering the mark price slightly, waiting 5 seconds
+/// then cancelling as an open order. This example will be changed in the future to get the order status and act accordingly.
+/// </summary>
+/// <param name="access"></param>
+void usdTestNetFuturesNewAndCancelOpenOrder(const Market::ApiAccess& access)
 {
     std::cout << "\n\n--- USD-M Futures TestNet Create Order ---\n";
 
     string symbol = "BTCUSDT";
-    string markPriceString {0LL};
+    string markPriceString;
     std::condition_variable priceSet;
 
     auto handleMarkPrice = [&](Market::BinanceKeyMultiValueData data)
@@ -272,16 +277,15 @@ void usdTestNetFuturesNewOrder(const string& apiKey, const string& secretKey)
         {"timeInForce", "GTC"},
         {"type", "LIMIT"},
         {"quantity", "1"},
-        {"newClientOrderId", "1234"}, // set to a value you can refer to later, see docs for monitorUserData()
         {"price",""} // updated below with mark price from user data stream
     };
 
-    UsdFuturesTestMarket futuresTest{ apiKey, secretKey };
+    UsdFuturesTestMarket futuresTest{ access };
 
     futuresTest.monitorMarkPrice(handleMarkPrice);  // to get an accurate price
     futuresTest.monitorUserData(handleUserDataUsdFutures); // to get order updates
 
-    // wait on handleMakrPrice callback to signal it has price 
+    // wait on handleMarkPrice callback to signal it has price 
     logg("Waiting to receive a mark price for " + symbol);
 
     std::mutex mux;
@@ -289,7 +293,7 @@ void usdTestNetFuturesNewOrder(const string& apiKey, const string& secretKey)
     priceSet.wait(lock);
 
     // update price then send order
-    order["price"] = Market::priceTransform(markPriceString);
+    order["price"] = Market::priceTransform(std::to_string(std::stod(markPriceString) * 0.995));
 
     logg("Done. Sending order");
 
@@ -299,14 +303,30 @@ void usdTestNetFuturesNewOrder(const string& apiKey, const string& secretKey)
     auto result = futuresTest.newOrder(std::move(order));
     
     stringstream ss;
-    ss << "\n";
+    ss << "\nnewOrder() returned:\n";
     for (const auto& val : result.result)
     {
         ss << val.first + "=" + val.second << "\n";
     }
     logg(ss.str());
 
-    std::this_thread::sleep_for(60s);
+
+    logg("Waiting 5s");
+
+    std::this_thread::sleep_for(5s);
+
+    // cancel
+    logg("Cancelling open order " + result.result["orderId"]);
+
+    map<string, string> cancel =
+    {
+        {"symbol", symbol},
+        {"orderId", result.result["orderId"]}
+    };
+
+    futuresTest.cancelOrder(std::move(cancel));
+
+    std::this_thread::sleep_for(10s);
 }
 
 
@@ -330,24 +350,24 @@ int main(int argc, char** argv)
         const string secretKeyUsdFutures = "";
 
 
-
+        
         // NOTE 
-        //  1. if a function does not take api or /secret keys as args, you can run without
+        //  1. if a function does not take a secret key, you can run without
         //  2. these functions are synchronous              
 
         markPrice();
 
         //multipleStreams();
 
-        //usdFutureTestNetDataStream(apiKeyUsdFuturesTest, secretKeyUsdFuturesTest);
+        //usdFutureTestNetDataStream(Market::ApiAccess {apiKeyUsdFuturesTest, secretKeyUsdFuturesTest});
 
-        //usdFutureDataStream(apiKeyUsdFutures, secretKeyUsdFutures);
+        //usdFutureDataStream(Market::ApiAccess {apiKeyUsdFutures, secretKeyUsdFutures});
 
-        //spotTestNetDataStream(apiKeySpotTest);
+        //spotTestNetDataStream(Market::ApiAccess {apiKeySpotTest});
 
-        //spotDataStream(apiKeySpotMarket);
+        //spotDataStream(Market::ApiAccess {apiKeySpotMarket});
 
-        //usdTestNetFuturesNewOrder(apiKeyUsdFuturesTest, secretKeyUsdFuturesTest);
+        //usdTestNetFuturesNewAndCancelOpenOrder(Market::ApiAccess {apiKeyUsdFuturesTest, secretKeyUsdFuturesTest});
     }
     catch (const std::exception ex)
     {

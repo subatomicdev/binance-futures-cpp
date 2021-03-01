@@ -15,12 +15,12 @@ namespace binancews
     class UsdFuturesMarket : public Market
     {
     protected:
-        UsdFuturesMarket(MarketType mt, const string& exchangeUri, const string& apiKey = {}, const string& secretKey = {}) : Market(mt, exchangeUri, apiKey, secretKey)
+        UsdFuturesMarket(MarketType mt, const string& exchangeUri, const ApiAccess& access) : Market(mt, exchangeUri, access)
         {
         }
 
     public:
-        UsdFuturesMarket(const string& apiKey = {}, const string& secretKey = {}) : UsdFuturesMarket(MarketType::Futures, FuturestWebSockUri, apiKey, secretKey)
+        UsdFuturesMarket(const ApiAccess& access = {}) : UsdFuturesMarket(MarketType::Futures, FuturestWebSockUri, access)
         {
 
         }
@@ -127,6 +127,54 @@ namespace binancews
 
 
 
+        virtual CancelOrderResult cancelOrder(map<string, string>&& order) override
+        {
+            CancelOrderResult result;
+
+            string queryString{ createQueryString(std::move(order), true) };
+
+            web::http::http_request request{ web::http::methods::DEL };
+            request.set_request_uri(utility::conversions::to_string_t(getApiPath(RestCall::CancelOrder) + "?" + queryString));
+            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
+            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
+            request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
+
+            web::uri uri{ utility::conversions::to_string_t(getApiUri()) };
+            web::http::client::http_client client{ uri };
+
+            try
+            {
+                client.request(request).then([this, &result](web::http::http_response response) mutable
+                {
+                    auto json = response.extract_json().get();
+
+                    if (response.status_code() == web::http::status_codes::OK)
+                    {
+                        getJsonValues(json, result.result, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide",
+                                                                        "status", "stopPrice", "closePosition", "symbol", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "workingType"});
+                    }
+                    else
+                    {
+                        throw std::runtime_error{ "Binance returned error cancelling an order:\n" + utility::conversions::to_utf8string(json.serialize()) };  // TODO capture orderId
+                    }
+
+                }).wait();
+            }
+            catch (const web::websockets::client::websocket_exception we)
+            {
+                logg(we.what());
+            }
+            catch (const std::exception ex)
+            {
+                logg(ex.what());
+            }
+
+            return result;
+        }
+
+
+    private:
+
         void onUserDataTimer()
         {
             logg("Sending keepalive");
@@ -151,7 +199,7 @@ namespace binancews
 
             web::http::http_request request{ web::http::methods::PUT };
             request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
-            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiKey));
+            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
             request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
             request.set_request_uri(requestUri);
 
@@ -166,8 +214,6 @@ namespace binancews
             }).wait();
         }
 
-
-    private:
 
         void handleUserData(shared_ptr<WebSocketSession> session, std::function<void(UsdFutureUserData)> onData)
         {
@@ -368,7 +414,7 @@ namespace binancews
     class UsdFuturesTestMarket : public UsdFuturesMarket
     {
     public:
-        UsdFuturesTestMarket(const string& apiKey = {}, const string& secretKey = {}) : UsdFuturesMarket(MarketType::FuturesTest, TestFuturestWebSockUri, apiKey, secretKey)
+        UsdFuturesTestMarket(const ApiAccess& access = {}) : UsdFuturesMarket(MarketType::FuturesTest, TestFuturestWebSockUri, access)
         {
 
         }
@@ -381,4 +427,3 @@ namespace binancews
 }
 
 #endif
-

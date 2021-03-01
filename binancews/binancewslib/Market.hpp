@@ -59,10 +59,10 @@ namespace binancews
 
         enum class MarketType { Spot, Futures, FuturesTest, SpotTest };
 
-        enum class RestCall { NewOrder, ListenKey };
+        enum class RestCall { NewOrder, ListenKey, CancelOrder };
 
-        inline static const map<RestCall, string> FuturesCallPathMap    = { {RestCall::NewOrder, "/fapi/v1/order"}, {RestCall::ListenKey, "/fapi/v1/listenKey"} };
-        inline static const map<RestCall, string> SpotCallPathMap       = { {RestCall::NewOrder, "/api/v3/order"}, {RestCall::ListenKey, "/api/v3/userDataStream"} };
+        inline static const map<RestCall, string> FuturesCallPathMap =  { {RestCall::NewOrder, "/fapi/v1/order"}, {RestCall::ListenKey, "/fapi/v1/listenKey"}, {RestCall::CancelOrder, "/fapi/v1/order"} };
+        inline static const map<RestCall, string> SpotCallPathMap =     { {RestCall::NewOrder, "/api/v3/order"}, {RestCall::ListenKey, "/api/v3/userDataStream"}, {RestCall::CancelOrder, "/api/v3/order"} };
 
 
         typedef size_t MonitorTokenId;
@@ -75,7 +75,7 @@ namespace binancews
         {
             BinanceKeyValueData() = default;
 
-            BinanceKeyValueData(map<string, string>&& vals) : values(std::move(vals))
+            BinanceKeyValueData(map<string, string>&& vals) : values(vals)
             {
 
             }
@@ -175,6 +175,10 @@ namespace binancews
         };
 
 
+        /// <summary>
+        /// Returned by newOrder(). 
+        /// The key/values in 'result' are here: https://binance-docs.github.io/apidocs/testnet/en/#new-order-trade
+        /// </summary>
         struct NewOrderResult
         {
             NewOrderResult() = default;
@@ -184,20 +188,32 @@ namespace binancews
             NewOrderResult& operator=(NewOrderResult&&) = default;
 
 
-            NewOrderResult(const string& id) : orderId(id)
+            NewOrderResult(map<string, string>&& data) : result(data)
             {
-
             }
 
-            NewOrderResult(const string& id, map<string, string>&& data) : orderId(id), result(std::move(data))
+            map<string, string> result;
+        };
+
+
+
+        struct CancelOrderResult
+        {
+            CancelOrderResult() = default;
+            CancelOrderResult(CancelOrderResult&&) noexcept = default;
+            CancelOrderResult(const CancelOrderResult&) = default;
+            CancelOrderResult& operator=(const CancelOrderResult&) = default;
+            CancelOrderResult& operator=(CancelOrderResult&&) = default;
+
+            CancelOrderResult(map<string, string>&& data) : result(data)
             {
 
             }
 
             map<string, string> result;
-            string orderId;
         };
 
+        
         /// <summary>
         /// Returned by monitor functions, containing an ID for use with cancelMonitor() to close this stream.
         /// </summary>
@@ -209,6 +225,27 @@ namespace binancews
             MonitorTokenId id;
 
             bool isValid() const { return id > 0; }
+        };
+
+
+        /// <summary>
+        /// Holds data required for API access. 
+        /// You require an API key, but the API is only require for certain features.
+        /// </summary>
+        struct ApiAccess
+        {
+            ApiAccess() = default;
+            ApiAccess(const string& api, const string& secret = {}) : apiKey(api), secretKey(secret)
+            {
+
+            }
+            ApiAccess(string&& api, string&& secret = {}) : apiKey(api), secretKey(secret)
+            {
+
+            }
+
+            string apiKey;
+            string secretKey;
         };
 
 
@@ -324,7 +361,7 @@ namespace binancews
 
     public:
 
-        Market(const MarketType market, const string& exchangeBaseUri, const string& apiKey = {}, const string& secretKey = {});
+        Market(const MarketType market, const string& exchangeBaseUri, const ApiAccess& access = {});
 
         virtual ~Market();
 
@@ -332,6 +369,8 @@ namespace binancews
         Market(const Market&) = delete;
         Market(Market&&) = delete;
         Market operator=(const Market&) = delete;
+
+
 
         // --- monitor functions
 
@@ -373,6 +412,7 @@ namespace binancews
         MonitorToken monitorSymbolBookStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData);
 
 
+
         // --- order management
 
 
@@ -390,36 +430,55 @@ namespace binancews
         /// <returns>See 'response' Rest, see link above.</returns>
         NewOrderResult newOrder(map<string, string>&& order)
         {
-            NewOrderResult result {order.find("newClientOrderId") == order.cend() ? "" : order["newClientOrderId"]};
+            NewOrderResult result {};
 
             string queryString{ createQueryString(std::move(order), true) };
 
             web::http::http_request request{ web::http::methods::POST };
             request.set_request_uri(utility::conversions::to_string_t(getApiPath(RestCall::NewOrder) + "?" + queryString));
             request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
-            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiKey));
+            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
             request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
 
             web::uri uri { utility::conversions::to_string_t(getApiUri()) };
             web::http::client::http_client client{ uri };
-            client.request(request).then([this, &result](web::http::http_response response) mutable
+
+            try
             {
-                if (response.status_code() == web::http::status_codes::OK)
+                client.request(request).then([this, &result](web::http::http_response response) mutable
                 {
                     auto json = response.extract_json().get();
 
-                    getJsonValues(json, result.result, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
-                                                                    "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
-                }
-                else if (response.status_code() == web::http::status_codes::Unauthorized)
-                {
-                    throw std::runtime_error{ "Binance returned HTTP 401 error whilst creating listen key. Ensure your API and secret keys have permissions enabled for this market" };
-                }
-            }).wait();
-
+                    if (response.status_code() == web::http::status_codes::OK)
+                    {
+                        getJsonValues(json, result.result, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
+                                                                        "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+                    }
+                    else
+                    {
+                        throw std::runtime_error{ "Binance returned error in newOrder():\n " + utility::conversions::to_utf8string(json.serialize()) };
+                    }
+                }).wait();
+            }
+            catch (const web::websockets::client::websocket_exception we)
+            {
+                logg(we.what());
+            }
+            catch (const std::exception ex)
+            {
+                logg(ex.what());
+            }
+            
             return result;
         }
 
+
+        virtual CancelOrderResult cancelOrder(map<string, string>&& order) = 0;
+
+
+
+
+        // --- utils
 
 
         /// <summary>
@@ -428,14 +487,12 @@ namespace binancews
         /// </summary>
         /// <param name="apiKey"></param>
         /// <param name="secretKey"></param>
-        void setApiKeys(const string& apiKey, const string& secretKey = {})
+        void setApiKeys(const ApiAccess access = {})
         {
-            m_apiKey = apiKey;
-            m_secretKey = secretKey;
+            m_apiAccess = access;
         }
 
 
-        // --- utils
         
         /// <summary>
         /// Ensure price is in a suitable format for the exchange, i.e. changing precision.
@@ -621,7 +678,7 @@ namespace binancews
                 ss << "recvWindow=5000&timestamp=" << ts;
 
                 string qs = ss.str();
-                return qs + "&signature=" + createSignature(m_secretKey, qs);
+                return qs + "&signature=" + createSignature(m_apiAccess.secretKey, qs);
             }
             else
             {
@@ -689,13 +746,11 @@ namespace binancews
         string m_exchangeBaseUri;
         std::atomic_bool m_connected;
         std::atomic_bool m_running;
-        string m_apiKey;
         string m_listenKey;
-        string m_secretKey;
+        ApiAccess m_apiAccess;
 
         IntervalTimer m_userDataStreamTimer;
     };
 }
 
 #endif
-

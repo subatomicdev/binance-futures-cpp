@@ -3,14 +3,13 @@
 
 namespace binancews
 {
-    Market::Market(const MarketType market, const string& exchangeBaseUri, const string& apiKey, const string& secretKey) :
+    Market::Market(const MarketType market, const string& exchangeBaseUri, const ApiAccess& access) :
         m_connected(false),
         m_running(false),
         m_monitorId(1),
         m_marketType(market),
         m_exchangeBaseUri(exchangeBaseUri),
-        m_apiKey(apiKey),
-        m_secretKey(secretKey)
+        m_apiAccess(access)
     {
     }
 
@@ -376,7 +375,7 @@ namespace binancews
             web::uri requstUri(utility::conversions::to_string_t(path + "?" + queryString));
 
             web::http::http_request request{ web::http::methods::POST };
-            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiKey));
+            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
             request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));            
             request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
             request.set_request_uri(requstUri);

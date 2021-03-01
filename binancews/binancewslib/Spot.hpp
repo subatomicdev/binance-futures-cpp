@@ -15,12 +15,12 @@ namespace binancews
     class SpotMarket : public Market
     {
     protected:
-        SpotMarket(MarketType mt, const string& exchangeUri, const string& apiKey = {}, const string& secretKey = {}) : Market(mt, exchangeUri, apiKey, secretKey)
+        SpotMarket(MarketType mt, const string& exchangeUri, const ApiAccess& access) : Market(mt, exchangeUri, access)
         {
         }
 
     public:
-        SpotMarket(const string& apiKey = {}, const string& secretKey = {}) : SpotMarket(MarketType::Spot, SpotWebSockUri, apiKey, secretKey)
+        SpotMarket(const ApiAccess& access = {}) : SpotMarket(MarketType::Spot, SpotWebSockUri, access)
         {
 
         }
@@ -115,6 +115,41 @@ namespace binancews
             }
 
             return monitorToken;
+        }
+
+
+
+        virtual CancelOrderResult cancelOrder(map<string, string>&& order) override
+        {
+            CancelOrderResult result;
+
+            string queryString{ createQueryString(std::move(order), true) };
+
+            web::http::http_request request{ web::http::methods::DEL };
+            request.set_request_uri(utility::conversions::to_string_t(getApiPath(RestCall::CancelOrder) + "?" + queryString));
+            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
+            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
+            request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
+
+            web::uri uri{ utility::conversions::to_string_t(getApiUri()) };
+            web::http::client::http_client client{ uri };
+
+            client.request(request).then([this, &result](web::http::http_response response) mutable
+                {
+                    if (response.status_code() == web::http::status_codes::OK)
+                    {
+                        auto json = response.extract_json().get();
+
+                        getJsonValues(json, result.result, set<string> {"symbol", "origClientOrderId", "orderId", "orderListId", "clientOrderId", "price", "origQty",
+                            "executedQty", "cummulativeQuoteQty", "status", "timeInForce", "type", "side"});
+                    }
+                    else if (response.status_code() == web::http::status_codes::Unauthorized)
+                    {
+                        throw std::runtime_error{ "Binance returned HTTP 401 error whilst creating listen key. Ensure your API and secret keys have permissions enabled for this market" };
+                    }
+                }).wait();
+
+                return result;
         }
 
 
@@ -273,7 +308,7 @@ namespace binancews
     class SpotTestMarket : public SpotMarket
     {
     public:
-        SpotTestMarket(const string& apiKey = {}, const string& secretKey = {}) : SpotMarket(MarketType::SpotTest, TestSpotWebSockUri, apiKey, secretKey)
+        SpotTestMarket(const ApiAccess& access = {}) : SpotMarket(MarketType::SpotTest, TestSpotWebSockUri, access)
         {
 
         }
