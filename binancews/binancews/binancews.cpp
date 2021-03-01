@@ -5,7 +5,6 @@
 #include <future>
 
 #include <Futures.hpp>
-#include <Spot.hpp>
 #include <Logger.hpp>
 
 
@@ -38,34 +37,6 @@ auto handleKeyValueData = [](Market::BinanceKeyValueData data)
     for (const auto& p : data.values)
     {
         logg(p.first + "=" + p.second);
-    }
-};
-
-
-auto handleUserDataSpot = [](Market::SpotUserData data)
-{
-    for (const auto& p : data.data)
-    {
-        logg(p.first + "=" + p.second);
-    }
-
-    if (data.type == Market::SpotUserData::EventType::AccountUpdate)
-    {
-        std::stringstream ss;
-
-        for (auto& asset : data.au.balances)
-        {
-            ss << "\n" << asset.first << "\n{"; // asset symbol
-
-            for (const auto& balance : asset.second)
-            {
-                ss << "\n\t" << balance.first << "=" << balance.second;   // the asset symbol, free and locked values for this symbol
-            }
-
-            ss << "\n}";
-        }
-
-        logg(ss.str());
     }
 };
 
@@ -223,29 +194,6 @@ void usdFutureDataStream(const Market::ApiAccess& access)
 }
 
 
-void spotTestNetDataStream(const Market::ApiAccess& access)
-{
-    std::cout << "\n\n--- Spot TestNet User Data ---\n";
-    std::cout << "You must create/cancel etc an order for anything to show here\n";
-
-    SpotTestMarket spotTest{ access };
-    spotTest.monitorUserData(handleUserDataSpot);
-
-    std::this_thread::sleep_for(10s);
-}
-
-
-void spotDataStream(const Market::ApiAccess& access)
-{
-    std::cout << "\n\n--- Spot User Data ---\n";
-    std::cout << "You must create/cancel etc an order for anything to show here\n";
-
-    SpotMarket spot{ access };
-    spot.monitorUserData(handleUserDataSpot);
-
-    std::this_thread::sleep_for(10s);
-}
-
 
 /// <summary>
 /// A naive example of to open a LIMIT BUY order, lowering the mark price slightly, waiting 5 seconds
@@ -254,7 +202,7 @@ void spotDataStream(const Market::ApiAccess& access)
 /// <param name="access"></param>
 void usdTestNetFuturesNewAndCancelOpenOrder(const Market::ApiAccess& access)
 {
-    std::cout << "\n\n--- USD-M Futures TestNet Create Order ---\n";
+    std::cout << "\n\n--- USD-M Futures TestNet Create and Cancel Order ---\n";
 
     string symbol = "BTCUSDT";
     string markPriceString;
@@ -336,12 +284,6 @@ int main(int argc, char** argv)
 {
     try
     {
-        // spot testnet
-        const string apiKeySpotTest = "";
-        const string secretKeySpotTest = "";
-        // spot 'real'
-        const string apiKeySpotMarket = "";
-        const string secretKeySpotMarket = "";
         // futures testnet
         const string apiKeyUsdFuturesTest = "";
         const string secretKeyUsdFuturesTest = "";
@@ -351,11 +293,11 @@ int main(int argc, char** argv)
 
 
         
-        // NOTE 
+        // NOTE 0
         //  1. if a function does not take a secret key, you can run without
         //  2. these functions are synchronous              
 
-        markPrice();
+        //markPrice();
 
         //multipleStreams();
 
@@ -363,11 +305,7 @@ int main(int argc, char** argv)
 
         //usdFutureDataStream(Market::ApiAccess {apiKeyUsdFutures, secretKeyUsdFutures});
 
-        //spotTestNetDataStream(Market::ApiAccess {apiKeySpotTest});
-
-        //spotDataStream(Market::ApiAccess {apiKeySpotMarket});
-
-        //usdTestNetFuturesNewAndCancelOpenOrder(Market::ApiAccess {apiKeyUsdFuturesTest, secretKeyUsdFuturesTest});
+        usdTestNetFuturesNewAndCancelOpenOrder(Market::ApiAccess {apiKeyUsdFuturesTest, secretKeyUsdFuturesTest});
     }
     catch (const std::exception ex)
     {

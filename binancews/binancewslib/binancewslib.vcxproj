@@ -24,7 +24,6 @@
     <ClInclude Include="IntervalTimer.hpp" />
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="Market.hpp" />
-    <ClInclude Include="Spot.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IntervalTimer.cpp" />

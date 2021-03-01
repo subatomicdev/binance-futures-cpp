@@ -473,11 +473,6 @@ namespace binancews
         }
 
 
-        virtual CancelOrderResult cancelOrder(map<string, string>&& order) = 0;
-
-
-
-
         // --- utils
 
 

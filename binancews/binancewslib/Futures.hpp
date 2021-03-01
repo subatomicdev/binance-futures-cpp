@@ -127,7 +127,7 @@ namespace binancews
 
 
 
-        virtual CancelOrderResult cancelOrder(map<string, string>&& order) override
+        CancelOrderResult cancelOrder(map<string, string>&& order)
         {
             CancelOrderResult result;
 
