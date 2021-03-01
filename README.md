@@ -1,4 +1,4 @@
-# Binance WebSockets
+# Binance Futures C++
 
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's fully tested and the API is stable.**
 
@@ -6,7 +6,7 @@
 **1st March 2021**
 - I've decided to drop support for the Spot market to concentrate on futures
 - Spot code removed from repo
-- The repo will be renamed soon 
+- Repo renamed to "binance-futures-cpp", code namespace now "bfcpp"
 
 ---
 ---
@@ -208,4 +208,4 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 
 
 # Run
-The provided ```binancews/binancews.cpp``` has a few functions to show the basics.
+The provided ```bfcpptest/bfcpptest.cpp``` has a few functions to show the basics.
