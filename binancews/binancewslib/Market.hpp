@@ -57,13 +57,11 @@ namespace binancews
     public:
         typedef std::string MarketStringType;
 
-        enum class MarketType { Spot, Futures, FuturesTest, SpotTest };
+        enum class MarketType { Futures, FuturesTest };
 
         enum class RestCall { NewOrder, ListenKey, CancelOrder };
 
         inline static const map<RestCall, string> FuturesCallPathMap =  { {RestCall::NewOrder, "/fapi/v1/order"}, {RestCall::ListenKey, "/fapi/v1/listenKey"}, {RestCall::CancelOrder, "/fapi/v1/order"} };
-        inline static const map<RestCall, string> SpotCallPathMap =     { {RestCall::NewOrder, "/api/v3/order"}, {RestCall::ListenKey, "/api/v3/userDataStream"}, {RestCall::CancelOrder, "/api/v3/order"} };
-
 
         typedef size_t MonitorTokenId;
 
@@ -686,14 +684,6 @@ namespace binancews
         {
             switch (m_marketType)
             {
-            case MarketType::Spot:
-                return SpotRestUri;
-                break;
-
-            case MarketType::SpotTest:
-                return TestSpotRestUri;
-                break;
-
             case MarketType::Futures:
                 return UsdFuturesRestUri;
                 break;
@@ -713,11 +703,6 @@ namespace binancews
         {
             switch (m_marketType)
             {
-            case MarketType::Spot:
-            case MarketType::SpotTest:
-                return SpotCallPathMap.at(call);
-                break;
-
             case MarketType::Futures:
             case MarketType::FuturesTest:
                 return FuturesCallPathMap.at(call);
