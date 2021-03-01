@@ -3,12 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bfcpp", "bfcpp\binancews.vcxproj", "{4FEE7169-B7C3-4FB1-A962-B0CE975D765B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bfcpp", "bfcpptest\bfcpptest.vcxproj", "{4FEE7169-B7C3-4FB1-A962-B0CE975D765B}"
 	ProjectSection(ProjectDependencies) = postProject
 		{6D01FA21-81D5-452E-B5F4-D35DA664E602} = {6D01FA21-81D5-452E-B5F4-D35DA664E602}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bfcpplib", "bfcpplib\binancewslib.vcxproj", "{6D01FA21-81D5-452E-B5F4-D35DA664E602}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bfcpplib", "bfcpplib\bfcpplib.vcxproj", "{6D01FA21-81D5-452E-B5F4-D35DA664E602}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
