@@ -133,8 +133,8 @@ int main(int argc, char** argv)
       {"timeInForce", "GTC"},
       {"type", "LIMIT"},
       {"quantity", "1"},
-      {"newClientOrderId", "1234"}, // set to a value you can refer to later, see docs for monitorUserData()
-      {"price",""} // updated below with mark price from user data stream
+      {"newClientOrderId", "1234"}, // set to a value you can refer to later, see docs for newOrder()
+      {"price",""} // updated below with mark price 
   };
 
   UsdFuturesTestMarket futuresTest { Market::ApiAccess {"YOUR API KEY", "YOUR SECRET KEY"} };
@@ -149,7 +149,7 @@ int main(int argc, char** argv)
   std::unique_lock lock (mux);
   priceSet.wait(lock);
 
-  // update price then send order
+  // update price then send order. priceTransform() to ensure price is suitable for the API
   order["price"] = Market::priceTransform(markPriceString);
 
   logg("Done. Sending order");
