@@ -17,11 +17,11 @@ The project uses Microsoft's cpprestsdk for asynchronous websocket functionality
 
 ---
 
-**binancewslib**
+**bfcpplib**
 The library which handles all communications with the exchange
 
 
-**binancews**
+**bfcpptest**
 A test app to show how to use the library. 
 
 Use the monitor functions to receive updates from streams via callback.
