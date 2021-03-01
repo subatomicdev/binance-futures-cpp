@@ -3,7 +3,7 @@
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's fully tested and the API is stable.**
 
 ## Update
-**1st March**
+**1st March 2021**
 - I've decided to drop support for the Spot market to concentrate on futures.
 - The repo will be renamed soon 
 
