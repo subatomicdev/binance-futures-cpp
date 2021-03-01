@@ -387,12 +387,12 @@ namespace bfcpp
 
                 if (response.status_code() == web::http::status_codes::OK)
                 {
-                    ok = true;
                     m_listenKey = utility::conversions::to_utf8string(json[utility::conversions::to_string_t(ListenKeyName)].as_string());
+                    ok = true;
                 }
-                else if (response.status_code() == web::http::status_codes::Unauthorized)
+                else
                 {
-                    throw std::runtime_error{ "Binance returned HTTP 401:  " + utility::conversions::to_utf8string(json.serialize()) };
+                    throw std::runtime_error{ "Failed to create listne key:  " + utility::conversions::to_utf8string(json.serialize()) };
                 }
             }).wait();
         }

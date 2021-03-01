@@ -741,7 +741,7 @@ namespace bfcpp
         {
             string lower{ str };
 
-            std::transform(str.begin(), str.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+            std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
             return lower;
         }
 
