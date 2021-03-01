@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 3.8)
 project (bfcpp C CXX)
 
 # Include sub-projects.
-add_subdirectory("bfcpp")
+add_subdirectory("bfcpptest")
 add_subdirectory("bfcpplib")
 
 
