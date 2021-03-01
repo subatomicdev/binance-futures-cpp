@@ -34,7 +34,7 @@ namespace bfcpp
         
 
     /// <summary>
-    /// Provides an API to the Binance exchange. Currently only websocket streams are available, see the monitor*() functions.
+    /// Provides an API to the Binance futures exchange.
     /// 
     /// A monitor function requires an std::function which is your callback function. There are two types of callback args: 
     ///     
@@ -55,14 +55,33 @@ namespace bfcpp
     class Market
     {
     public:
+        enum class RestCall { NewOrder, ListenKey, CancelOrder };
+
+
+    public:
         typedef std::string MarketStringType;
 
         enum class MarketType { Futures, FuturesTest };
 
-        enum class RestCall { NewOrder, ListenKey, CancelOrder };
+        
+    protected:
+        inline static const map<RestCall, string> PathMap =
+        {
+            {RestCall::NewOrder,    "/fapi/v1/order"},
+            {RestCall::ListenKey,   "/fapi/v1/listenKey"},
+            {RestCall::CancelOrder, "/fapi/v1/order"}
+        };
+        
+        // the receive window for RestCall::ListenKey has no affect, it's here for completion
+        inline static map<RestCall, string> ReceiveWindowMap =
+        {
+            {RestCall::NewOrder,    "2000"},
+            {RestCall::ListenKey,   "5000"},
+            {RestCall::CancelOrder, "5000"}
+        };
 
-        inline static const map<RestCall, string> FuturesCallPathMap =  { {RestCall::NewOrder, "/fapi/v1/order"}, {RestCall::ListenKey, "/fapi/v1/listenKey"}, {RestCall::CancelOrder, "/fapi/v1/order"} };
 
+    public:
         typedef size_t MonitorTokenId;
 
 
@@ -101,32 +120,7 @@ namespace bfcpp
             map<string, map<string, string>> values;
         };
 
-
-        /// <summary>
-        /// Contains data from the SpotUser user data stream.
-        /// Data contains key/value pairs as described on https://binance-docs.github.io/apidocs/spot/en/#user-data-streams.
-        /// If type is EventType::AccountUpdate then au.balances can be populated.
-        /// </summary>
-        struct SpotUserData
-        {
-            enum class EventType { Unknown, AccountUpdate, BalanceUpdate, OrderUpdate };
-
-            SpotUserData() = delete;
-
-            SpotUserData(const EventType t) : type(t)
-            {
-
-            }
-
-            struct AccountUpdate
-            {
-                map<string, map<string, string>> balances; // only for when type is AccountUpdate
-            } au;
-
-            map<string, string> data;   // key/value 
-            EventType type;
-        };
-
+               
 
         /// <summary>
         /// Contains data from the USD-M Futures stream.
@@ -304,7 +298,6 @@ namespace bfcpp
             // callback functions for user functions
             std::function<void(BinanceKeyValueData)> onDataUserCallback;
             std::function<void(BinanceKeyMultiValueData)> onMultiValueDataUserCallback;
-            std::function<void(SpotUserData)> onSpotUserDataCallback;
             std::function<void(UsdFutureUserData)> onUsdFuturesUserDataCallback;
 
             // the monitor id. The MonitorToken is returned to the caller which can be used to cancel the monitor
@@ -331,30 +324,6 @@ namespace bfcpp
 
 
         typedef map<string, set<string>> JsonKeys;
-
-
-    public:
-        /// <summary>
-        /// CLose stream for the given token.
-        /// </summary>
-        /// <param name="mt"></param>
-        void cancelMonitor(const MonitorToken& mt)
-        {
-            if (auto it = m_idToSession.find(mt.id); it != m_idToSession.end())
-            {
-                disconnect(mt, true);
-            }
-        }
-
-
-        /// <summary>
-        /// Close all streams.
-        /// </summary>
-        void cancelMonitors()
-        {
-            disconnect();
-        }
-
 
 
     public:
@@ -428,22 +397,16 @@ namespace bfcpp
         /// <returns>See 'response' Rest, see link above.</returns>
         NewOrderResult newOrder(map<string, string>&& order)
         {
-            NewOrderResult result {};
+            NewOrderResult result;
 
-            string queryString{ createQueryString(std::move(order), true) };
-
-            web::http::http_request request{ web::http::methods::POST };
-            request.set_request_uri(utility::conversions::to_string_t(getApiPath(RestCall::NewOrder) + "?" + queryString));
-            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
-            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
-            request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
-
-            web::uri uri { utility::conversions::to_string_t(getApiUri()) };
-            web::http::client::http_client client{ uri };
-
+            string queryString{ createQueryString(std::move(order), RestCall::NewOrder, true) };
+                    
             try
             {
-                client.request(request).then([this, &result](web::http::http_response response) mutable
+                auto request = createHttpRequest(web::http::methods::POST, getApiPath(RestCall::NewOrder) + "?" + queryString);
+
+                web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri()) } };
+                client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
                 {
                     auto json = response.extract_json().get();
 
@@ -471,7 +434,30 @@ namespace bfcpp
         }
 
 
+
         // --- utils
+
+
+        /// <summary>
+        /// Close stream for the given token.
+        /// </summary>
+        /// <param name="mt"></param>
+        void cancelMonitor(const MonitorToken& mt)
+        {
+            if (auto it = m_idToSession.find(mt.id); it != m_idToSession.end())
+            {
+                disconnect(mt, true);
+            }
+        }
+
+
+        /// <summary>
+        /// Close all streams.
+        /// </summary>
+        void cancelMonitors()
+        {
+            disconnect();
+        }
 
 
         /// <summary>
@@ -486,7 +472,19 @@ namespace bfcpp
         }
 
 
+        /// <summary>
+        /// Sets the receive window. For defaults see member ReceiveWindowMap.
+        /// Read about receive window in the "Timing Security" section at: https://binance-docs.github.io/apidocs/futures/en/#endpoint-security-type
+        /// Note the receive window for RestCall::ListenKey has no affect
+        /// </summary>
+        /// <param name="call">The call for which this will set the time</param>
+        /// <param name="ms">time in milliseconds</param>
+        void setReceiveWindow(const RestCall call, std::chrono::milliseconds ms)
+        {
+            ReceiveWindowMap[call] = std::to_string(ms.count());
+        }
         
+
         /// <summary>
         /// Ensure price is in a suitable format for the exchange, i.e. changing precision.
         /// </summary>
@@ -526,6 +524,9 @@ namespace bfcpp
 
 
         std::tuple<MonitorToken, shared_ptr<WebSocketSession>> createMonitor(const string& uri, const JsonKeys& keys, const string& arrayKey = {});
+
+
+        MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey);
 
 
         void extractKeys(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session, const JsonKeys& keys, const string& arrayKey = {});
@@ -613,7 +614,15 @@ namespace bfcpp
         }
 
 
-        MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey);
+        web::http::http_request createHttpRequest(const web::http::method method, string uri)
+        {
+            web::http::http_request request{ method };
+            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
+            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
+            request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binance_futures_cpp"));
+            request.set_request_uri(web::uri{utility::conversions::to_string_t(uri)});
+            return request;
+        }
 
 
         /// <summary>
@@ -667,7 +676,7 @@ namespace bfcpp
         bool createListenKey(const MarketType marketType);
 
 
-        string createQueryString(map<string, string>&& queryValues, const bool sign)
+        string createQueryString(map<string, string>&& queryValues, const RestCall call, const bool sign)
         {            
             stringstream ss;
 
@@ -680,7 +689,7 @@ namespace bfcpp
             if (sign)
             {
                 auto ts = getTimestamp();
-                ss << "recvWindow=5000&timestamp=" << ts;
+                ss << "recvWindow=" << ReceiveWindowMap.at(call) << "&timestamp=" << ts;
 
                 string qs = ss.str();
                 return qs + "&signature=" + createSignature(m_apiAccess.secretKey, qs);
@@ -717,7 +726,7 @@ namespace bfcpp
             {
             case MarketType::Futures:
             case MarketType::FuturesTest:
-                return FuturesCallPathMap.at(call);
+                return PathMap.at(call);
                 break;
 
             default:
@@ -744,6 +753,9 @@ namespace bfcpp
             std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
             return lower;
         }
+
+
+
 
     protected:
         shared_ptr<WebSocketSession> m_session;

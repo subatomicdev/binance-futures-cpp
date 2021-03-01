@@ -207,7 +207,7 @@ void monitorSymbol()
 
 
 /// <summary>
-/// A naive example of to open a LIMIT BUY order, lowering the mark price slightly, waiting 5 seconds
+/// A naive example of to open a LIMIT BUY order, lowering the mark price slightly, waiting 8 seconds
 /// then cancelling as an open order. This example will be changed in the future to get the order status and act accordingly.
 /// </summary>
 /// <param name="access"></param>
@@ -270,9 +270,9 @@ void usdTestNetFuturesNewAndCancelOpenOrder(const Market::ApiAccess& access)
     logg(ss.str());
 
 
-    logg("Waiting 5s");
+    logg("Waiting 8s");
 
-    std::this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(8s);
 
     // cancel
     logg("Cancelling open order " + result.result["orderId"]);

@@ -361,27 +361,22 @@ namespace bfcpp
 
         try
         {
+            // build the request, with appropriate headers, the API key and the query string with the signature appended
+
             string uri = getApiUri();
             string path = getApiPath(RestCall::ListenKey);
             string queryString;
 
-
             if (marketType == MarketType::Futures || marketType == MarketType::FuturesTest)
             {
-                queryString = createQueryString(map<string, string>{}, true);                
+                queryString = createQueryString(map<string, string>{}, RestCall::ListenKey, true);
             }            
-
-            // build the request, with appropriate headers, the API key and the query string with the signature appended
-            web::uri requstUri(utility::conversions::to_string_t(path + "?" + queryString));
-
-            web::http::http_request request{ web::http::methods::POST };
-            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
-            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));            
-            request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
-            request.set_request_uri(requstUri);
+            
+            auto request = createHttpRequest(web::http::methods::POST, path + "?" + queryString);
 
             web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(uri)} };
-            client.request(request).then([&ok, this](web::http::http_response response)
+
+            client.request(std::move(request)).then([&ok, this](web::http::http_response response)
             {
                 auto json = response.extract_json().get();
 

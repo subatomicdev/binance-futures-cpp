@@ -131,16 +131,10 @@ namespace bfcpp
         {
             CancelOrderResult result;
 
-            string queryString{ createQueryString(std::move(order), true) };
+            string queryString{ createQueryString(std::move(order), RestCall::CancelOrder, true) };
 
-            web::http::http_request request{ web::http::methods::DEL };
-            request.set_request_uri(utility::conversions::to_string_t(getApiPath(RestCall::CancelOrder) + "?" + queryString));
-            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
-            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
-            request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
-
-            web::uri uri{ utility::conversions::to_string_t(getApiUri()) };
-            web::http::client::http_client client{ uri };
+            auto request = createHttpRequest(web::http::methods::DEL, getApiPath(RestCall::CancelOrder) + "?" + queryString);
+            web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri()) } };
 
             try
             {
@@ -195,17 +189,11 @@ namespace bfcpp
                 break;
             }
 
-            web::uri requestUri(utility::conversions::to_string_t(path));
-
-            web::http::http_request request{ web::http::methods::PUT };
-            request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
-            request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
-            request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binancews_cpp_alpha"));
-            request.set_request_uri(requestUri);
+            auto request = createHttpRequest(web::http::methods::PUT, path);
 
             web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(uri)} };
 
-            client.request(request).then([this](web::http::http_response response)
+            client.request(std::move(request)).then([this](web::http::http_response response)
             {
                 if (response.status_code() != web::http::status_codes::OK)
                 {
