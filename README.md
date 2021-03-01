@@ -4,7 +4,8 @@
 
 ## Update
 **1st March 2021**
-- I've decided to drop support for the Spot market to concentrate on futures.
+- I've decided to drop support for the Spot market to concentrate on futures
+- Spot code removed from repo
 - The repo will be renamed soon 
 
 ---
