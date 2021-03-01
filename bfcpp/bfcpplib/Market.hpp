@@ -714,7 +714,7 @@ namespace bfcpp
                 break;
 
             default:
-                return {};
+                throw std::runtime_error("Unknown market type");
                 break;
             }
         }
@@ -730,7 +730,7 @@ namespace bfcpp
                 break;
 
             default:
-                return {};
+                throw std::runtime_error("Unknown market type");
                 break;
             }
         }

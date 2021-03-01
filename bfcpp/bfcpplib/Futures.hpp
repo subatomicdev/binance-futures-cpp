@@ -42,6 +42,11 @@ namespace bfcpp
                 {"s", {"e", "E","s","p","i","P","r","T"}}
             };
 
+            if (onData == nullptr)
+            {
+                throw std::runtime_error("monitorMarkPrice callback function null");
+            }
+
             auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!markPrice@arr@1s", keys, "s");
 
             if (std::get<0>(tokenAndSession).isValid())
@@ -62,6 +67,11 @@ namespace bfcpp
         /// <returns></returns>
         MonitorToken monitorUserData(std::function<void(UsdFutureUserData)> onData)
         {
+            if (onData == nullptr)
+            {
+                throw std::runtime_error("monitorUserData callback function null");
+            }
+
             MonitorToken monitorToken;
 
             if (createListenKey(m_marketType))
@@ -133,12 +143,13 @@ namespace bfcpp
 
             string queryString{ createQueryString(std::move(order), RestCall::CancelOrder, true) };
 
-            auto request = createHttpRequest(web::http::methods::DEL, getApiPath(RestCall::CancelOrder) + "?" + queryString);
-            web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri()) } };
-
+            
             try
             {
-                client.request(request).then([this, &result](web::http::http_response response) mutable
+                auto request = createHttpRequest(web::http::methods::DEL, getApiPath(RestCall::CancelOrder) + "?" + queryString);
+                
+                web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri()) } };
+                client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
                 {
                     auto json = response.extract_json().get();
 
@@ -171,8 +182,6 @@ namespace bfcpp
 
         void onUserDataTimer()
         {
-            logg("Sending keepalive");
-
             string uri;
             string path;
 
@@ -186,6 +195,10 @@ namespace bfcpp
             case MarketType::FuturesTest:
                 uri = TestUsdFuturestRestUri;
                 path = UsdFuturesRequestPath;
+                break;
+
+            default:
+                throw std::runtime_error("Unknown market type");
                 break;
             }
 
@@ -335,7 +348,8 @@ namespace bfcpp
                         getJsonValues(jsonVal, userData.ou.data, { "e", "E", "T" });
 
                         map<string, string> values;
-                        getJsonValues(jsonVal[OrdersField].as_object(), values, { "s", "c", "S", "o", "f", "q", "p", "ap", "sp", "x", "X", "i", "l", "z", "L", "N", "n", "T", "t", "b", "a", "m", "R", "wt", "ot", "ps", "cp", "AP", "cr", "rp" });
+                        getJsonValues(jsonVal[OrdersField].as_object(), values, {   "s", "c", "S", "o", "f", "q", "p", "ap", "sp", "x", "X", "i", "l", "z", "L", "N", 
+                                                                                    "n", "T", "t", "b", "a", "m", "R", "wt", "ot", "ps", "cp", "AP", "cr", "rp" });
 
                         userData.ou.orders[values["s"]] = std::move(values);
                     }

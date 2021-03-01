@@ -28,6 +28,11 @@ namespace bfcpp
             { {"s"}, {"e", "E", "s", "c", "o", "h", "l", "v", "q"} }
         };
 
+        if (onData == nullptr)
+        {
+            throw std::runtime_error("monitorMiniTicker callback function null");
+        }
+
         auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!miniTicker@arr", keys, "s");
 
         if (std::get<0>(tokenAndSession).isValid())
@@ -49,6 +54,12 @@ namespace bfcpp
             {"s", {}},
             {"k", {"t", "T", "s", "i", "f", "L", "o", "c", "h", "l", "v", "n", "x", "q", "V", "Q", "B"}}
         };
+
+        if (onData == nullptr)
+        {
+            throw std::runtime_error("monitorKlineCandlestickStream callback function null");
+        }
+
 
         auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@kline_" + interval, keys);
 
@@ -77,6 +88,12 @@ namespace bfcpp
             {"q", {}}
         };
 
+        if (onData == nullptr)
+        {
+            throw std::runtime_error("monitorSymbol callback function null");
+        }
+
+
         auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@miniTicker", keys);
 
         if (std::get<0>(tokenAndSession).isValid())
@@ -99,6 +116,12 @@ namespace bfcpp
             {"a", {}},
             {"A", {}}
         };
+
+        if (onData == nullptr)
+        {
+            throw std::runtime_error("monitorSymbolBookStream callback function null");
+        }
+
 
         auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@bookTicker", keys);
 

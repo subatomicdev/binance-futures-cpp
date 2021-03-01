@@ -308,7 +308,7 @@ int main(int argc, char** argv)
         //  1. if a function does not take an api/secret key, you can run without
         //  2. these functions are synchronous
 
-        markPrice();
+        //markPrice();
 
         //monitorSymbol();
 
