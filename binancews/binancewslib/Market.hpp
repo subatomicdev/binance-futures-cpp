@@ -276,7 +276,7 @@ namespace binancews
         {
         private:
             WebSocketSession(const WebSocketSession&) = delete;
-            WebSocketSession operator=(const WebSocketSession&) = delete;
+            WebSocketSession& operator=(const WebSocketSession&) = delete;
 
 
         public:
@@ -368,7 +368,7 @@ namespace binancews
 
         Market(const Market&) = delete;
         Market(Market&&) = delete;
-        Market operator=(const Market&) = delete;
+        Market& operator=(const Market&) = delete;
 
 
 
