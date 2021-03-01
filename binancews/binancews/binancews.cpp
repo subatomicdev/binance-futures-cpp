@@ -297,7 +297,7 @@ int main(int argc, char** argv)
         //  1. if a function does not take a secret key, you can run without
         //  2. these functions are synchronous              
 
-        //markPrice();
+        markPrice();
 
         //multipleStreams();
 
@@ -305,7 +305,7 @@ int main(int argc, char** argv)
 
         //usdFutureDataStream(Market::ApiAccess {apiKeyUsdFutures, secretKeyUsdFutures});
 
-        usdTestNetFuturesNewAndCancelOpenOrder(Market::ApiAccess {apiKeyUsdFuturesTest, secretKeyUsdFuturesTest});
+        //usdTestNetFuturesNewAndCancelOpenOrder(Market::ApiAccess {apiKeyUsdFuturesTest, secretKeyUsdFuturesTest});
     }
     catch (const std::exception ex)
     {
