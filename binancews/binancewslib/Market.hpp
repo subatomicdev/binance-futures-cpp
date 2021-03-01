@@ -616,6 +616,12 @@ namespace binancews
         MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey);
 
 
+        /// <summary>
+        /// Notice, this function taken from BinaCPP
+        /// </summary>
+        /// <param name="byte_arr"></param>
+        /// <param name="n"></param>
+        /// <returns></returns>
         string b2a_hex(char* byte_arr, int n)
         {
             const static std::string HexCodes = "0123456789abcdef";
@@ -630,6 +636,12 @@ namespace binancews
         }
 
 
+        /// <summary>
+        /// Notice, this function taken from BinaCPP
+        /// </summary>
+        /// <param name="byte_arr"></param>
+        /// <param name="n"></param>
+        /// <returns></returns>
         string createSignature(const string& key, const string& data)
         {
             string hash;
@@ -714,6 +726,24 @@ namespace binancews
             }
         }
 
+
+        string strToLower(const std::string& str)
+        {
+            string lower;
+            lower.resize(str.size());
+
+            std::transform(str.cbegin(), str.cend(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+            return lower;
+        }
+
+
+        string strToLower(std::string&& str)
+        {
+            string lower{ str };
+
+            std::transform(str.begin(), str.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+            return lower;
+        }
 
     protected:
         shared_ptr<WebSocketSession> m_session;

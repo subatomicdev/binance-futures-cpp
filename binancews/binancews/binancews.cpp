@@ -172,7 +172,7 @@ void multipleStreams()
 /// <param name="secretKey">Create an account on the above URL. This key is available at the bottom of the page</param>
 void usdFutureTestNetDataStream(const Market::ApiAccess& access)
 {
-    std::cout << "\n\n--- USD-M Futures TestNet User Data ---\n";
+    std::cout << "\n\n--- USD-M Futures TESTNET User Data ---\n";
     std::cout << "You must create/cancel etc an order for anything to show here\n";
 
     UsdFuturesTestMarket futuresTest { access} ;
@@ -182,6 +182,10 @@ void usdFutureTestNetDataStream(const Market::ApiAccess& access)
 }
 
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="access"></param>
 void usdFutureDataStream(const Market::ApiAccess& access)
 {
     std::cout << "\n\n--- USD-M Futures User Data ---\n";
@@ -195,6 +199,15 @@ void usdFutureDataStream(const Market::ApiAccess& access)
 
 
 
+void monitorSymbol()
+{
+    UsdFuturesMarket futures;
+    futures.monitorSymbol("BTCUSDT", handleKeyValueData);
+
+    std::this_thread::sleep_for(10s);
+}
+
+
 /// <summary>
 /// A naive example of to open a LIMIT BUY order, lowering the mark price slightly, waiting 5 seconds
 /// then cancelling as an open order. This example will be changed in the future to get the order status and act accordingly.
@@ -202,7 +215,7 @@ void usdFutureDataStream(const Market::ApiAccess& access)
 /// <param name="access"></param>
 void usdTestNetFuturesNewAndCancelOpenOrder(const Market::ApiAccess& access)
 {
-    std::cout << "\n\n--- USD-M Futures TestNet Create and Cancel Order ---\n";
+    std::cout << "\n\n--- USD-M Futures TESTNET Create and Cancel Order ---\n";
 
     string symbol = "BTCUSDT";
     string markPriceString;
@@ -297,7 +310,9 @@ int main(int argc, char** argv)
         //  1. if a function does not take a secret key, you can run without
         //  2. these functions are synchronous              
 
-        markPrice();
+        //markPrice();
+
+        //monitorSymbol();
 
         //multipleStreams();
 

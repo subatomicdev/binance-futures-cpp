@@ -50,7 +50,7 @@ namespace binancews
             {"k", {"t", "T", "s", "i", "f", "L", "o", "c", "h", "l", "v", "n", "x", "q", "V", "Q", "B"}}
         };
 
-        auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@kline_" + interval, keys);
+        auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@kline_" + interval, keys);
 
         if (std::get<0>(tokenAndSession).isValid())
         {
@@ -77,7 +77,7 @@ namespace binancews
             {"q", {}}
         };
 
-        auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@miniTicker", keys);
+        auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@miniTicker", keys);
 
         if (std::get<0>(tokenAndSession).isValid())
         {
@@ -100,7 +100,7 @@ namespace binancews
             {"A", {}}
         };
 
-        auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + symbol + "@bookTicker", keys);
+        auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@bookTicker", keys);
 
         if (std::get<0>(tokenAndSession).isValid())
         {
