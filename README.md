@@ -137,7 +137,7 @@ int main(int argc, char** argv)
       {"price",""} // updated below with mark price from user data stream
   };
 
-  UsdFuturesTestMarket futuresTest{ "YOUR API KEY", "YOUR SECRET KEY" };
+  UsdFuturesTestMarket futuresTest { Market::ApiAccess {"YOUR API KEY", "YOUR SECRET KEY"} };
 
   futuresTest.monitorMarkPrice(handleMarkPrice);  // to get an accurate price
   futuresTest.monitorUserData(handleUserDataUsdFutures); // to get order updates
