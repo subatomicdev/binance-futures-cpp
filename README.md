@@ -198,6 +198,8 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 
 
 ### Linux
+Linux build unavilable, fix coming soon.
+<!--
 1. Build vcpkg: open shell in vcpkg_linux and run:  bootstrap-vcpkg.sh
 2. Install dependencies: in the same prompt run:
 ```
@@ -205,7 +207,7 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 ```
 3. Go up a directory then into 'binancews' directory and run:   ```cmake . && make```
 4. The binary is in the 'binancews' sub-dir ('binancews/binancews' from the top level directory) 
-
+-->
 
 # Run
 The provided ```bfcpptest/bfcpptest.cpp``` has a few functions to show the basics.
