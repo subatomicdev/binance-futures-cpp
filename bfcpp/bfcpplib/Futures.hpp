@@ -90,25 +90,21 @@ namespace bfcpp
 
                         auto token = session->getCancelToken();
                         session->receiveTask = pplx::create_task([session, token, &onData, this]
-                            {
-                                try
-                                {
-                                    handleUserData(session, onData);
-                                }
-                                catch (pplx::task_canceled tc)
-                                {
-                                    // the receive task was cancelled, not triggered by us, most likely the server we need to disconnect this client.
-                                    logg("task cancelled exception " + string{ tc.what() } + " on " + utility::conversions::to_utf8string(session->client.uri().to_string()));
-                                    logg("this stream will be disconnected");
+                        {
+                           try
+                           {
+                              handleUserData(session, onData);
+                           }
+                           catch (pplx::task_canceled tc)
+                           {
+                              // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+                           }
+                           catch (std::exception ex)
+                           {
+                              logg(ex.what());
+                           }
 
-                                    disconnect(session->id, true);
-                                }
-                                catch (std::exception ex)
-                                {
-                                    logg(ex.what());
-                                }
-
-                            }, token);
+                        }, token);
 
 
                         auto timerFunc = std::bind(&UsdFuturesMarket::onUserDataTimer, this);
@@ -118,7 +114,7 @@ namespace bfcpp
                             //TODO ISSUE this doesn't seem to please the testnet, creating orders on the site keeps the connection alive
 
                             // the test net seems to kick us out after 60s of no activity
-                            //m_userDataStreamTimer.start(timerFunc, 45s); 
+                            m_userDataStreamTimer.start(timerFunc, 45s); 
                         }
                         else
                         {
@@ -182,30 +178,9 @@ namespace bfcpp
 
         void onUserDataTimer()
         {
-            string uri;
-            string path;
+            auto request = createHttpRequest(web::http::methods::PUT, getApiPath(RestCall::ListenKey));
 
-            switch (m_marketType)
-            {
-            case MarketType::Futures:
-                uri = UsdFuturesRestUri;
-                path = UsdFuturesRequestPath;
-                break;
-
-            case MarketType::FuturesTest:
-                uri = TestUsdFuturestRestUri;
-                path = UsdFuturesRequestPath;
-                break;
-
-            default:
-                throw std::runtime_error("Unknown market type");
-                break;
-            }
-
-            auto request = createHttpRequest(web::http::methods::PUT, path);
-
-            web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(uri)} };
-
+            web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(getApiUri())} };
             client.request(std::move(request)).then([this](web::http::http_response response)
             {
                 if (response.status_code() != web::http::status_codes::OK)

@@ -15,7 +15,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="bcpptest.cpp">
+    <ClInclude Include="OpenAndCloseLimitOrder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="bfcpptest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

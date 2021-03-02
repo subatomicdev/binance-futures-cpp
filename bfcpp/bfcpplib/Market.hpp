@@ -75,7 +75,7 @@ namespace bfcpp
         // the receive window for RestCall::ListenKey has no affect, it's here for completion
         inline static map<RestCall, string> ReceiveWindowMap =
         {
-            {RestCall::NewOrder,    "2000"},
+            {RestCall::NewOrder,    "5000"},
             {RestCall::ListenKey,   "5000"},
             {RestCall::CancelOrder, "5000"}
         };
@@ -252,10 +252,6 @@ namespace bfcpp
         const string TestSpotRestUri = "https://testnet.binance.vision";
         const string UsdFuturesRestUri = "https://fapi.binance.com";
         const string TestUsdFuturestRestUri = "https://testnet.binancefuture.com";
-
-
-        const string SpotRequestPath = "/api/v3/userDataStream";
-        const string UsdFuturesRequestPath = "/fapi/v1/listenKey";
 
         const string HeaderApiKeyName = "X-MBX-APIKEY";
         const string ListenKeyName = "listenKey";
