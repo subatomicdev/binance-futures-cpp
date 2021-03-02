@@ -225,7 +225,7 @@ int main(int argc, char** argv)
 		//  1. if a function does not take an api/secret key, you can run without
 		//  2. these functions are synchronous
 
-		//markPrice();
+		markPrice();
 
 		//monitorSymbol();
 
@@ -235,8 +235,8 @@ int main(int argc, char** argv)
 
 		//usdFutureDataStream(Market::ApiAccess {apiKeyUsdFutures, secretKeyUsdFutures});
 
-		OpenAndCloseLimitOrder test{ Market::ApiAccess {apiKeyUsdFuturesTest, secretKeyUsdFuturesTest} };
-		test.run();
+		//OpenAndCloseLimitOrder test{ Market::ApiAccess {apiKeyUsdFuturesTest, secretKeyUsdFuturesTest} };
+		//test.run();
 	}
 	catch (const std::exception ex)
 	{
