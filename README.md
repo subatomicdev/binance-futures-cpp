@@ -198,7 +198,7 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 
 
 ### Linux
-Linux build unavilable, fix coming soon.
+Linux build unavailable, fix coming soon.
 <!--
 1. Build vcpkg: open shell in vcpkg_linux and run:  bootstrap-vcpkg.sh
 2. Install dependencies: in the same prompt run:
