@@ -8,13 +8,14 @@
 #include <Logger.hpp>
 
 #include "OpenAndCloseLimitOrder.h"
+#include "ScopedTimer.hpp"
 
 
 using namespace std::chrono_literals;
 using namespace bfcpp;
 
 
-auto handleKeyMultipleValueData = [](Market::BinanceKeyMultiValueData data)
+auto handleKeyMultipleValueData = [](BinanceKeyMultiValueData data)
 {
 	std::stringstream ss;
 
@@ -34,7 +35,7 @@ auto handleKeyMultipleValueData = [](Market::BinanceKeyMultiValueData data)
 };
 
 
-auto handleKeyValueData = [](Market::BinanceKeyValueData data)
+auto handleKeyValueData = [](BinanceKeyValueData data)
 {
 	for (const auto& p : data.values)
 	{
@@ -43,9 +44,9 @@ auto handleKeyValueData = [](Market::BinanceKeyValueData data)
 };
 
 
-auto handleUserDataUsdFutures = [](Market::UsdFutureUserData data)
+auto handleUserDataUsdFutures = [](UsdFutureUserData data)
 {
-	if (data.type == Market::UsdFutureUserData::EventType::MarginCall)
+	if (data.type == UsdFutureUserData::EventType::MarginCall)
 	{
 			std::stringstream ss;
 			ss << "\nMargin Call\n{";
@@ -71,7 +72,7 @@ auto handleUserDataUsdFutures = [](Market::UsdFutureUserData data)
 
 			logg(ss.str());
 	}
-	else if (data.type == Market::UsdFutureUserData::EventType::OrderUpdate)
+	else if (data.type == UsdFutureUserData::EventType::OrderUpdate)
 	{
 			std::stringstream ss;
 			ss << "\nOrder Update\n{";
@@ -97,7 +98,7 @@ auto handleUserDataUsdFutures = [](Market::UsdFutureUserData data)
 
 			logg(ss.str());
 	}
-	else if (data.type == Market::UsdFutureUserData::EventType::AccountUpdate)
+	else if (data.type == UsdFutureUserData::EventType::AccountUpdate)
 	{
 			std::stringstream ss;
 			ss << "\nAccount Update\n{";
@@ -170,7 +171,7 @@ void multipleStreams()
 /// </summary>
 /// <param name="apiKey">Create an account on the above URL. This key is available at the bottom of the page</param>
 /// <param name="secretKey">Create an account on the above URL. This key is available at the bottom of the page</param>
-void usdFutureTestNetDataStream(const Market::ApiAccess& access)
+void usdFutureTestNetDataStream(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures TESTNET User Data ---\n";
 	std::cout << "You must create/cancel etc an order for anything to show here\n";
@@ -186,7 +187,7 @@ void usdFutureTestNetDataStream(const Market::ApiAccess& access)
 /// 
 /// </summary>
 /// <param name="access"></param>
-void usdFutureDataStream(const Market::ApiAccess& access)
+void usdFutureDataStream(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures User Data ---\n";
 	std::cout << "You must create/cancel etc an order for anything to show here\n";
@@ -199,7 +200,7 @@ void usdFutureDataStream(const Market::ApiAccess& access)
 
 
 /// <summary>
-/// 
+/// Receives from the symbol mini ticker, updated every 1000ms.
 /// </summary>
 void monitorSymbol()
 {
@@ -210,6 +211,71 @@ void monitorSymbol()
 
 	std::this_thread::sleep_for(10s);
 }
+
+
+/// <summary>
+/// 1. Get all orders (which defaults to within 7 days)
+/// 2. Get all orders for today
+/// 
+/// Read Market::allOrders() for what will be returned.
+/// </summary>
+/// <param name="access"></param>
+void allOrders(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures All Orders ---\n";
+
+	auto showResults = [](const AllOrdersResult& result, framework::ScopedTimer& timer)
+	{
+		stringstream ss;
+		ss << "\nFound " << result.response.size() << " orders in " << timer.stopLong() << " ms";
+
+		for (const auto& order : result.response)
+		{
+			ss << "\n{";
+			for (const auto& values : order)
+			{
+				ss << "\n\t" << values.first << "=" << values.second;
+			}
+			ss << "\n}";
+		}
+
+		logg(ss.str());
+	};
+
+	UsdFuturesTestMarket futuresTest { access };
+
+
+	// --- Get all orders ---
+
+	framework::ScopedTimer timer;
+	
+	auto result = futuresTest.allOrders({ {"symbol", "BTCUSDT"} });
+	
+	showResults(result, timer);
+
+
+	// --- Get all orders for today ---
+
+	// get timestamp for start of today
+	Market::Clock::time_point startOfDay;
+	{
+		time_t tm = Market::Clock::to_time_t(Market::Clock::now());
+		auto lt = std::localtime(&tm);
+		lt->tm_hour = 0;
+		lt->tm_min = 0;
+		lt->tm_sec = 0;
+
+		startOfDay = Market::Clock::from_time_t(std::mktime(lt));
+	}	
+
+
+	timer.restart();
+	
+	result = futuresTest.allOrders({ {"symbol", "BTCUSDT"},  {"startTime", std::to_string(Market::getTimestamp(startOfDay))} });
+
+	showResults(result, timer);
+}
+
 
 
 int main(int argc, char** argv)
@@ -260,17 +326,21 @@ int main(int argc, char** argv)
 		markPrice();
 		//monitorSymbol();
 		//multipleStreams();
+		
+
 
 		if (testNetMode)
 		{
-			//usdFutureTestNetDataStream(Market::ApiAccess {apiFutTest, secretFutTest});
+			//usdFutureTestNetDataStream(ApiAccess {apiFutTest, secretFutTest});
 
-			//OpenAndCloseLimitOrder test{ Market::ApiAccess {apiFutTest, secretFutTest} };
+			//OpenAndCloseLimitOrder test{ ApiAccess {apiFutTest, secretFutTest} };
 			//test.run();
+
+			//allOrders(ApiAccess{ apiFutTest, secretFutTest });
 		}
 		else
 		{
-			//usdFutureDataStream(Market::ApiAccess {apiFut, secretFut});
+			//usdFutureDataStream(ApiAccess {apiFut, secretFut});
 		}
 	}
 	catch (const std::exception ex)

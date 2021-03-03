@@ -139,7 +139,6 @@ namespace bfcpp
 
             string queryString{ createQueryString(std::move(order), RestCall::CancelOrder, true) };
 
-            
             try
             {
                 auto request = createHttpRequest(web::http::methods::DEL, getApiPath(RestCall::CancelOrder) + "?" + queryString);
@@ -151,7 +150,7 @@ namespace bfcpp
 
                     if (response.status_code() == web::http::status_codes::OK)
                     {
-                        getJsonValues(json, result.result, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide",
+                        getJsonValues(json, result.response, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide",
                                                                         "status", "stopPrice", "closePosition", "symbol", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "workingType"});
                     }
                     else

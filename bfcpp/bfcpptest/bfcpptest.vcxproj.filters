@@ -18,9 +18,15 @@
     <ClInclude Include="OpenAndCloseLimitOrder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ScopedTimer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bfcpptest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ScopedTimer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

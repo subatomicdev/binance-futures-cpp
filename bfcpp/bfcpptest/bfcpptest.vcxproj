@@ -161,9 +161,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="bfcpptest.cpp" />
+    <ClCompile Include="ScopedTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OpenAndCloseLimitOrder.h" />
+    <ClInclude Include="ScopedTimer.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

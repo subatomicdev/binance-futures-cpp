@@ -19,6 +19,21 @@ namespace bfcpp
     static const LogLevel Level = LogLevel::LogDebug; ;// LogLevel::LogError;
 #endif
     
+    inline string timePointToString(const PGClock::time_point& tp)
+    {
+       auto tm_t = PGClock::to_time_t(tp);
+       auto tm = std::localtime(&tm_t);
+       std::stringstream ss;
+       ss << std::put_time(tm, "%H:%M:%S");
+       return ss.str();
+    }
+
+
+    inline string dateTimeToString(Poco::LocalDateTime ldt)
+    {
+       return Poco::DateTimeFormatter::format(ldt, "%H:%M:%S.%i");
+    }
+
 
     inline void logg(const std::string& str, const LogLevel l = LogLevel::LogDebug)
     {
@@ -29,5 +44,16 @@ namespace bfcpp
             std::scoped_lock lock(mux);
             std::cout << "[" << dateTimeToString(Poco::LocalDateTime{}) << "] " << str << "\n";
         }
+    }
+
+    inline void logg(std::string&& str, const LogLevel l = LogLevel::LogDebug)
+    {
+       static std::mutex mux;
+
+       if (!str.empty() && l == Level)
+       {
+          std::scoped_lock lock(mux);
+          std::cout << "[" << dateTimeToString(Poco::LocalDateTime{}) << "] " << str << "\n";
+       }
     }
 }

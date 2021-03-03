@@ -6,11 +6,11 @@ namespace bfcpp
     Market::Market(const MarketType market, const string& exchangeBaseUri, const ApiAccess& access) :
         m_connected(false),
         m_running(false),
-        m_monitorId(1),
         m_marketType(market),
         m_exchangeBaseUri(exchangeBaseUri),
         m_apiAccess(access)
     {
+       m_monitorId = 1U;
     }
 
 
@@ -21,7 +21,7 @@ namespace bfcpp
 
     
 
-    Market::MonitorToken Market::monitorMiniTicker(std::function<void(BinanceKeyMultiValueData)> onData)
+    MonitorToken Market::monitorMiniTicker(std::function<void(BinanceKeyMultiValueData)> onData)
     {
         static const JsonKeys keys
         {
@@ -45,7 +45,7 @@ namespace bfcpp
 
 
 
-    Market::MonitorToken Market::monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(BinanceKeyMultiValueData)> onData)
+    MonitorToken Market::monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(BinanceKeyMultiValueData)> onData)
     {
         static const JsonKeys keys
         {
@@ -73,7 +73,7 @@ namespace bfcpp
 
 
    
-    Market::MonitorToken Market::monitorSymbol(const string& symbol, std::function<void(BinanceKeyValueData)> onData)
+    MonitorToken Market::monitorSymbol(const string& symbol, std::function<void(BinanceKeyValueData)> onData)
     {
         static const JsonKeys keys
         {
@@ -105,7 +105,7 @@ namespace bfcpp
     }
 
 
-    Market::MonitorToken Market::monitorSymbolBookStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData)
+    MonitorToken Market::monitorSymbolBookStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData)
     {
         static const JsonKeys keys
         {
@@ -134,7 +134,7 @@ namespace bfcpp
     }
 
 
-    void Market::disconnect(const Market::MonitorToken& mt, const bool deleteSession)
+    void Market::disconnect(const MonitorToken& mt, const bool deleteSession)
     {
         if (auto itIdToSession = m_idToSession.find(mt.id); itIdToSession != m_idToSession.end())
         {
@@ -214,7 +214,7 @@ namespace bfcpp
     }
 
 
-    std::tuple<Market::MonitorToken, shared_ptr<Market::WebSocketSession>> Market::createMonitor(const string& uri, const JsonKeys& keys, const string& arrayKey)
+    std::tuple<MonitorToken, shared_ptr<Market::WebSocketSession>> Market::createMonitor(const string& uri, const JsonKeys& keys, const string& arrayKey)
     {
         std::tuple<MonitorToken, shared_ptr<WebSocketSession>> tokenAndSession;
 
@@ -330,7 +330,7 @@ namespace bfcpp
     }
 
 
-    Market::MonitorToken Market::createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey)
+    MonitorToken Market::createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey)
     {
         MonitorToken monitorToken;
 

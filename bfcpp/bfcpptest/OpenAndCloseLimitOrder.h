@@ -23,7 +23,7 @@ protected:
 
 
 protected:
-   Market::ApiAccess m_access;
+   ApiAccess m_access;
 };
 
 
@@ -45,7 +45,7 @@ private:
 
 
 public:
-   OpenAndCloseLimitOrder(const Market::ApiAccess access) : m_market(access) 
+   OpenAndCloseLimitOrder(const ApiAccess access) : m_market(access) 
    {
       m_access = access;
 		m_status = OrderStatus::None;
@@ -53,7 +53,7 @@ public:
    }
 
 
-   void handleMarkPrice(Market::BinanceKeyMultiValueData data)
+   void handleMarkPrice(BinanceKeyMultiValueData data)
    {
       if (auto sym = data.values.find(m_symbol); sym != data.values.cend())
       {
@@ -63,9 +63,9 @@ public:
    }
 
 
-	void handleUserDataUsdFutures (Market::UsdFutureUserData data)
+	void handleUserDataUsdFutures (UsdFutureUserData data)
 	{
-		if (data.type == Market::UsdFutureUserData::EventType::MarginCall)
+		if (data.type == UsdFutureUserData::EventType::MarginCall)
 		{
 			std::stringstream ss;
 			ss << "\nMargin Call\n{";
@@ -91,7 +91,7 @@ public:
 
 			logg(ss.str());
 		}
-		else if (data.type == Market::UsdFutureUserData::EventType::OrderUpdate)
+		else if (data.type == UsdFutureUserData::EventType::OrderUpdate)
 		{
 			std::stringstream ss;
 			ss << "\nOrder Update\n{";
@@ -105,7 +105,7 @@ public:
 			
 			logg(ss.str());
 		}
-		else if (data.type == Market::UsdFutureUserData::EventType::AccountUpdate)
+		else if (data.type == UsdFutureUserData::EventType::AccountUpdate)
 		{
 			std::stringstream ss;
 			ss << "\nAccount Update\n{";
@@ -185,13 +185,13 @@ private:
 		
 		stringstream ss;
 		ss << "\nnewOrder() returned:\n";
-		for (const auto& val : result.result)
+		for (const auto& val : result.response)
 		{
 			ss << val.first + "=" + val.second << "\n";
 		}
 		logg(ss.str());
 
-		return result.result["orderId"];
+		return result.response["orderId"];
 	}
 
 
@@ -211,7 +211,7 @@ private:
 
 			stringstream ss;
 			ss << "\ncancelOrder() returned:\n";
-			for (const auto& val : cancelResult.result)
+			for (const auto& val : cancelResult.response)
 			{
 				ss << val.first + "=" + val.second << "\n";
 			}
@@ -234,7 +234,7 @@ private:
 
 			stringstream ss;
 			ss << "\nnewOrder() returned:\n";
-			for (const auto& val : cancelResult.result)
+			for (const auto& val : cancelResult.response)
 			{
 				ss << val.first + "=" + val.second << "\n";
 			}

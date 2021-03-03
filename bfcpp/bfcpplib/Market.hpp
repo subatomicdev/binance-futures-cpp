@@ -55,7 +55,7 @@ namespace bfcpp
     class Market
     {
     public:
-        enum class RestCall { NewOrder, ListenKey, CancelOrder };
+        enum class RestCall { NewOrder, ListenKey, CancelOrder, AllOrders };
 
 
     public:
@@ -65,194 +65,90 @@ namespace bfcpp
 
         
     protected:
-        inline static const map<RestCall, string> PathMap =
-        {
-            {RestCall::NewOrder,    "/fapi/v1/order"},
-            {RestCall::ListenKey,   "/fapi/v1/listenKey"},
-            {RestCall::CancelOrder, "/fapi/v1/order"}
+       inline static const map<RestCall, string> PathMap =
+       {
+           {RestCall::NewOrder,     "/fapi/v1/order"},
+           {RestCall::ListenKey,    "/fapi/v1/listenKey"},
+           {RestCall::CancelOrder,  "/fapi/v1/order"},
+           {RestCall::AllOrders,    "/fapi/v1/allOrders"}
         };
         
-        // the receive window for RestCall::ListenKey has no affect, it's here for completion
+        
         inline static map<RestCall, string> ReceiveWindowMap =
         {
             {RestCall::NewOrder,    "5000"},
-            {RestCall::ListenKey,   "5000"},
-            {RestCall::CancelOrder, "5000"}
+            {RestCall::ListenKey,   "5000"},    // no affect for RestCall::ListenKey, here for completion
+            {RestCall::CancelOrder, "5000"},
+            {RestCall::AllOrders,   "5000"}
+        };
+
+
+        struct WebSocketSession
+        {
+        private:
+           WebSocketSession(const WebSocketSession&) = delete;
+           WebSocketSession& operator=(const WebSocketSession&) = delete;
+
+
+        public:
+           WebSocketSession() : connected(false), id(0), cancelToken(cancelTokenSource.get_token())
+           {
+
+           }
+
+           WebSocketSession(WebSocketSession&& other) noexcept : uri(std::move(uri)), client(std::move(other.client)), receiveTask(std::move(other.receiveTask)),
+              cancelTokenSource(std::move(other.cancelTokenSource)), id(other.id),
+              onDataUserCallback(std::move(other.onDataUserCallback)), onMultiValueDataUserCallback(std::move(other.onMultiValueDataUserCallback)),
+              cancelToken(std::move(other.cancelToken))
+           {
+              connected.store(other.connected ? true : false);
+           }
+
+
+
+           // end point
+           string uri;
+
+           // client for the websocket
+           ws::client::websocket_client client;
+           // the task which receives the websocket messages
+           pplx::task<void> receiveTask;
+
+           // callback functions for user functions
+           std::function<void(BinanceKeyValueData)> onDataUserCallback;
+           std::function<void(BinanceKeyMultiValueData)> onMultiValueDataUserCallback;
+           std::function<void(UsdFutureUserData)> onUsdFuturesUserDataCallback;
+
+           // the monitor id. The MonitorToken is returned to the caller which can be used to cancel the monitor
+           MonitorTokenId id;
+           std::atomic_bool connected;
+
+
+           void cancel()
+           {
+              cancelTokenSource.cancel();
+           }
+
+
+           pplx::cancellation_token getCancelToken()
+           {
+              return cancelToken;
+           }
+
+
+        private:
+           pplx::cancellation_token_source cancelTokenSource;
+           pplx::cancellation_token cancelToken;
         };
 
 
     public:
-        typedef size_t MonitorTokenId;
-
-
-        /// <summary>
-        /// Struct used in some of the monitor functions to store a direct key/value pair.
-        /// </summary>
-        struct BinanceKeyValueData
-        {
-            BinanceKeyValueData() = default;
-
-            BinanceKeyValueData(map<string, string>&& vals) : values(vals)
-            {
-
-            }
-
-            map<string, string> values;
-        };
-
-
-        /// <summary>
-        /// Used in the monitor functions where a simple key/value pair is not suitable.
-        /// The top level is typically the symbol, with the value being that symbol's relevant data, i.e.:
-        /// 
-        ///     ["ZENUSDT", ["E", "1613317084088"], ["c", "50.54400000"], ["e", "2hrMiniTicker"], ... etc]
-        /// 
-        /// </summary>
-        struct BinanceKeyMultiValueData
-        {
-            BinanceKeyMultiValueData() = default;
-
-            BinanceKeyMultiValueData(map<string, map<string, string>>&& vals) : values(std::move(vals))
-            {
-
-            }
-
-            map<string, map<string, string>> values;
-        };
-
-               
-
-        /// <summary>
-        /// Contains data from the USD-M Futures stream.
-        /// 
-        /// First check the type which determines member is populated:
-        ///  EventType::MarginCall - mc
-        ///  EventType::OrderUpdate - ou
-        ///  EventType::AccountUpdate - au
-        /// 
-        /// See https://binance-docs.github.io/apidocs/futures/en/#user-data-streams
-        /// </summary>
-        struct UsdFutureUserData
-        {
-            enum class EventType { Unknown, MarginCall, OrderUpdate, AccountUpdate };
-
-            UsdFutureUserData() = delete;
-
-            UsdFutureUserData(const EventType t) : type(t)
-            {
-
-            }
-
-            struct MarginCall
-            {
-                map<string, string> data;
-                map<string, map<string, string>> positions;
-            } mc;
-
-            struct OrderUpdate
-            {
-                map<string, string> data;
-                map<string, map<string, string>> orders;
-            } ou;
-
-            struct AccountUpdate
-            {
-                map<string, string> data;
-                string reason;
-                vector<map<string, string>> balances;
-                vector<map<string, string>> positions;
-            } au;
-
-            EventType type;
-        };
-
-
-        /// <summary>
-        /// Returned by newOrder(). 
-        /// The key/values in 'result' are here: https://binance-docs.github.io/apidocs/testnet/en/#new-order-trade
-        /// </summary>
-        struct NewOrderResult
-        {
-            NewOrderResult() = default;
-            NewOrderResult(NewOrderResult&&) noexcept = default;
-            NewOrderResult(const NewOrderResult&) = default;
-            NewOrderResult& operator=(const NewOrderResult&) = default;
-            NewOrderResult& operator=(NewOrderResult&&) = default;
-
-
-            NewOrderResult(map<string, string>&& data) : result(data)
-            {
-            }
-
-            map<string, string> result;
-        };
-
-
-
-        struct CancelOrderResult
-        {
-            CancelOrderResult() = default;
-            CancelOrderResult(CancelOrderResult&&) noexcept = default;
-            CancelOrderResult(const CancelOrderResult&) = default;
-            CancelOrderResult& operator=(const CancelOrderResult&) = default;
-            CancelOrderResult& operator=(CancelOrderResult&&) = default;
-
-            CancelOrderResult(map<string, string>&& data) : result(data)
-            {
-
-            }
-
-            map<string, string> result;
-        };
-
-        
-        /// <summary>
-        /// Returned by monitor functions, containing an ID for use with cancelMonitor() to close this stream.
-        /// </summary>
-        struct MonitorToken
-        {
-            MonitorToken() : id(0) {}
-            MonitorToken(MonitorTokenId mId) : id(mId) {}
-
-            MonitorTokenId id;
-
-            bool isValid() const { return id > 0; }
-        };
-
-
-        /// <summary>
-        /// Holds data required for API access. 
-        /// You require an API key, but the API is only require for certain features.
-        /// </summary>
-        struct ApiAccess
-        {
-            ApiAccess() = default;
-            ApiAccess(const string& api, const string& secret = {}) : apiKey(api), secretKey(secret)
-            {
-
-            }
-            ApiAccess(string&& api, string&& secret = {}) : apiKey(api), secretKey(secret)
-            {
-
-            }
-
-            string apiKey;
-            string secretKey;
-        };
-
-
-
-        const string SpotWebSockUri = "wss://stream.binance.com:9443";
-        const string TestSpotWebSockUri = "wss://testnet.binance.vision";
         const string FuturestWebSockUri = "wss://fstream.binance.com";
         const string TestFuturestWebSockUri = "wss://stream.binancefuture.com";
-
         
-        const string SpotRestUri = "https://api.binance.com";
-        const string TestSpotRestUri = "https://testnet.binance.vision";
         const string UsdFuturesRestUri = "https://fapi.binance.com";
         const string TestUsdFuturestRestUri = "https://testnet.binancefuture.com";
-
+        
         const string HeaderApiKeyName = "X-MBX-APIKEY";
         const string ListenKeyName = "listenKey";
         const string ClientSDKVersionName = "client_SDK_Version";
@@ -260,67 +156,9 @@ namespace bfcpp
                
 
 
-        struct WebSocketSession
-        {
-        private:
-            WebSocketSession(const WebSocketSession&) = delete;
-            WebSocketSession& operator=(const WebSocketSession&) = delete;
-
-
-        public:
-            WebSocketSession() : connected(false), id(0), cancelToken(cancelTokenSource.get_token())
-            {
-
-            }
-
-            WebSocketSession(WebSocketSession&& other) noexcept : uri(std::move(uri)), client(std::move(other.client)), receiveTask(std::move(other.receiveTask)),
-                cancelTokenSource(std::move(other.cancelTokenSource)), id(other.id),
-                onDataUserCallback(std::move(other.onDataUserCallback)), onMultiValueDataUserCallback(std::move(other.onMultiValueDataUserCallback)),
-                cancelToken(std::move(other.cancelToken))
-            {
-                connected.store(other.connected ? true : false);
-            }
-
-
-
-            // end point
-            string uri;
-
-            // client for the websocket
-            ws::client::websocket_client client;
-            // the task which receives the websocket messages
-            pplx::task<void> receiveTask;
-
-            // callback functions for user functions
-            std::function<void(BinanceKeyValueData)> onDataUserCallback;
-            std::function<void(BinanceKeyMultiValueData)> onMultiValueDataUserCallback;
-            std::function<void(UsdFutureUserData)> onUsdFuturesUserDataCallback;
-
-            // the monitor id. The MonitorToken is returned to the caller which can be used to cancel the monitor
-            MonitorTokenId id;
-            std::atomic_bool connected;
-
-
-            void cancel()
-            {
-                cancelTokenSource.cancel();
-            }
-
-
-            pplx::cancellation_token getCancelToken()
-            {
-                return cancelToken;
-            }
-
-
-        private:
-            pplx::cancellation_token_source cancelTokenSource;
-            pplx::cancellation_token cancelToken;
-        };
-
-
         typedef map<string, set<string>> JsonKeys;
 
+        typedef std::chrono::system_clock Clock;
 
     public:
 
@@ -408,7 +246,7 @@ namespace bfcpp
 
                     if (response.status_code() == web::http::status_codes::OK)
                     {
-                        getJsonValues(json, result.result, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
+                        getJsonValues(json, result.response, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
                                                                         "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
                     }
                     else
@@ -428,6 +266,59 @@ namespace bfcpp
             
             return result;
         }
+
+
+      /// <summary>
+      /// Returns all orders. What is returned is dependent on the status and order time, read:
+      /// https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
+      /// </summary>
+      /// <param name="query"></param>
+      /// <returns></returns>
+      AllOrdersResult allOrders(map<string, string>&& query)
+      {
+         AllOrdersResult result;
+
+         string queryString{ createQueryString(std::move(query), RestCall::AllOrders, true) };
+
+         try
+         {
+            auto request = createHttpRequest(web::http::methods::GET, getApiPath(RestCall::AllOrders) + "?" + queryString);
+
+            web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri()) } };
+            client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
+            {
+               auto json = response.extract_json().get();
+
+               if (response.status_code() == web::http::status_codes::OK)
+               {
+                  auto& jsonArray = json.as_array();
+
+                  for (const auto& entry : jsonArray)
+                  {
+                     map<string, string> order;
+                     getJsonValues(entry, order, set<string> { "avgPrice", "clientOrderId", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide", "status",
+                                                               "stopPrice", "closePosition", "symbol", "time", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+
+                     result.response.emplace_back(std::move(order));
+                  }                  
+               }
+               else
+               {
+                  throw std::runtime_error{ "Binance returned error in allOrders():\n " + utility::conversions::to_utf8string(json.serialize()) };
+               }
+            }).wait();
+         }
+         catch (const web::websockets::client::websocket_exception we)
+         {
+            logg(we.what());
+         }
+         catch (const std::exception ex)
+         {
+            logg(ex.what());
+         }
+
+         return result;
+      }
 
 
 
@@ -497,6 +388,24 @@ namespace bfcpp
             ss >> p;
 
             return p;
+        }
+
+        /// <summary>
+        /// Get a Binance API timestamp for now.
+        /// </summary>
+        /// <returns></returns>
+        static auto getTimestamp() -> Clock::duration::rep
+        {
+           return getTimestamp(Clock::now());
+        }
+
+        /// <summary>
+        /// Get a Binance API timestamp for the given time.
+        /// </summary>
+        /// <returns></returns>
+        static auto getTimestamp(Clock::time_point t) -> Clock::duration::rep
+        {
+           return std::chrono::duration_cast<std::chrono::milliseconds> (t.time_since_epoch()).count();
         }
 
     protected:
@@ -663,11 +572,7 @@ namespace bfcpp
 
 
         // User data stream functions
-        auto getTimestamp() -> std::chrono::system_clock::duration::rep
-        {            
-            return std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::system_clock::now().time_since_epoch()).count();
-        }
-
+        
         
         bool createListenKey(const MarketType marketType);
 
