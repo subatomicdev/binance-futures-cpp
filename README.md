@@ -181,10 +181,11 @@ int main(int argc, char** argv)
 ```cpp
 UsdFuturesTestMarket futuresTest { access };
 
+framework::ScopedTimer timer;
 auto result = futuresTest.allOrders({ {"symbol", "BTCUSDT"} });
 
 stringstream ss;
-ss << "\nFound " << result.response.size() << " orders";
+ss << "\nFound " << result.response.size() << " orders in " << timer.stopLong() << " ms";
 
 for (const auto& order : result.response)
 {
@@ -198,7 +199,8 @@ for (const auto& order : result.response)
 logg(ss.str());
 ```
 
-|![image](https://user-images.githubusercontent.com/74328784/109869214-82e9d800-7c60-11eb-90b7-8dab221cfbe2.png)|
+![image](https://user-images.githubusercontent.com/74328784/109874309-d8c17e80-7c66-11eb-859b-c28a17f66475.png)
+
 
 
 ---
