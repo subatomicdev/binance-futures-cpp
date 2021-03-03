@@ -60,14 +60,13 @@ The Rest calls are synchronous, returning an appropriate object, e.g.:
 AllOrdersResult allOrders(map<string, string>&& query)
 ```
 
-Most/all of the Rest functions expect an rvalue so that the query string can be built by moving values rather than copying.
+Most/all of the Rest functions expect an rvalue because query strings are built by moving key/values rather than copying.
 
 
 ## Examples
 
 ### Monitor Mark Price and Mini Ticker
-This example monitors the mark price and mini tickers for all symbols.
-We can use the same callback function here because it's only printing the values.
+This example monitors the mark price and mini tickers for all symbols. We can use the same callback function here because it's only printing the values.
 
 ```cpp
 #include <iostream>
@@ -175,7 +174,7 @@ int main(int argc, char** argv)
   }
   logg(ss.str());
 
-  std::this_thread::sleep_for(60s);
+  std::this_thread::sleep_for(10s); // allow time for the user data stream to show updates
   
   return 0;
 }
