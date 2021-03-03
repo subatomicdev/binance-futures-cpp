@@ -3,6 +3,10 @@
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's fully tested and the API is stable.**
 
 ## Update
+**3rd Match 2021**
+- Added accountInformation() : https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
+- Added allOrders() : https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
+
 **1st March 2021**
 - I've decided to drop support for the Spot market to concentrate on futures
 - Spot code removed from repo
