@@ -235,29 +235,27 @@ int main(int argc, char** argv)
 			}
 			else
 			{
-				char type[5], api[65], secret[65];
+				string line;
 									
 				std::ifstream fileStream(argv[1]);
-				fileStream.getline(type, 5);
-				fileStream.getline(api, 65);
-				fileStream.getline(secret, 65) ;
+				std::getline(fileStream, line);
 
-				if (std::string_view{ type } == "live")
+				if (line == "live")
 				{
-					apiFut = api;
-					secretFut = secret;
+					std::getline(fileStream, apiFut);
+					std::getline(fileStream, secretFut);
 					testNetMode = false;
 				}
 				else
 				{
-					apiFutTest.assign(api, 64);
-					secretFutTest.assign(secret, 64);
+					std::getline(fileStream, apiFutTest);
+					std::getline(fileStream, secretFutTest);
 				}
 			}
 		}
 
 		// these don't require keys
-		//markPrice();
+		markPrice();
 		//monitorSymbol();
 		//multipleStreams();
 
