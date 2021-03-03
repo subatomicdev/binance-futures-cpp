@@ -26,7 +26,7 @@ A test app to show how to use the library.
 ### API
 The API is a thin in that it expects and returns data in maps in preference to encapsulating data in classes/structs, e.g:
 
-```
+```cpp
 class BinanceOrder : public Order
 {
 
