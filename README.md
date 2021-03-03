@@ -23,7 +23,24 @@ The library which handles all communications with the exchange
 **bfcpptest**
 A test app to show how to use the library. 
 
-**Usage**
+### API
+The API is a thin in that it expects and returns data in maps in preference to encapsulating data in classes/structs, .e.g:
+
+```
+class BinanceOrder : public Order
+{
+
+ Symbol m_symbol;
+ MarketPrice m_price;
+ OrderType m_type; 
+ // etc
+};
+```
+
+This is to avoid creating and populating objects when most likely users will either already have or intend to create a class structure for their needs.
+
+The callbacks arguments/function return are by value, taking advantage of move-semantics and RVO.
+
 
 ### WebSocket Monitor Functions
 Websocket streams are opened using the monitor functions, such as ```monitorMarkPrice()```.
