@@ -23,43 +23,23 @@ The library which handles all communications with the exchange
 **bfcpptest**
 A test app to show how to use the library. 
 
-Use the monitor functions to receive updates from streams via callback.
+**Usage**
 
-There are two types of callback signatures which differ in there argument, either Binance::BinanceKeyValueData or Binance::BinanceKeyMultiValueData.
+### WebSocket Monitor Functions
+Websocket streams are opened using the monitor functions, such as ```monitorMarkPrice()```.
+The monitor functions require a callback function/lambda and are async, e.g.
 
-Binance::BinanceKeyValueData contains a map<string, string> with the key being what the Binance API returns:
-
-```
-s=GRTUSDT
-t=17825723
-E=1613316912873
-M=true
-T=1613316912872
-a=157236111
-b=157236141
-e=trade
-m=false
-p=1.99867000
-q=32.30000000
+```cpp
+MonitorToken monitorMarkPrice(std::function<void(BinanceKeyMultiValueData)> onData)
 ```
 
+### Rest Functions
+The Rest calls are synchronous, returning an appropriate object, e.g.:  
 
-Binance::BinanceKeyMultiValueData contains a map<string, map<string, string>> with the outer key being the symbol:
+```cpp
+AllOrdersResult allOrders(map<string, string>&& query)
+```
 
-```
-ZENUSDT
-{
-  E=1613317084088
-  c=50.54400000
-  e=24hrMiniTicker
-  h=58.13300000
-  l=49.79400000
-  o=50.52900000
-  q=18580149.39067900
-  s=ZENUSDT
-  v=337519.15900000ZENUSDT
-}
-```
 
 ## Examples
 
@@ -179,7 +159,32 @@ int main(int argc, char** argv)
 }
 ```
 
+### Get All Orders
+```cpp
+UsdFuturesTestMarket futuresTest { access };
+
+auto result = futuresTest.allOrders({ {"symbol", "BTCUSDT"} });
+
+stringstream ss;
+ss << "\nFound " << result.response.size() << " orders";
+
+for (const auto& order : result.response)
+{
+  ss << "\n{";
+  for (const auto& values : order)
+  {
+    ss << "\n\t" << values.first << "=" << values.second;
+  }
+  ss << "\n}";
+}
+logg(ss.str());
+```
+
+|![image](https://user-images.githubusercontent.com/74328784/109869214-82e9d800-7c60-11eb-90b7-8dab221cfbe2.png)|
+
+
 ---
+
 
 ## Build
 
