@@ -199,9 +199,7 @@ for (const auto& order : result.response)
 logg(ss.str());
 ```
 
-![image](https://user-images.githubusercontent.com/74328784/109874309-d8c17e80-7c66-11eb-859b-c28a17f66475.png)
-
-
+![output](https://user-images.githubusercontent.com/74328784/109874739-69985a00-7c67-11eb-961d-a43c9e46192c.png)
 
 ---
 
