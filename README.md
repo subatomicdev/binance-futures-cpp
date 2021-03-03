@@ -33,16 +33,16 @@ The API is thin - it expects and returns data in maps in rather than encapsulati
 ```cpp
 class BinanceOrder : public Order
 {
-
- Symbol m_symbol;
- MarketPrice m_price;
- OrderType m_type; 
- // etc
+   Symbol m_symbol;
+   MarketPrice m_price;
+   OrderType m_type; 
+   // etc
 };
 ```
-This is to avoid creating and populating objects when most likely users will either already have or intend to create a class structure for their needs.
 
-Function return objects and callback args are by value, taking advantage of move-semantics and RVO.
+This is to avoid creating and populating objects when most likely users will either already have, or intend to, create a class structure for their needs.
+
+Objects returned from functions, and callback arguments, are by value to take advantage of RVO and move-semantics.
 
 
 ### WebSocket Monitor Functions
