@@ -9,14 +9,13 @@
 - Repo renamed to "binance-futures-cpp", code namespace now "bfcpp"
 
 ---
----
-
+## Summary
 binancews is a C++17 library which receives market data from the Binance crypto currency exchange. 
 
 The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data.
 
 ---
-
+## Design
 **bfcpplib**
 The library which handles all communications with the exchange
 
@@ -198,8 +197,8 @@ Dependencies are handled by vcpkg, a cross platform package manager.
 
 
 ### Linux
-Linux build unavailable, fix coming soon.
-<!--
+_NOTE: testing on Linux has been limited, I hope to improve this in the coming weeks_
+
 1. Build vcpkg: open shell in vcpkg_linux and run:  bootstrap-vcpkg.sh
 2. Install dependencies: in the same prompt run:
 ```
@@ -207,7 +206,7 @@ Linux build unavailable, fix coming soon.
 ```
 3. Go up a directory then into 'binancews' directory and run:   ```cmake . && make```
 4. The binary is in the 'binancews' sub-dir ('binancews/binancews' from the top level directory) 
--->
+
 
 # Run
 The provided ```bfcpptest/bfcpptest.cpp``` has a few functions to show the basics.
