@@ -232,10 +232,7 @@ void allOrders(const ApiAccess& access)
 		for (const auto& order : result.response)
 		{
 			ss << "\n{";
-			for (const auto& values : order)
-			{
-				ss << "\n\t" << values.first << "=" << values.second;
-			}
+			std::for_each(std::begin(order), std::end(order), [&ss](auto& values) { ss << "\n\t" << values.first << "=" << values.second;  });
 			ss << "\n}";
 		}
 
@@ -278,25 +275,62 @@ void allOrders(const ApiAccess& access)
 
 
 
+void accountInformation(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures Account Information ---\n";
+
+	auto showResults = [](const AccountInformation& result, framework::ScopedTimer& timer)
+	{
+		stringstream ss;
+		ss << "\nDone " << timer.stopLong() << " ms";
+
+		std::for_each(std::begin(result.data), std::end(result.data), [&ss](auto& values) { ss << "\n" << values.first << "=" << values.second;  });
+
+		ss << "\nFound " << result.assets.size() << " assets";
+		for (const auto& asset : result.assets)
+		{
+			ss << "\n{";
+			std::for_each(std::begin(asset), std::end(asset), [&ss](auto& values) { ss << "\n\t" << values.first << "=" << values.second;  });
+			ss << "\n}";
+		}
+
+		ss << "\nFound " << result.positions.size() << " positions";
+		for (const auto& position : result.positions)
+		{
+			ss << "\n{";
+			std::for_each(std::begin(position), std::end(position), [&ss](auto& values) { ss << "\n\t" << values.first << "=" << values.second;  });
+			ss << "\n}";
+		}
+
+		logg(ss.str());
+	};
+
+
+	UsdFuturesTestMarket futuresTest{ access };
+	
+	framework::ScopedTimer timer;
+	auto result = futuresTest.accountInformation();
+	
+	showResults(result, timer);
+
+}
+
+
 int main(int argc, char** argv)
 {
 	try
 	{
-		// futures testnet
-		const string apiKeyUsdFuturesTest = "";
-		const string secretKeyUsdFuturesTest = "";
-		// futures 'real'
-		const string apiKeyUsdFutures = "";
-		const string secretKeyUsdFutures = "";
-
-		std::string apiFutTest = apiKeyUsdFuturesTest, secretFutTest = secretKeyUsdFuturesTest;
-		std::string apiFut = apiKeyUsdFutures, secretFut = apiKeyUsdFutures;
+		std::string apiFutTest, secretFutTest;
+		std::string apiFut, secretFut;
 
 		bool testNetMode = true;
 
 		if (argc == 2)
 		{
-			// keyfile present: first line is "test" OR "live" to define if the keys are for testnet or live exchange
+			// keyfile used - format is 3 lines:
+			// <test | live>
+			// <api key>
+			// <secret key>
 			if (auto fileSize = std::filesystem::file_size(std::filesystem::path {argv[1]}) ; fileSize > 140)
 			{
 				logg("Key file should be format with 3 lines:\nLine 1: <test | live>\nLine 2: api key\nLine 3: secret key");
@@ -326,8 +360,6 @@ int main(int argc, char** argv)
 		markPrice();
 		//monitorSymbol();
 		//multipleStreams();
-		
-
 
 		if (testNetMode)
 		{
@@ -337,6 +369,8 @@ int main(int argc, char** argv)
 			//test.run();
 
 			//allOrders(ApiAccess{ apiFutTest, secretFutTest });
+
+			//accountInformation(ApiAccess{ apiFutTest, secretFutTest });
 		}
 		else
 		{
