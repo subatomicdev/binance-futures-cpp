@@ -9,14 +9,13 @@
 - Repo renamed to "binance-futures-cpp", code namespace now "bfcpp"
 
 ---
----
-
+## Summary
 binancews is a C++17 library which receives market data from the Binance crypto currency exchange. 
 
 The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data.
 
 ---
-
+## Design
 **bfcpplib**
 The library which handles all communications with the exchange
 
