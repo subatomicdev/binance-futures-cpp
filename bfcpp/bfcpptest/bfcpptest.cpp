@@ -198,7 +198,9 @@ void usdFutureDataStream(const Market::ApiAccess& access)
 }
 
 
-
+/// <summary>
+/// 
+/// </summary>
 void monitorSymbol()
 {
 	std::cout << "\n\n--- USD-M Futures Monitor Symbol ---\n";
