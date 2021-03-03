@@ -24,7 +24,7 @@ The library which handles all communications with the exchange
 A test app to show how to use the library. 
 
 ### API
-The API is a thin in that it expects and returns data in maps in preference to encapsulating data in classes/structs, .e.g:
+The API is a thin in that it expects and returns data in maps in preference to encapsulating data in classes/structs, e.g:
 
 ```
 class BinanceOrder : public Order
@@ -36,10 +36,9 @@ class BinanceOrder : public Order
  // etc
 };
 ```
-
 This is to avoid creating and populating objects when most likely users will either already have or intend to create a class structure for their needs.
 
-The callbacks arguments/function return are by value, taking advantage of move-semantics and RVO.
+Function return objects and callback args are by value, taking advantage of move-semantics and RVO.
 
 
 ### WebSocket Monitor Functions
@@ -56,6 +55,8 @@ The Rest calls are synchronous, returning an appropriate object, e.g.:
 ```cpp
 AllOrdersResult allOrders(map<string, string>&& query)
 ```
+
+Most/all of the Rest functions expect an rvalue so that the query string can be built by moving values rather than copying.
 
 
 ## Examples
