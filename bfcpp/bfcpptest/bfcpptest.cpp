@@ -357,7 +357,7 @@ int main(int argc, char** argv)
 		}
 
 		// these don't require keys
-		//markPrice();
+		markPrice();
 		//monitorSymbol();
 		//multipleStreams();
 
@@ -368,7 +368,7 @@ int main(int argc, char** argv)
 			//OpenAndCloseLimitOrder test{ ApiAccess {apiFutTest, secretFutTest} };
 			//test.run();
 
-			allOrders(ApiAccess{ apiFutTest, secretFutTest });
+			//allOrders(ApiAccess{ apiFutTest, secretFutTest });
 
 			//accountInformation(ApiAccess{ apiFutTest, secretFutTest });
 		}
