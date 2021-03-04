@@ -3,6 +3,10 @@
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's fully tested and the API is stable.**
 
 ## Update
+**3rd March 2021**
+- Added accountInformation() : https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
+- Added allOrders() : https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
+
 **1st March 2021**
 - I've decided to drop support for the Spot market to concentrate on futures
 - Spot code removed from repo
@@ -29,16 +33,16 @@ The API is thin - it expects and returns data in maps in rather than encapsulati
 ```cpp
 class BinanceOrder : public Order
 {
-
- Symbol m_symbol;
- MarketPrice m_price;
- OrderType m_type; 
- // etc
+   Symbol m_symbol;
+   MarketPrice m_price;
+   OrderType m_type; 
+   // etc
 };
 ```
-This is to avoid creating and populating objects when most likely users will either already have or intend to create a class structure for their needs.
 
-Function return objects and callback args are by value, taking advantage of move-semantics and RVO.
+This is to avoid creating and populating objects when most likely users will either already have, or intend to, create a class structure for their needs.
+
+Objects returned from functions, and callback arguments, are by value to take advantage of RVO and move-semantics.
 
 
 ### WebSocket Monitor Functions
@@ -56,14 +60,13 @@ The Rest calls are synchronous, returning an appropriate object, e.g.:
 AllOrdersResult allOrders(map<string, string>&& query)
 ```
 
-Most/all of the Rest functions expect an rvalue so that the query string can be built by moving values rather than copying.
+Most/all of the Rest functions expect an rvalue because query strings are built by moving key/values rather than copying.
 
 
 ## Examples
 
 ### Monitor Mark Price and Mini Ticker
-This example monitors the mark price and mini tickers for all symbols.
-We can use the same callback function here because it's only printing the values.
+This example monitors the mark price and mini tickers for all symbols. We can use the same callback function here because it's only printing the values.
 
 ```cpp
 #include <iostream>
@@ -171,7 +174,7 @@ int main(int argc, char** argv)
   }
   logg(ss.str());
 
-  std::this_thread::sleep_for(60s);
+  std::this_thread::sleep_for(10s); // allow time for the user data stream to show updates
   
   return 0;
 }
