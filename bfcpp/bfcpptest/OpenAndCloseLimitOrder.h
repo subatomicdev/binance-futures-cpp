@@ -5,25 +5,25 @@
 #include <atomic>
 
 using namespace bfcpp;
-
+using namespace std::chrono_literals;
 
 class BfcppTest
 {
 
 public:
-   virtual ~BfcppTest()
-   {
-   }
+	virtual ~BfcppTest()
+	{
+	}
 
 
 protected:
-   BfcppTest()
-   {
-   }
+	BfcppTest()
+	{
+	}
 
 
 protected:
-   ApiAccess m_access;
+	ApiAccess m_access;
 };
 
 
@@ -37,33 +37,35 @@ class OpenAndCloseLimitOrder : public BfcppTest
 {
 private:
 	enum class OrderStatus { None, New, PartiallyFilled, Filled, Cancelled, Rejected, Expired };
-	inline static const map<string, OrderStatus> OrderStatusMap =	{
-																							{"None", OrderStatus::None}, {"NEW", OrderStatus::New}, {"PARTIALLY_FILLED", OrderStatus::PartiallyFilled},
-																							{"FILLED", OrderStatus::Filled}, {"CANCELED", OrderStatus::Cancelled}, {"REJECTED", OrderStatus::Rejected},
-																							{"EXPIRED", OrderStatus::Expired}
-																						};
+
+	inline static const map<string, OrderStatus> OrderStatusMap =
+	{
+		{"None", OrderStatus::None}, {"NEW", OrderStatus::New}, {"PARTIALLY_FILLED", OrderStatus::PartiallyFilled},
+		{"FILLED", OrderStatus::Filled}, {"CANCELED", OrderStatus::Cancelled}, {"REJECTED", OrderStatus::Rejected},
+		{"EXPIRED", OrderStatus::Expired}
+	};
 
 
 public:
-   OpenAndCloseLimitOrder(const ApiAccess access) : m_market(access) 
-   {
-      m_access = access;
+	OpenAndCloseLimitOrder(const ApiAccess access) : m_market(access)
+	{
+		m_access = access;
 		m_status = OrderStatus::None;
 		m_symbol = "BTCUSDT";
-   }
+	}
 
 
-   void handleMarkPrice(BinanceKeyMultiValueData data)
-   {
-      if (auto sym = data.values.find(m_symbol); sym != data.values.cend())
-      {
-         m_markPriceString = sym->second["p"];
-         m_priceSet.notify_all();
-      }
-   }
+	void handleMarkPrice(BinanceKeyMultiValueData data)
+	{
+		if (auto sym = data.values.find(m_symbol); sym != data.values.cend())
+		{
+			m_markPriceString = sym->second["p"];
+			m_priceSet.notify_all();
+		}
+	}
 
 
-	void handleUserDataUsdFutures (UsdFutureUserData data)
+	void handleUserDataUsdFutures(UsdFutureUserData data)
 	{
 		if (data.type == UsdFutureUserData::EventType::MarginCall)
 		{
@@ -99,10 +101,10 @@ public:
 			if (auto orderEntry = data.ou.orders.find(m_symbol); orderEntry != data.ou.orders.cend())
 			{
 				ss << "Order Status = " << orderEntry->second["X"];
-				
-				m_status = OrderStatusMap.at(orderEntry->second["X"]);				
+
+				m_status = OrderStatusMap.at(orderEntry->second["X"]);
 			}
-			
+
 			logg(ss.str());
 		}
 		else if (data.type == UsdFutureUserData::EventType::AccountUpdate)
@@ -142,22 +144,22 @@ public:
 	};
 
 
-   void run()
-   {
-      auto funcMarkPrice = std::bind(&OpenAndCloseLimitOrder::handleMarkPrice, std::ref(*this), std::placeholders::_1);
-      m_market.monitorMarkPrice(funcMarkPrice);	// to get an accurate price
+	void run()
+	{
+		auto funcMarkPrice = std::bind(&OpenAndCloseLimitOrder::handleMarkPrice, std::ref(*this), std::placeholders::_1);
+		m_market.monitorMarkPrice(funcMarkPrice);	// to get an accurate price
 
 		auto funcUserData = std::bind(&OpenAndCloseLimitOrder::handleUserDataUsdFutures, std::ref(*this), std::placeholders::_1);
-      m_market.monitorUserData(funcUserData);	// to get order updates
-		
+		m_market.monitorUserData(funcUserData);	// to get order updates
+
 		logg("Create order");
 		m_orderId = createOrder(m_symbol);
-		
+
 		logg("Waiting");
 		std::this_thread::sleep_for(8s);
 
-		closeOrder(m_orderId, m_status);		
-   }
+		closeOrder(m_orderId, m_status);
+	}
 
 
 private:
@@ -182,7 +184,7 @@ private:
 
 		auto result = m_market.newOrder(std::move(order));
 
-		
+
 		stringstream ss;
 		ss << "\nnewOrder() returned:\n";
 		for (const auto& val : result.response)
@@ -253,8 +255,8 @@ private:
 	string m_markPriceString;
 	string m_orderId;
 
-   std::condition_variable m_priceSet;
-   UsdFuturesTestMarket m_market;
+	std::condition_variable m_priceSet;
+	UsdFuturesTestMarket m_market;
 	std::atomic<OrderStatus> m_status;
 };
 
