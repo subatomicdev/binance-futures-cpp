@@ -23,11 +23,10 @@
     <ClInclude Include="Futures.hpp" />
     <ClInclude Include="IntervalTimer.hpp" />
     <ClInclude Include="Logger.hpp" />
-    <ClInclude Include="Market.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Futures.cpp" />
     <ClCompile Include="IntervalTimer.cpp" />
-    <ClCompile Include="Market.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

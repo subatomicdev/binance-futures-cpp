@@ -178,7 +178,7 @@ private:
 		m_priceSet.wait(lock);	// notified by handleMarkPrice()
 
 		// set price then send order
-		order["price"] = Market::priceTransform(std::to_string(std::stod(m_markPriceString)));
+		order["price"] = priceTransform(std::to_string(std::stod(m_markPriceString)));
 
 		auto result = m_market.newOrder(std::move(order));
 

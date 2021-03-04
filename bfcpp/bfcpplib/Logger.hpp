@@ -19,9 +19,9 @@ namespace bfcpp
   static const LogLevel Level = LogLevel::LogDebug; ;// LogLevel::LogError;
 #endif
 
-  inline string timePointToString(const PGClock::time_point& tp)
+  inline string timePointToString(const Clock::time_point& tp)
   {
-    auto tm_t = PGClock::to_time_t(tp);
+    auto tm_t = Clock::to_time_t(tp);
     auto tm = std::localtime(&tm_t);
     std::stringstream ss;
     ss << std::put_time(tm, "%H:%M:%S");

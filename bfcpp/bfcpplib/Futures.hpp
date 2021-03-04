@@ -2,6 +2,19 @@
 #define __BINANCE_FUTURES_HPP
 
 
+#include <string>
+#include <vector>
+#include <functional>
+#include <map>
+#include <any>
+#include <set>
+#include <cpprest/ws_client.h>
+#include <cpprest/json.h>
+#include <cpprest/http_client.h>
+#include <openssl/hmac.h>
+#include "Logger.hpp"
+#include "IntervalTimer.hpp"
+
 #include "Market.hpp"
 
 
@@ -12,12 +25,14 @@ namespace bfcpp
   /// The APis keys must be enabled for Futures in the API Management settings. 
   /// If you created the API key before you created your Futures account, you must create a new API key.
   /// </summary>
-  class UsdFuturesMarket : public Market
+  class UsdFuturesMarket
   {
   protected:
-    UsdFuturesMarket(MarketType mt, const string& exchangeUri, const ApiAccess& access) : Market(mt, exchangeUri, access)
+    UsdFuturesMarket(MarketType mt, const string& exchangeUri, const ApiAccess& access) : m_marketType(mt), m_exchangeBaseUri(exchangeUri), m_apiAccess(access)
     {
+      m_monitorId = 1;
     }
+
 
   public:
     UsdFuturesMarket(const ApiAccess& access = {}) : UsdFuturesMarket(MarketType::Futures, FuturestWebSockUri, access)
@@ -30,32 +45,13 @@ namespace bfcpp
     {
     }
 
+
     /// <summary>
     /// Futures Only. Receives data from here: https://binance-docs.github.io/apidocs/futures/en/#mark-price-stream-for-all-market
     /// </summary>
-    /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
+    /// <param name = "onData">Your callback function. See this classes docs for an explanation </param>
     /// <returns></returns>
-    MonitorToken monitorMarkPrice(std::function<void(BinanceKeyMultiValueData)> onData)
-    {
-      static const JsonKeys keys
-      {
-          {"s", {"e", "E","s","p","i","P","r","T"}}
-      };
-
-      if (onData == nullptr)
-      {
-        throw std::runtime_error("monitorMarkPrice callback function null");
-      }
-
-      auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!markPrice@arr@1s", keys, "s");
-
-      if (std::get<0>(tokenAndSession).isValid())
-      {
-        std::get<1>(tokenAndSession)->onMultiValueDataUserCallback = onData;
-      }
-
-      return std::get<0>(tokenAndSession);
-    }
+    MonitorToken monitorMarkPrice(std::function<void(BinanceKeyMultiValueData)> onData);
 
 
     /// <summary>
@@ -65,121 +61,153 @@ namespace bfcpp
     /// <param name="onData"></param>
     /// <param name="mode"></param>
     /// <returns></returns>
-    MonitorToken monitorUserData(std::function<void(UsdFutureUserData)> onData)
+    MonitorToken monitorUserData(std::function<void(UsdFutureUserData)> onData);
+
+
+    // --- monitor functions
+
+
+    /// <summary>
+    /// Receives from the miniTicker stream for all symbols
+    /// Updates every 1000ms (limited by the Binance API).
+    /// </summary>
+    /// <param name="onData">Your callback function. See this classes docs for an explanation</param>
+    /// <returns>A MonitorToken. If MonitorToken::isValid() is a problem occured.</returns>
+    MonitorToken monitorMiniTicker(std::function<void(BinanceKeyMultiValueData)> onData);
+
+
+    /// <summary>
+    /// Receives from the 
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="onData"></param>
+    /// <returns></returns>
+    MonitorToken monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(BinanceKeyMultiValueData)> onData);
+
+
+    /// <summary>
+    /// Receives from the symbol mini ticker
+    /// Updated every 1000ms (limited by the Binance API).
+    /// </summary>
+    /// <param name="symbol">The symbtol to monitor</param>
+    /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
+    /// <returns></returns>
+    MonitorToken monitorSymbol(const string& symbol, std::function<void(BinanceKeyValueData)> onData);
+
+
+    /// <summary>
+    /// Receives from the Individual Symbol Book stream for a given symbol.
+    /// </summary>
+    /// <param name="symbol">The symbol</param>
+    /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
+    /// <returns></returns>
+    MonitorToken monitorSymbolBookStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData);
+
+
+    /// <summary>
+    /// See https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
+    /// </summary>
+    /// <returns></returns>
+    AccountInformation accountInformation();
+
+
+
+    // --- order management
+
+
+    /// <summary>
+    /// Create a new order. 
+    /// 
+    /// The NewOrderResult is returned which contains the response from the Rest call,
+    /// see https://binance-docs.github.io/apidocs/futures/en/#new-order-trade.
+    /// 
+    /// If the order is successful, the User Data Stream will be updated.
+    /// 
+    /// Use the priceTransform() function to make the price value suitable.
+    /// </summary>
+    /// <param name="order">Order params, see link above.</param>
+    /// <returns>See 'response' Rest, see link above.</returns>
+    NewOrderResult newOrder(map<string, string>&& order);
+
+
+    /// <summary>
+    /// Returns all orders. What is returned is dependent on the status and order time, read:
+    /// https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
+    /// </summary>
+    /// <param name="query"></param>
+    /// <returns></returns>
+    AllOrdersResult allOrders(map<string, string>&& query);
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="order"></param>
+    /// <returns></returns>
+    CancelOrderResult cancelOrder(map<string, string>&& order);
+
+
+    /// <summary>
+    /// Close stream for the given token.
+    /// </summary>
+    /// <param name="mt"></param>
+    void cancelMonitor(const MonitorToken& mt)
     {
-      if (onData == nullptr)
+      if (auto it = m_idToSession.find(mt.id); it != m_idToSession.end())
       {
-        throw std::runtime_error("monitorUserData callback function null");
+        disconnect(mt, true);
       }
-
-      MonitorToken monitorToken;
-
-      if (createListenKey(m_marketType))
-      {
-        if (auto session = connect(m_exchangeBaseUri + "/ws/" + m_listenKey); session)
-        {
-          try
-          {
-            monitorToken.id = m_monitorId++;
-
-            session->id = monitorToken.id;
-            session->onUsdFuturesUserDataCallback = onData;
-
-            m_idToSession[monitorToken.id] = session;
-            m_sessions.push_back(session);
-
-            auto token = session->getCancelToken();
-            session->receiveTask = pplx::create_task([session, token, &onData, this]
-              {
-                try
-                {
-                  handleUserData(session, onData);
-                }
-                catch (pplx::task_canceled tc)
-                {
-                  // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
-                }
-                catch (std::exception ex)
-                {
-                  logg(ex.what());
-                }
-
-              }, token);
-
-
-            auto timerFunc = std::bind(&UsdFuturesMarket::onUserDataTimer, this);
-
-            if (m_marketType == MarketType::FuturesTest)
-            {
-              //TODO ISSUE this doesn't seem to please the testnet, creating orders on the site keeps the connection alive
-
-              // the test net seems to kick us out after 60s of no activity
-              m_userDataStreamTimer.start(timerFunc, 45s);
-            }
-            else
-            {
-              m_userDataStreamTimer.start(timerFunc, 60s * 45); // 45 mins
-            }
-          }
-          catch (std::exception ex)
-          {
-            logg(string{ "ERROR: " } + ex.what());
-          }
-        }
-      }
-
-      return monitorToken;
     }
 
 
-
-    CancelOrderResult cancelOrder(map<string, string>&& order)
+    /// <summary>
+    /// Close all streams.
+    /// </summary>
+    void cancelMonitors()
     {
-      CancelOrderResult result;
-
-      string queryString{ createQueryString(std::move(order), RestCall::CancelOrder, true) };
-
-      try
-      {
-        auto request = createHttpRequest(web::http::methods::DEL, getApiPath(RestCall::CancelOrder) + "?" + queryString);
-
-        web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri()) } };
-        client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
-          {
-            auto json = response.extract_json().get();
-
-            if (response.status_code() == web::http::status_codes::OK)
-            {
-              getJsonValues(json, result.response, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide",
-                "status", "stopPrice", "closePosition", "symbol", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "workingType"});
-            }
-            else
-            {
-              throw std::runtime_error{ "Binance returned error cancelling an order:\n" + utility::conversions::to_utf8string(json.serialize()) };  // TODO capture orderId
-            }
-
-          }).wait();
-      }
-      catch (const web::websockets::client::websocket_exception we)
-      {
-        logg(we.what());
-      }
-      catch (const std::exception ex)
-      {
-        logg(ex.what());
-      }
-
-      return result;
+      disconnect();
     }
+
+
+    /// <summary>
+    /// Set the API key(s). 
+    /// All calls require the API key. You only need secret key set if using a call which requires signing, such as newOrder.
+    /// </summary>
+    /// <param name="apiKey"></param>
+    /// <param name="secretKey"></param>
+    void setApiKeys(const ApiAccess access = {})
+    {
+      m_apiAccess = access;
+    }
+
+
+    /// <summary>
+    /// Sets the receive window. For defaults see member ReceiveWindowMap.
+    /// Read about receive window in the "Timing Security" section at: https://binance-docs.github.io/apidocs/futures/en/#endpoint-security-type
+    /// Note the receive window for RestCall::ListenKey has no affect
+    /// </summary>
+    /// <param name="call">The call for which this will set the time</param>
+    /// <param name="ms">time in milliseconds</param>
+    void setReceiveWindow(const RestCall call, std::chrono::milliseconds ms)
+    {
+      ReceiveWindowMap[call] = std::to_string(ms.count());
+    }
+
 
 
   private:
 
+    constexpr bool mustConvertStringT()
+    {
+      return std::is_same_v<utility::string_t, MarketStringType> == false;
+    }
+
+
     void onUserDataTimer()
     {
-      auto request = createHttpRequest(web::http::methods::PUT, getApiPath(RestCall::ListenKey));
+      auto request = createHttpRequest(web::http::methods::PUT, getApiPath(m_marketType, RestCall::ListenKey));
 
-      web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(getApiUri())} };
+      web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(getApiUri(m_marketType))} };
       client.request(std::move(request)).then([this](web::http::http_response response)
         {
           if (response.status_code() != web::http::status_codes::OK)
@@ -256,127 +284,78 @@ namespace bfcpp
     }
 
 
-    void extractUsdFuturesUserData(shared_ptr<WebSocketSession> session, web::json::value&& jsonVal)
-    {
-      const utility::string_t CodeField = utility::conversions::to_string_t("code");
-      const utility::string_t MsgField = utility::conversions::to_string_t("msg");
+    void extractUsdFuturesUserData(shared_ptr<WebSocketSession> session, web::json::value&& jsonVal);
+  
 
-      if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
+    shared_ptr<WebSocketSession> connect(const string& uri);
+    
+    void disconnect(const MonitorToken& mt, const bool deleteSession);
+    void disconnect();
+
+
+    std::tuple<MonitorToken, shared_ptr<WebSocketSession>> createMonitor(const string& uri, const JsonKeys& keys, const string& arrayKey = {});
+
+    bool createListenKey(const MarketType marketType);
+
+
+    string createQueryString(map<string, string>&& queryValues, const RestCall call, const bool sign)
+    {
+      stringstream ss;
+
+      // can leave a trailing '&' without borking the internets
+      std::for_each(queryValues.begin(), queryValues.end(), [&ss](auto& it)
+        {
+          ss << std::move(it.first) << "=" << std::move(it.second) << "&";
+        });
+
+      if (sign)
       {
-        std::cout << "\nError: " << utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) << " : " << utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string());
+        auto ts = getTimestamp();
+        ss << "recvWindow=" << ReceiveWindowMap.at(call) << "&timestamp=" << ts;
+
+        string qs = ss.str();
+        return qs + "&signature=" + createSignature(m_apiAccess.secretKey, qs);
       }
       else
       {
-        const utility::string_t EventTypeField = utility::conversions::to_string_t("e");
-        const utility::string_t EventMarginCall = utility::conversions::to_string_t("MARGIN_CALL");
-        const utility::string_t EventOrderTradeUpdate = utility::conversions::to_string_t("ORDER_TRADE_UPDATE");
-        const utility::string_t EventAccountUpdate = utility::conversions::to_string_t("ACCOUNT_UPDATE");
-
-
-        UsdFutureUserData::EventType type = UsdFutureUserData::EventType::Unknown;
-
-        auto& eventValue = jsonVal.at(EventTypeField).as_string();
-
-        if (eventValue == EventMarginCall)
-        {
-          type = UsdFutureUserData::EventType::MarginCall;
-        }
-        else if (eventValue == EventOrderTradeUpdate)
-        {
-          type = UsdFutureUserData::EventType::OrderUpdate;
-        }
-        else if (eventValue == EventAccountUpdate)
-        {
-          type = UsdFutureUserData::EventType::AccountUpdate;
-        }
-
-        UsdFutureUserData userData(type);
-
-        if (type != UsdFutureUserData::EventType::Unknown)
-        {
-          switch (type)
-          {
-
-          case UsdFutureUserData::EventType::MarginCall:
-          {
-
-            const utility::string_t BalancesField = utility::conversions::to_string_t("B");
-
-            getJsonValues(jsonVal, userData.mc.data, { "e", "E", "cw" });
-
-            for (auto& balance : jsonVal[BalancesField].as_array())
-            {
-              map<string, string> values;
-              getJsonValues(balance, values, { "s", "ps", "pa", "mt", "iw", "mp", "up", "mm" });
-
-              userData.mc.positions[values["s"]] = std::move(values);
-            }
-          }
-          break;
-
-
-          case UsdFutureUserData::EventType::OrderUpdate:
-          {
-            const utility::string_t OrdersField = utility::conversions::to_string_t("o");
-
-            getJsonValues(jsonVal, userData.ou.data, { "e", "E", "T" });
-
-            map<string, string> values;
-            getJsonValues(jsonVal[OrdersField].as_object(), values, { "s", "c", "S", "o", "f", "q", "p", "ap", "sp", "x", "X", "i", "l", "z", "L", "N",
-                                                                        "n", "T", "t", "b", "a", "m", "R", "wt", "ot", "ps", "cp", "AP", "cr", "rp" });
-
-            userData.ou.orders[values["s"]] = std::move(values);
-          }
-          break;
-
-
-          case UsdFutureUserData::EventType::AccountUpdate:
-          {
-            const utility::string_t UpdateDataField = utility::conversions::to_string_t("a");
-            const utility::string_t ReasonDataField = utility::conversions::to_string_t("m");
-            const utility::string_t BalancesField = utility::conversions::to_string_t("B");
-            const utility::string_t PositionsField = utility::conversions::to_string_t("P");
-
-
-            getJsonValues(jsonVal, userData.au.data, { "e", "E", "T" });
-
-            auto& updateDataJson = jsonVal[UpdateDataField].as_object();
-
-            userData.au.reason = utility::conversions::to_utf8string(updateDataJson.at(ReasonDataField).as_string());
-
-            for (auto& balance : updateDataJson.at(BalancesField).as_array())
-            {
-              map<string, string> values;
-              getJsonValues(balance, values, { "a", "wb", "cw" });
-
-              userData.au.balances.emplace_back(std::move(values));
-            }
-
-            if (auto positions = updateDataJson.find(PositionsField); positions != updateDataJson.end())
-            {
-              for (auto& position : positions->second.as_array())
-              {
-                map<string, string> values;
-                getJsonValues(position, values, { "s", "pa", "ep", "cr", "up", "mt", "iw", "ps" });
-
-                userData.au.positions.emplace_back(std::move(values));
-              }
-            }
-          }
-          break;
-
-
-          default:
-            // handled above
-            break;
-          }
-
-
-          session->onUsdFuturesUserDataCallback(std::move(userData));
-        }
+        return ss.str();
       }
     }
-  };
+
+
+    web::http::http_request createHttpRequest(const web::http::method method, string uri)
+    {
+      web::http::http_request request{ method };
+      request.headers().add(utility::conversions::to_string_t(HeaderApiKeyName), utility::conversions::to_string_t(m_apiAccess.apiKey));
+      request.headers().add(utility::conversions::to_string_t(ContentTypeName), utility::conversions::to_string_t("application/json"));
+      request.headers().add(utility::conversions::to_string_t(ClientSDKVersionName), utility::conversions::to_string_t("binance_futures_cpp"));
+      request.set_request_uri(web::uri{ utility::conversions::to_string_t(uri) });
+      return request;
+    }
+
+
+    MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey);
+
+
+    void extractKeys(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session, const JsonKeys& keys, const string& arrayKey = {});
+
+
+  private:
+    shared_ptr<WebSocketSession> m_session;
+    MarketType m_marketType;
+
+    vector<shared_ptr<WebSocketSession>> m_sessions;
+    map<MonitorTokenId, shared_ptr<WebSocketSession>> m_idToSession;
+
+    std::atomic_size_t m_monitorId;
+    string m_exchangeBaseUri;
+    std::atomic_bool m_connected;
+    std::atomic_bool m_running;
+    string m_listenKey;
+    ApiAccess m_apiAccess;
+
+    IntervalTimer m_userDataStreamTimer;
+};
 
 
 

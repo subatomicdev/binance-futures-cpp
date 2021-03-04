@@ -254,21 +254,21 @@ void allOrders(const ApiAccess& access)
 	// --- Get all orders for today ---
 
 	// get timestamp for start of today
-	Market::Clock::time_point startOfDay;
+	Clock::time_point startOfDay;
 	{
-		time_t tm = Market::Clock::to_time_t(Market::Clock::now());
+		time_t tm = Clock::to_time_t(Clock::now());
 		auto lt = std::localtime(&tm);
 		lt->tm_hour = 0;
 		lt->tm_min = 0;
 		lt->tm_sec = 0;
 
-		startOfDay = Market::Clock::from_time_t(std::mktime(lt));
+		startOfDay = Clock::from_time_t(std::mktime(lt));
 	}	
 
 
 	timer.restart();
 	
-	result = futuresTest.allOrders({ {"symbol", "BTCUSDT"},  {"startTime", std::to_string(Market::getTimestamp(startOfDay))} });
+	result = futuresTest.allOrders({ {"symbol", "BTCUSDT"},  {"startTime", std::to_string(bfcpp::getTimestamp(startOfDay))} });
 
 	showResults(result, timer);
 }
@@ -357,7 +357,7 @@ int main(int argc, char** argv)
 		}
 
 		// these don't require keys
-		markPrice();
+		//markPrice();
 		//monitorSymbol();
 		//multipleStreams();
 
@@ -368,7 +368,7 @@ int main(int argc, char** argv)
 			//OpenAndCloseLimitOrder test{ ApiAccess {apiFutTest, secretFutTest} };
 			//test.run();
 
-			//allOrders(ApiAccess{ apiFutTest, secretFutTest });
+			allOrders(ApiAccess{ apiFutTest, secretFutTest });
 
 			//accountInformation(ApiAccess{ apiFutTest, secretFutTest });
 		}
