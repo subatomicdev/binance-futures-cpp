@@ -486,7 +486,7 @@ namespace bfcpp
 
   inline string strToLower(std::string&& str)
   {
-    string lower{ str };
+    string lower{ std::move(str) };
 
     std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
     return lower;

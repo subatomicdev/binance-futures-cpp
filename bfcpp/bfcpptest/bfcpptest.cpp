@@ -139,9 +139,9 @@ auto handleUserDataUsdFutures = [](UsdFutureUserData data)
 /// <summary>
 /// A simple function to receive mark price from the Future's market for all symbols.
 /// </summary>
-void markPrice()
+void monitorMarkPrice()
 {
-	std::cout << "\n\n--- Mark Price ---\n";
+	std::cout << "\n\n--- USD-M Futures Mark Price ---\n";
 
 	UsdFuturesMarket usdFutures;
 	usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
@@ -153,9 +153,9 @@ void markPrice()
 /// <summary>
 /// Shows it's easy to receive multiple streams.
 /// </summary>
-void multipleStreams()
+void monitorMultipleStreams()
 {
-	std::cout << "\n\n--- Multiple Streams on Futures ---\n";
+	std::cout << "\n\n--- USD-M Futures Multiple Streams on Futures ---\n";
 
 	UsdFuturesMarket usdFutures;
 	usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
@@ -369,6 +369,7 @@ void klines(const ApiAccess& access)
 }
 
 
+
 int main(int argc, char** argv)
 {
 	try
@@ -410,10 +411,12 @@ int main(int argc, char** argv)
 		}
 
 
+
 		// these don't require keys
-		markPrice();
+		//monitorMarkPrice();
 		//monitorSymbol();
-		//multipleStreams();
+		//monitorMultipleStreams();
+
 
 		if (testNetMode)
 		{
@@ -427,13 +430,15 @@ int main(int argc, char** argv)
 
 			//accountInformation(access);
 
-			//accountBalance(access);
+			accountBalance(access);
 
-			//klines(access);
+			klines(access);
 		}
 		else
 		{
-			//takerBuySellVolume(access);
+			ApiAccess access{ apiFut, secretFut };
+
+			takerBuySellVolume(access);
 
 			//usdFutureDataStream(ApiAccess {apiFut, secretFut});
 		}

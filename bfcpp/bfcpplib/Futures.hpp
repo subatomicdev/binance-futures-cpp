@@ -344,17 +344,16 @@ namespace bfcpp
 
       // can leave a trailing '&' without borking the internets
       std::for_each(queryValues.begin(), queryValues.end(), [&ss](auto& it)
-        {
-          ss << std::move(it.first) << "=" << std::move(it.second) << "&";
-        });
+      {
+        ss << std::move(it.first) << "=" << std::move(it.second) << "&"; // TODO doing a move() with operator<< here  - any advantage?
+      });
 
       if (sign)
       {
-        auto ts = getTimestamp();
-        ss << "recvWindow=" << ReceiveWindowMap.at(call) << "&timestamp=" << ts;
+        ss << "recvWindow=" << ReceiveWindowMap.at(call) << "&timestamp=" << getTimestamp();
 
         string qs = ss.str();
-        return qs + "&signature=" + createSignature(m_apiAccess.secretKey, qs);
+        return qs + "&signature=" + (createSignature(m_apiAccess.secretKey, qs));
       }
       else
       {
