@@ -1,6 +1,6 @@
 # Binance Futures C++
 
-**This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's fully tested and the API is stable.**
+**This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
 
 ## Update
 **5th March 2021**
