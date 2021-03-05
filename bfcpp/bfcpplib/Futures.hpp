@@ -26,6 +26,21 @@ namespace bfcpp
   /// </summary>
   class UsdFuturesMarket
   {
+    inline const static string DefaultReceiveWindwow = "5000";
+
+    // default receive windows. these can be change with setReceiveWindow()
+    inline static map<RestCall, string> ReceiveWindowMap =
+    {
+        {RestCall::NewOrder,    DefaultReceiveWindwow},
+        {RestCall::ListenKey,   DefaultReceiveWindwow},    // no affect for RestCall::ListenKey, here for completion
+        {RestCall::CancelOrder, DefaultReceiveWindwow},
+        {RestCall::AllOrders,   DefaultReceiveWindwow},
+        {RestCall::AccountInfo, DefaultReceiveWindwow},
+        {RestCall::AccountBalance, DefaultReceiveWindwow},
+        {RestCall::TakerBuySellVolume, DefaultReceiveWindwow},
+        {RestCall::KlineCandles, DefaultReceiveWindwow}
+    };
+
   protected:
     UsdFuturesMarket(MarketType mt, const string& exchangeUri, const ApiAccess& access) : m_marketType(mt), m_exchangeBaseUri(exchangeUri), m_apiAccess(access)
     {
@@ -42,6 +57,7 @@ namespace bfcpp
 
     virtual ~UsdFuturesMarket()
     {
+      disconnect();
     }
 
 
@@ -110,7 +126,32 @@ namespace bfcpp
     AccountInformation accountInformation();
 
 
+    /// <summary>
+    /// See https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v2-user_data
+    /// </summary>
+    /// <returns></returns>
+    AccountBalance accountBalance();
 
+
+    /// <summary>
+    /// See See https://binance-docs.github.io/apidocs/futures/en/#long-short-ratio
+    /// </summary>
+    /// <param name="query"></param>
+    /// <returns></returns>
+    virtual TakerBuySellVolume takerBuySellVolume(map<string, string>&& query);
+
+
+    /// <summary>
+    /// Becareful with the LIMIT value, it determines the weight of the API call and you want to only handle
+    /// the data you require. Default LIMIT is 500.
+    /// See https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-data
+    /// </summary>
+    /// <param name="query"></param>
+    /// <returns></returns>
+    KlineCandlestick klines(map<string, string>&& query);
+
+    
+    
     // --- order management
 
 
@@ -375,6 +416,13 @@ namespace bfcpp
 
     virtual ~UsdFuturesTestMarket()
     {
+    }
+
+
+  public:
+    virtual TakerBuySellVolume takerBuySellVolume(map<string, string>&& query)
+    {
+      throw std::runtime_error("Function unavailable on Testnet");
     }
   };
 

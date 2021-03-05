@@ -240,7 +240,7 @@ namespace bfcpp
 
 
           getJsonValues(json, info.data, set<string> {  "feeTier", "canTrade", "canDeposit", "canWithdraw", "updateTime", "totalInitialMargin", "totalMaintMargin", "totalWalletBalance", "totalUnrealizedProfit",
-            "totalMarginBalance", "totalPositionInitialMargin", "totalOpenOrderInitialMargin", "totalCrossWalletBalance", "totalCrossUnPnl", "availableBalance", "maxWithdrawAmount"});
+                                                        "totalMarginBalance", "totalPositionInitialMargin", "totalOpenOrderInitialMargin", "totalCrossWalletBalance", "totalCrossUnPnl", "availableBalance", "maxWithdrawAmount"});
 
 
           auto& assetArray = json[AssetField].as_array();
@@ -248,7 +248,7 @@ namespace bfcpp
           {
             map<string, string> order;
             getJsonValues(entry, order, set<string> { "asset", "walletBalance", "unrealizedProfit", "marginBalance", "maintMargin", "initialMargin", "positionInitialMargin",
-              "openOrderInitialMargin", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
+                                                      "openOrderInitialMargin", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
 
             info.assets.emplace_back(std::move(order));
           }
@@ -266,7 +266,7 @@ namespace bfcpp
         }
         else
         {
-          throw std::runtime_error{ "Binance returned error in allOrders():\n " + utility::conversions::to_utf8string(json.serialize()) };
+          throw std::runtime_error{ "Binance returned error in accountInformation():\n " + utility::conversions::to_utf8string(json.serialize()) };
         }
       }).wait();
     }
@@ -280,6 +280,156 @@ namespace bfcpp
     }
 
     return info;
+  }
+
+
+
+  AccountBalance UsdFuturesMarket::accountBalance()
+  {
+    AccountBalance balance;
+
+    string queryString{ createQueryString({}, RestCall::AccountBalance, true) };
+
+    try
+    {
+      auto request = createHttpRequest(web::http::methods::GET, getApiPath(m_marketType, RestCall::AccountBalance) + "?" + queryString);
+
+      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
+
+      client.request(std::move(request)).then([this, &balance](web::http::http_response response) mutable
+      {
+        auto json = response.extract_json().get();
+
+        if (response.status_code() == web::http::status_codes::OK)
+        {
+          auto& balances = json.as_array();
+          for (const auto& entry : balances)
+          {
+            map<string, string> order;
+            getJsonValues(entry, order, set<string> { "accountAlias", "asset", "balance", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
+
+            balance.balances.emplace_back(std::move(order));
+          }
+        }
+        else
+        {
+          throw std::runtime_error{ "Binance returned error in accountBalance():\n " + utility::conversions::to_utf8string(json.serialize()) };
+        }
+      }).wait();
+    }
+    catch (const web::websockets::client::websocket_exception we)
+    {
+      logg(we.what());
+    }
+    catch (const std::exception ex)
+    {
+      logg(ex.what());
+    }
+    
+    return balance;
+  }
+
+
+
+  TakerBuySellVolume UsdFuturesMarket::takerBuySellVolume(map<string, string>&& query)
+  {
+    TakerBuySellVolume result;
+
+    string queryString{ createQueryString(std::move(query), RestCall::TakerBuySellVolume, true) };
+
+    try
+    {
+      auto request = createHttpRequest(web::http::methods::GET, getApiPath(m_marketType, RestCall::TakerBuySellVolume) + "?" + queryString);
+
+      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
+
+      client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
+      {
+        auto json = response.extract_json().get();
+
+        if (response.status_code() == web::http::status_codes::OK)
+        {
+          auto& balances = json.as_array();
+          for (const auto& entry : balances)
+          {
+            map<string, string> order;
+            getJsonValues(entry, order, set<string> { "buySellRatio", "buyVol", "sellVol", "timestamp"});
+
+            result.response.emplace_back(std::move(order));
+          }
+        }
+        else
+        {
+          throw std::runtime_error{ "Binance returned error in takerBuySellVolume():\n " + utility::conversions::to_utf8string(json.serialize()) };
+        }
+      }).wait();
+    }
+    catch (const web::websockets::client::websocket_exception we)
+    {
+      logg(we.what());
+    }
+    catch (const std::exception ex)
+    {
+      logg(ex.what());
+    }
+
+    return result;
+  }
+
+
+
+  KlineCandlestick UsdFuturesMarket::klines(map<string, string>&& query)
+  {
+    KlineCandlestick result;
+
+    string queryString{ createQueryString(std::move(query), RestCall::KlineCandles, true) };
+
+    try
+    {
+      auto request = createHttpRequest(web::http::methods::GET, getApiPath(m_marketType, RestCall::KlineCandles) + "?" + queryString);
+
+      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
+      client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
+      {
+        auto json = response.extract_json().get();
+
+        if (response.status_code() == web::http::status_codes::OK)
+        {
+          // kline does not return a key/value map, instead an array of arrays. 
+          // the outer array has an entry per interval, with each inner array containing 12 fields for that interval (i.e. open time, close time, open price, close price, etc)
+
+          auto& intervalPeriod = json.as_array();
+          for (auto& interval : intervalPeriod)
+          {
+            vector<string> stickValues;
+            stickValues.reserve(12);
+
+            auto& sticksArray = interval.as_array();
+            for (auto& stick : sticksArray)
+            {
+              stickValues.emplace_back(jsonValueToString(stick));
+            }
+            
+            result.response.emplace_back(std::move(stickValues));
+          }
+        }
+        else
+        {
+          throw std::runtime_error{ "Binance returned from klines():\n" + utility::conversions::to_utf8string(json.serialize()) };
+        }
+
+      }).wait();
+    }
+    catch (const web::websockets::client::websocket_exception we)
+    {
+      logg(we.what());
+    }
+    catch (const std::exception ex)
+    {
+      logg(ex.what());
+    }
+
+    return result;
   }
 
 
@@ -409,6 +559,7 @@ namespace bfcpp
 
     return result;
   }
+
 
 
 

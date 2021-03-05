@@ -224,10 +224,10 @@ void allOrders(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures All Orders ---\n";
 
-	auto showResults = [](const AllOrdersResult& result, framework::ScopedTimer& timer)
+	auto showResults = [](const AllOrdersResult& result)
 	{
 		stringstream ss;
-		ss << "\nFound " << result.response.size() << " orders in " << timer.stopLong() << " ms";
+		ss << "\nFound " << result.response.size() << " orders";
 
 		for (const auto& order : result.response)
 		{
@@ -243,12 +243,9 @@ void allOrders(const ApiAccess& access)
 
 
 	// --- Get all orders ---
-
-	framework::ScopedTimer timer;
-	
 	auto result = futuresTest.allOrders({ {"symbol", "BTCUSDT"} });
 	
-	showResults(result, timer);
+	showResults(result);
 
 
 	// --- Get all orders for today ---
@@ -264,13 +261,10 @@ void allOrders(const ApiAccess& access)
 
 		startOfDay = Clock::from_time_t(std::mktime(lt));
 	}	
-
-
-	timer.restart();
 	
 	result = futuresTest.allOrders({ {"symbol", "BTCUSDT"},  {"startTime", std::to_string(bfcpp::getTimestamp(startOfDay))} });
 
-	showResults(result, timer);
+	showResults(result);
 }
 
 
@@ -279,10 +273,9 @@ void accountInformation(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures Account Information ---\n";
 
-	auto showResults = [](const AccountInformation& result, framework::ScopedTimer& timer)
+	auto showResults = [](const AccountInformation& result)
 	{
 		stringstream ss;
-		ss << "\nDone " << timer.stopLong() << " ms";
 
 		std::for_each(std::begin(result.data), std::end(result.data), [&ss](auto& values) { ss << "\n" << values.first << "=" << values.second;  });
 
@@ -308,11 +301,71 @@ void accountInformation(const ApiAccess& access)
 
 	UsdFuturesTestMarket futuresTest{ access };
 	
-	framework::ScopedTimer timer;
 	auto result = futuresTest.accountInformation();
 	
-	showResults(result, timer);
+	showResults(result);
+}
 
+
+void accountBalance(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures Account Balance ---\n";
+
+	UsdFuturesTestMarket futuresTest{ access };
+
+	auto result = futuresTest.accountBalance();
+
+	stringstream ss;
+	ss << "\nFound " << result.balances.size() << " balances";
+	for (const auto& asset : result.balances)
+	{
+		ss << "\n{";
+		std::for_each(std::begin(asset), std::end(asset), [&ss](auto& values) { ss << "\n\t" << values.first << "=" << values.second;  });
+		ss << "\n}";
+	}
+
+	logg(ss.str());
+}
+
+
+void takerBuySellVolume(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures Taker Buy Sell Volume ---\n";
+
+	UsdFuturesMarket futuresTest{ access };
+
+	auto result = futuresTest.takerBuySellVolume({ {"symbol","BTCUSDT"}, {"period","15m"} });
+
+	stringstream ss;
+	ss << "\nFound " << result.response.size() << " volumes";
+	for (const auto& entry : result.response)
+	{
+		ss << "\n{";
+		std::for_each(std::begin(entry), std::end(entry), [&ss](auto& values) { ss << "\n\t" << values.first << "=" << values.second;  });
+		ss << "\n}";
+	}
+
+	logg(ss.str());
+}
+
+
+void klines(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures Taker Buy Sell Volume ---\n";
+
+	UsdFuturesMarket futuresTest{ access };
+	auto result = futuresTest.klines({ {"symbol","BTCUSDT"}, {"limit","5"}, {"interval", "15m"} });
+
+	stringstream ss;
+	ss << "\nFound " << result.response.size() << " kline sticks";
+	for (const auto& entry : result.response)
+	{
+		ss << "\n{";
+		std::for_each(std::begin(entry), std::end(entry), [&ss](auto& value) { ss << "\n\t" << value;  });
+		ss << "\n}";
+	}
+
+	logg(ss.str());
 }
 
 
@@ -356,6 +409,7 @@ int main(int argc, char** argv)
 			}
 		}
 
+
 		// these don't require keys
 		markPrice();
 		//monitorSymbol();
@@ -363,17 +417,24 @@ int main(int argc, char** argv)
 
 		if (testNetMode)
 		{
-			//usdFutureTestNetDataStream(ApiAccess {apiFutTest, secretFutTest});
+			ApiAccess access { apiFutTest, secretFutTest };
+			//usdFutureTestNetDataStream(access);
 
-			//OpenAndCloseLimitOrder test{ ApiAccess {apiFutTest, secretFutTest} };
+			//OpenAndCloseLimitOrder test{ access };
 			//test.run();
 
-			//allOrders(ApiAccess{ apiFutTest, secretFutTest });
+			//allOrders(access);
 
-			//accountInformation(ApiAccess{ apiFutTest, secretFutTest });
+			//accountInformation(access);
+
+			//accountBalance(access);
+
+			//klines(access);
 		}
 		else
 		{
+			//takerBuySellVolume(access);
+
 			//usdFutureDataStream(ApiAccess {apiFut, secretFut});
 		}
 	}

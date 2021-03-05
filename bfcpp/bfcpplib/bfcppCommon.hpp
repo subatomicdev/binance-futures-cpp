@@ -40,9 +40,34 @@ namespace bfcpp
   typedef std::string MarketStringType;
 
 
-  enum class RestCall { NewOrder, ListenKey, CancelOrder, AllOrders, AccountInfo };
-  enum class MarketType { Futures, FuturesTest };
+  enum class RestCall
+  {
+    NewOrder,
+    ListenKey,
+    CancelOrder,
+    AllOrders,
+    AccountInfo,
+    AccountBalance,
+    TakerBuySellVolume,
+    KlineCandles
+  };
+  
+  enum class MarketType
+  {
+    Futures,
+    FuturesTest
+  };
 
+  enum class OrderStatus
+  {
+    None,
+    New,
+    PartiallyFilled,
+    Filled,
+    Cancelled,
+    Rejected,
+    Expired
+  };
 
 
   const string FuturestWebSockUri = "wss://fstream.binance.com";
@@ -57,24 +82,28 @@ namespace bfcpp
   const string ContentTypeName = "Content-Type";
 
 
+  inline static const map<string, OrderStatus> OrderStatusMap =
+  {
+    {"None", OrderStatus::None},
+    {"NEW", OrderStatus::New},
+    {"PARTIALLY_FILLED", OrderStatus::PartiallyFilled},
+    {"FILLED", OrderStatus::Filled},
+    {"CANCELED", OrderStatus::Cancelled},
+    {"REJECTED", OrderStatus::Rejected},
+    {"EXPIRED", OrderStatus::Expired}
+  };
+
+
   inline static const map<RestCall, string> PathMap =
   {
       {RestCall::NewOrder,     "/fapi/v1/order"},
       {RestCall::ListenKey,    "/fapi/v1/listenKey"},
       {RestCall::CancelOrder,  "/fapi/v1/order"},
       {RestCall::AllOrders,    "/fapi/v1/allOrders"},
-      {RestCall::AccountInfo,  "/fapi/v2/account"}
-  };
-
-
-  // default receive windows. NOTE: the user can change there at runtime with setReceiveWindow()
-  inline static map<RestCall, string> ReceiveWindowMap =
-  {
-      {RestCall::NewOrder,    "5000"},
-      {RestCall::ListenKey,   "5000"},    // no affect for RestCall::ListenKey, here for completion
-      {RestCall::CancelOrder, "5000"},
-      {RestCall::AllOrders,   "5000"},
-      {RestCall::AccountInfo, "5000"}
+      {RestCall::AccountInfo,  "/fapi/v2/account"},
+      {RestCall::AccountBalance, "/fapi/v2/balance"},
+      {RestCall::TakerBuySellVolume, "/futures/data/takerlongshortRatio"},
+      {RestCall::KlineCandles, "/fapi/v1/klines"}
   };
 
 
@@ -219,7 +248,33 @@ namespace bfcpp
   };
 
 
+  /// <summary>
+  /// See https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v2-user_data
+  /// </summary>
+  struct AccountBalance
+  {
+    vector<map<string, string>> balances;
+  };
+
   
+  /// <summary>
+  /// See https://binance-docs.github.io/apidocs/futures/en/#long-short-ratio
+  /// </summary>
+  struct TakerBuySellVolume
+  {
+    vector<map<string, string>> response;
+  };
+
+
+  /// <summary>
+  /// See https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-data
+  /// </summary>
+  struct KlineCandlestick
+  {
+    vector<vector<string>> response;
+  };
+
+
   /// <summary>
   /// Returned by monitor functions, containing an ID for use with cancelMonitor() to close this stream.
   /// </summary>
@@ -320,6 +375,30 @@ namespace bfcpp
   }
 
 
+  inline string jsonValueToString(const web::json::value& jsonVal)
+  {
+    switch (auto t = jsonVal.type(); t)
+    {
+      // [[likely]] TODO attribute in C++20
+    case json::value::value_type::String:
+      return utility::conversions::to_utf8string(jsonVal.as_string());
+      break;
+
+    case json::value::value_type::Number:
+      return std::to_string(jsonVal.as_number().to_int64());
+      break;
+
+      // [[unlikely]] TODO attribute in C++20
+    case json::value::value_type::Boolean:
+      return jsonVal.as_bool() ? utility::conversions::to_utf8string("true") : utility::conversions::to_utf8string("false");
+      break;
+
+    default:
+      throw std::runtime_error("No handler for JSON type: " + std::to_string(static_cast<int>(t)));
+      break;
+    }
+  }
+
 
   inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, const string& key)
   {
@@ -327,30 +406,7 @@ namespace bfcpp
 
     if (jsonVal.has_field(keyJsonString))
     {
-      string valueString;
-
-      switch (auto t = jsonVal.at(keyJsonString).type(); t)
-      {
-        // [[likely]] TODO attribute in C++20
-      case json::value::value_type::String:
-        valueString = utility::conversions::to_utf8string(jsonVal.at(keyJsonString).as_string());
-        break;
-
-      case json::value::value_type::Number:
-        valueString = std::to_string(jsonVal.at(keyJsonString).as_number().to_int64());
-        break;
-
-        // [[unlikely]] TODO attribute in C++20
-      case json::value::value_type::Boolean:
-        valueString = jsonVal.at(keyJsonString).as_bool() ? utility::conversions::to_utf8string("true") : utility::conversions::to_utf8string("false");
-        break;
-
-      default:
-        throw std::runtime_error("No handler for JSON type: " + std::to_string(static_cast<int>(t)));
-        break;
-      }
-
-      values[key] = std::move(valueString);
+      values[key] = jsonValueToString(jsonVal.at(keyJsonString));
     }
   }
 
@@ -366,30 +422,7 @@ namespace bfcpp
       {
         auto& keyJsonString = utility::conversions::to_string_t(v.first);
 
-        string valueString;
-
-        switch (auto t = v.second.type(); t)
-        {
-          // [[likely]] TODO attribute in C++20
-        case json::value::value_type::String:
-          valueString = utility::conversions::to_utf8string(v.second.as_string());
-          break;
-
-        case json::value::value_type::Number:
-          valueString = std::to_string(v.second.as_number().to_int64());
-          break;
-
-          // [[unlikely]] TODO attribute in C++20
-        case json::value::value_type::Boolean:
-          valueString = v.second.as_bool() ? utility::conversions::to_utf8string("true") : utility::conversions::to_utf8string("false");
-          break;
-
-        default:
-          throw std::runtime_error("No handler for JSON type: " + std::to_string(static_cast<int>(t)));
-          break;
-        }
-
-        values[keyUtf8String] = std::move(valueString);
+        values[keyUtf8String] = jsonValueToString(v.second);
       }
     }
   }
