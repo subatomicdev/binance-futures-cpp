@@ -8,7 +8,7 @@
 - Added allOrders() : https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
 
 **1st March 2021**
-- I've decided to drop support for the Spot market to concentrate on futures
+- Dropped support for the Spot market to concentrate on futures
 - Spot code removed from repo
 - Repo renamed to "binance-futures-cpp", code namespace now "bfcpp"
 
@@ -16,7 +16,7 @@
 ## Summary
 binancews is a C++17 library which receives market data from the Binance crypto currency exchange. 
 
-The project uses Microsoft's cpprestsdk for asynchronous websocket functionality to receive the market data.
+The project uses Microsoft's cpprestsdk for asynchronous websocket/HTTP functionality.
 
 ---
 ## Design
@@ -28,7 +28,7 @@ The library which handles all communications with the exchange
 A test app to show how to use the library. 
 
 ### API
-The API is thin - it expects and returns data in maps in rather than encapsulating data in classes/structs, e.g:
+The API is thin - it expects and returns data in maps rather than encapsulating data in classes/structs, e.g:
 
 ```cpp
 class BinanceOrder : public Order
@@ -40,7 +40,7 @@ class BinanceOrder : public Order
 };
 ```
 
-This is to avoid creating and populating objects when most likely users will either already have, or intend to, create a class structure for their needs.
+This is to avoid creating and populating objects when users will either already have, or intend to, create a class structure for their needs.
 
 Objects returned from functions, and callback arguments, are by value to take advantage of RVO and move-semantics.
 
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
       {"price",""} // updated below with mark price 
   };
 
-  UsdFuturesTestMarket futuresTest { Market::ApiAccess {"YOUR API KEY", "YOUR SECRET KEY"} };
+  UsdFuturesTestMarket futuresTest { ApiAccess {"YOUR API KEY", "YOUR SECRET KEY"} };
 
   futuresTest.monitorMarkPrice(handleMarkPrice);  // to get an accurate price
   futuresTest.monitorUserData(handleUserDataUsdFutures); // to get order updates
@@ -182,7 +182,7 @@ int main(int argc, char** argv)
 
 ### Get All Orders
 ```cpp
-UsdFuturesTestMarket futuresTest { access };
+UsdFuturesTestMarket futuresTest { ApiAccess {"YOUR API KEY", "YOUR SECRET KEY"} };
 
 framework::ScopedTimer timer;
 auto result = futuresTest.allOrders({ {"symbol", "BTCUSDT"} });
