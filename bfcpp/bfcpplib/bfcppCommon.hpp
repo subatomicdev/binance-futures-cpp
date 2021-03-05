@@ -11,6 +11,7 @@
 #include <future>
 #include <chrono>
 #include <sstream>
+#include <string>
 #include <cpprest/json.h>
 #include <cpprest/ws_client.h>
 #include <cpprest/http_client.h>
@@ -309,6 +310,20 @@ namespace bfcpp
     string secretKey;
   };
 
+
+  class BfcppException : public std::runtime_error
+  {
+  public:
+    BfcppException(const string& msg) : runtime_error(msg)
+    {
+
+    }
+
+    BfcppException(string&& msg) : runtime_error(msg)
+    {
+
+    }
+  };
 
 
 

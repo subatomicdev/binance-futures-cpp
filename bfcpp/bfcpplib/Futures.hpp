@@ -12,9 +12,8 @@
 #include <cpprest/json.h>
 #include <cpprest/http_client.h>
 #include <openssl/hmac.h>
-#include "Logger.hpp"
 #include "IntervalTimer.hpp"
-
+#include "bfcppCommon.hpp"
 
 
 namespace bfcpp
@@ -249,12 +248,12 @@ namespace bfcpp
 
       web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(getApiUri(m_marketType))} };
       client.request(std::move(request)).then([this](web::http::http_response response)
+      {
+        if (response.status_code() != web::http::status_codes::OK)
         {
-          if (response.status_code() != web::http::status_codes::OK)
-          {
-            logg("ERROR : keepalive for listen key failed");
-          }
-        }).wait();
+          throw BfcppException("ERROR : keepalive for listen key failed");
+        }
+      }).wait();
     }
 
 
@@ -294,7 +293,7 @@ namespace bfcpp
                   }
                   else
                   {
-                    logg("Invalid json: " + strMsg);
+                    BfcppException("Invalid json: " + strMsg);
                   }
                 }
               }
@@ -421,7 +420,7 @@ namespace bfcpp
   public:
     virtual TakerBuySellVolume takerBuySellVolume(map<string, string>&& query)
     {
-      throw std::runtime_error("Function unavailable on Testnet");
+      throw BfcppException("Function unavailable on Testnet");
     }
   };
 

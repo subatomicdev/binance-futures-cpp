@@ -182,9 +182,8 @@ namespace bfcpp
             }
             catch (std::exception ex)
             {
-              logg(ex.what());
-            }
-
+              throw BfcppException (ex.what());
+            }            
           }, token);
 
 
@@ -204,7 +203,7 @@ namespace bfcpp
         }
         catch (std::exception ex)
         {
-          logg(string{ "ERROR: " } + ex.what());
+          throw BfcppException(string{ "ERROR: " } + ex.what());
         }
       }
     }
@@ -259,7 +258,7 @@ namespace bfcpp
           {
             map<string, string> position;
             getJsonValues(entry, position, set<string> {  "symbol", "initialMargin", "maintMargin", "unrealizedProfit", "positionInitialMargin", "openOrderInitialMargin",
-              "leverage", "isolated", "entryPrice", "maxNotional", "positionSide", "positionAmt"});
+                                                          "leverage", "isolated", "entryPrice", "maxNotional", "positionSide", "positionAmt"});
 
             info.positions.emplace_back(std::move(position));
           }
@@ -270,13 +269,13 @@ namespace bfcpp
         }
       }).wait();
     }
-    catch (const web::websockets::client::websocket_exception we)
+    catch (const pplx::task_canceled tc)
     {
-      logg(we.what());
+      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
     }
     catch (const std::exception ex)
     {
-      logg(ex.what());
+      throw BfcppException(ex.what());
     }
 
     return info;
@@ -317,13 +316,13 @@ namespace bfcpp
         }
       }).wait();
     }
-    catch (const web::websockets::client::websocket_exception we)
+    catch (const pplx::task_canceled tc)
     {
-      logg(we.what());
+      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
     }
     catch (const std::exception ex)
     {
-      logg(ex.what());
+      throw BfcppException(ex.what());
     }
     
     return balance;
@@ -364,13 +363,13 @@ namespace bfcpp
         }
       }).wait();
     }
-    catch (const web::websockets::client::websocket_exception we)
+    catch (const pplx::task_canceled tc)
     {
-      logg(we.what());
+      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
     }
     catch (const std::exception ex)
     {
-      logg(ex.what());
+      throw BfcppException(ex.what());
     }
 
     return result;
@@ -420,13 +419,13 @@ namespace bfcpp
 
       }).wait();
     }
-    catch (const web::websockets::client::websocket_exception we)
+    catch (const pplx::task_canceled tc)
     {
-      logg(we.what());
+      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
     }
     catch (const std::exception ex)
     {
-      logg(ex.what());
+      throw BfcppException(ex.what());
     }
 
     return result;
@@ -459,13 +458,13 @@ namespace bfcpp
         }
       }).wait();
     }
-    catch (const web::websockets::client::websocket_exception we)
+    catch (const pplx::task_canceled tc)
     {
-      logg(we.what());
+      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
     }
     catch (const std::exception ex)
     {
-      logg(ex.what());
+      throw BfcppException(ex.what());
     }
 
     return result;
@@ -507,13 +506,13 @@ namespace bfcpp
         }
       }).wait();
     }
-    catch (const web::websockets::client::websocket_exception we)
+    catch (const pplx::task_canceled tc)
     {
-      logg(we.what());
+      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
     }
     catch (const std::exception ex)
     {
-      logg(ex.what());
+      throw BfcppException(ex.what());
     }
 
     return result;
@@ -548,13 +547,13 @@ namespace bfcpp
 
         }).wait();
     }
-    catch (const web::websockets::client::websocket_exception we)
+    catch (const pplx::task_canceled tc)
     {
-      logg(we.what());
+      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
     }
     catch (const std::exception ex)
     {
-      logg(ex.what());
+      throw BfcppException(ex.what());
     }
 
     return result;
@@ -754,13 +753,13 @@ namespace bfcpp
           }
         }).wait();
     }
-    catch (const web::websockets::client::websocket_exception we)
+    catch (const pplx::task_canceled tc)
     {
-      logg(we.what());
+      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
     }
     catch (const std::exception ex)
     {
-      logg(ex.what());
+      throw BfcppException(ex.what());
     }
 
     return ok;

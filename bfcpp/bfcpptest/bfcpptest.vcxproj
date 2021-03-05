@@ -164,6 +164,7 @@
     <ClCompile Include="ScopedTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Logger.hpp" />
     <ClInclude Include="OpenAndCloseLimitOrder.h" />
     <ClInclude Include="ScopedTimer.hpp" />
   </ItemGroup>

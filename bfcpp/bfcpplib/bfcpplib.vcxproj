@@ -22,7 +22,6 @@
     <ClInclude Include="bfcppCommon.hpp" />
     <ClInclude Include="Futures.hpp" />
     <ClInclude Include="IntervalTimer.hpp" />
-    <ClInclude Include="Logger.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Futures.cpp" />
