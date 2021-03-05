@@ -167,6 +167,7 @@
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="OpenAndCloseLimitOrder.h" />
     <ClInclude Include="ScopedTimer.hpp" />
+    <ClInclude Include="TestCommon.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

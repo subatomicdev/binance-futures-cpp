@@ -50,7 +50,8 @@ namespace bfcpp
     AccountInfo,
     AccountBalance,
     TakerBuySellVolume,
-    KlineCandles
+    KlineCandles,
+    Ping
   };
   
   enum class MarketType
@@ -104,7 +105,8 @@ namespace bfcpp
       {RestCall::AccountInfo,  "/fapi/v2/account"},
       {RestCall::AccountBalance, "/fapi/v2/balance"},
       {RestCall::TakerBuySellVolume, "/futures/data/takerlongshortRatio"},
-      {RestCall::KlineCandles, "/fapi/v1/klines"}
+      {RestCall::KlineCandles, "/fapi/v1/klines"},
+      {RestCall::Ping, "/fapi/v1/ping"}
   };
 
 

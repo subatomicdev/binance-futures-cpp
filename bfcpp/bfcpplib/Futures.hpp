@@ -37,8 +37,10 @@ namespace bfcpp
         {RestCall::AccountInfo, DefaultReceiveWindwow},
         {RestCall::AccountBalance, DefaultReceiveWindwow},
         {RestCall::TakerBuySellVolume, DefaultReceiveWindwow},
-        {RestCall::KlineCandles, DefaultReceiveWindwow}
+        {RestCall::KlineCandles, DefaultReceiveWindwow},
+        {RestCall::Ping, DefaultReceiveWindwow}
     };
+
 
   protected:
     UsdFuturesMarket(MarketType mt, const string& exchangeUri, const ApiAccess& access) : m_marketType(mt), m_exchangeBaseUri(exchangeUri), m_apiAccess(access)
@@ -57,6 +59,37 @@ namespace bfcpp
     virtual ~UsdFuturesMarket()
     {
       disconnect();
+    }
+
+
+    /// <summary>
+    /// This measures the time it takes to send a "PING" request to the exchange and receive a reply.
+    /// It includes near zero processing time by bfcpp, so the returned duration can be assumed to be network latency and Binance's processing time.
+    /// Testing has seen this latency range from 300ms to 750ms between calls, whilst an ICMP ping is 18ms.
+    /// See https://binance-docs.github.io/apidocs/futures/en/#test-connectivity.
+    /// </summary>
+    /// <returns>The latency in milliseconds</returns>
+    std::chrono::milliseconds ping()
+    {
+      try
+      {
+        web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
+
+        auto request = createHttpRequest(web::http::methods::POST, getApiPath(m_marketType, RestCall::NewOrder) + "?" + createQueryString({}, RestCall::Ping, false));
+
+        auto send = Clock::now();
+        auto rcv = client.request(std::move(request)).then([](web::http::http_response response) { return Clock::now(); }).get();
+
+        return std::chrono::duration_cast<std::chrono::milliseconds>(rcv - send);
+      }
+      catch (const pplx::task_canceled tc)
+      {
+        throw BfcppDisconnectException("ping");
+      }
+      catch (const std::exception ex)
+      {
+        throw BfcppException(ex.what());
+      }
     }
 
 

@@ -1,30 +1,8 @@
 #ifndef  BFCPP_TEST_OPENANDCLOSELIMITORDER_H
 #define BFCPP_TEST_OPENANDCLOSELIMITORDER_H
 
-#include <Futures.hpp>
+#include "TestCommon.hpp"
 #include <atomic>
-
-using namespace bfcpp;
-using namespace std::chrono_literals;
-
-class BfcppTest
-{
-
-public:
-	virtual ~BfcppTest()
-	{
-	}
-
-
-protected:
-	BfcppTest()
-	{
-	}
-
-
-protected:
-	ApiAccess m_access;
-};
 
 
 /// <summary>
@@ -35,21 +13,10 @@ protected:
 /// <param name="access"></param>
 class OpenAndCloseLimitOrder : public BfcppTest
 {
-private:
-	enum class OrderStatus { None, New, PartiallyFilled, Filled, Cancelled, Rejected, Expired };
-
-	inline static const map<string, OrderStatus> OrderStatusMap =
-	{
-		{"None", OrderStatus::None}, {"NEW", OrderStatus::New}, {"PARTIALLY_FILLED", OrderStatus::PartiallyFilled},
-		{"FILLED", OrderStatus::Filled}, {"CANCELED", OrderStatus::Cancelled}, {"REJECTED", OrderStatus::Rejected},
-		{"EXPIRED", OrderStatus::Expired}
-	};
-
 
 public:
-	OpenAndCloseLimitOrder(const ApiAccess access) : m_market(access)
+	OpenAndCloseLimitOrder(const ApiAccess access) : BfcppTest(access), m_market{access}
 	{
-		m_access = access;
 		m_status = OrderStatus::None;
 		m_symbol = "BTCUSDT";
 	}
@@ -144,7 +111,7 @@ public:
 	};
 
 
-	void run()
+	virtual void run() override
 	{
 		auto funcMarkPrice = std::bind(&OpenAndCloseLimitOrder::handleMarkPrice, std::ref(*this), std::placeholders::_1);
 		m_market.monitorMarkPrice(funcMarkPrice);	// to get an accurate price

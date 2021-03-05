@@ -192,6 +192,7 @@ void usdFutureTestNetDataStream(const ApiAccess& access)
 }
 
 
+
 /// <summary>
 /// 
 /// </summary>
@@ -208,6 +209,7 @@ void usdFutureDataStream(const ApiAccess& access)
 }
 
 
+
 /// <summary>
 /// Receives from the symbol mini ticker, updated every 1000ms.
 /// </summary>
@@ -220,6 +222,7 @@ void monitorSymbol()
 
 	std::this_thread::sleep_for(10s);
 }
+
 
 
 /// <summary>
@@ -316,6 +319,7 @@ void accountInformation(const ApiAccess& access)
 }
 
 
+
 void accountBalance(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures TESTNET Account Balance ---\n";
@@ -337,6 +341,7 @@ void accountBalance(const ApiAccess& access)
 }
 
 
+
 void takerBuySellVolume(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures Taker Buy Sell Volume ---\n";
@@ -356,6 +361,7 @@ void takerBuySellVolume(const ApiAccess& access)
 
 	logg(ss.str());
 }
+
 
 
 void klines(const ApiAccess& access)
@@ -432,14 +438,14 @@ int main(int argc, char** argv)
 			ApiAccess access { apiFutTest, secretFutTest };
 			//usdFutureTestNetDataStream(access);
 
-			//OpenAndCloseLimitOrder test{ access };
-			//test.run();
+			//OpenAndCloseLimitOrder openCloseLimit{ access };
+			//openCloseLimit.run();
 
 			//allOrders(access);
 
-			//accountInformation(access);
+			accountInformation(access);
 
-			accountBalance(access);
+			//accountBalance(access);
 
 			klines(access);
 		}
@@ -447,7 +453,7 @@ int main(int argc, char** argv)
 		{
 			ApiAccess access{ apiFut, secretFut };
 
-			takerBuySellVolume(access);
+			//takerBuySellVolume(access);
 
 			//usdFutureDataStream(ApiAccess {apiFut, secretFut});
 		}
