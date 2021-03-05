@@ -162,7 +162,7 @@ namespace bfcpp
   /// </summary>
   struct UsdFutureUserData
   {
-    enum class EventType { Unknown, MarginCall, OrderUpdate, AccountUpdate };
+    enum class EventType { Unknown, MarginCall, OrderUpdate, AccountUpdate, DataStreamExpired };
 
     UsdFutureUserData() = delete;
 
@@ -325,6 +325,19 @@ namespace bfcpp
     }
   };
 
+  class BfcppDisconnectException : public std::runtime_error
+  {
+  public:
+    BfcppDisconnectException(const string& source) : runtime_error("Disconnect: "+source), m_source(source)
+    {
+      
+    }
+
+    const string& source() const { return m_source;  }
+
+  private:
+    string m_source;
+  };
 
 
   struct WebSocketSession

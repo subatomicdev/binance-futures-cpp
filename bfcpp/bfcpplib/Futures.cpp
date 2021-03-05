@@ -174,11 +174,11 @@ namespace bfcpp
           {
             try
             {
-              handleUserData(session, onData);
+              handleUserDataStream(session, onData);
             }
-            catch (pplx::task_canceled tc)
+            catch (BfcppDisconnectException)
             {
-              // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+              throw;
             }
             catch (std::exception ex)
             {
@@ -192,18 +192,20 @@ namespace bfcpp
           if (m_marketType == MarketType::FuturesTest)
           {
             //TODO ISSUE this doesn't seem to please the testnet, creating orders on the site keeps the connection alive
-
-            // the test net seems to kick us out after 60s of no activity
-            m_userDataStreamTimer.start(timerFunc, 45s);
+            m_userDataStreamTimer.start(timerFunc, 45s); // the test net seems to kick us out after 60s of no activity
           }
           else
           {
             m_userDataStreamTimer.start(timerFunc, 60s * 45); // 45 mins
           }
         }
+        catch (BfcppDisconnectException)
+        {
+          throw;
+        }
         catch (std::exception ex)
         {
-          throw BfcppException(string{ "ERROR: " } + ex.what());
+          throw BfcppException(ex.what());
         }
       }
     }
@@ -271,7 +273,7 @@ namespace bfcpp
     }
     catch (const pplx::task_canceled tc)
     {
-      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+      throw BfcppDisconnectException("accountInformation");
     }
     catch (const std::exception ex)
     {
@@ -318,7 +320,7 @@ namespace bfcpp
     }
     catch (const pplx::task_canceled tc)
     {
-      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+      throw BfcppDisconnectException("accountBalance");
     }
     catch (const std::exception ex)
     {
@@ -365,7 +367,7 @@ namespace bfcpp
     }
     catch (const pplx::task_canceled tc)
     {
-      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+      throw BfcppDisconnectException("takerBuySellVolume");
     }
     catch (const std::exception ex)
     {
@@ -421,7 +423,7 @@ namespace bfcpp
     }
     catch (const pplx::task_canceled tc)
     {
-      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+      throw BfcppDisconnectException("klines");
     }
     catch (const std::exception ex)
     {
@@ -460,7 +462,7 @@ namespace bfcpp
     }
     catch (const pplx::task_canceled tc)
     {
-      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+      throw BfcppDisconnectException("newOrder");
     }
     catch (const std::exception ex)
     {
@@ -508,7 +510,7 @@ namespace bfcpp
     }
     catch (const pplx::task_canceled tc)
     {
-      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+      throw BfcppDisconnectException("allOrders");
     }
     catch (const std::exception ex)
     {
@@ -549,7 +551,7 @@ namespace bfcpp
     }
     catch (const pplx::task_canceled tc)
     {
-      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+      throw BfcppDisconnectException("cancelOrder");
     }
     catch (const std::exception ex)
     {
@@ -683,17 +685,17 @@ namespace bfcpp
         while (!token.is_canceled())
         {
           session->client.receive().then([=](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
+          {
+            if (!token.is_canceled())
             {
-              if (!token.is_canceled())
-              {
-                extractFunc(websocketInMessage.get(), session, keys, arrayKey);
-              }
-              else
-              {
-                pplx::cancel_current_task();
-              }
+              extractFunc(websocketInMessage.get(), session, keys, arrayKey);
+            }
+            else
+            {
+              pplx::cancel_current_task();
+            }
 
-            }, token).wait();
+          }, token).wait();
         }
 
         pplx::cancel_current_task();
@@ -877,6 +879,7 @@ namespace bfcpp
       const utility::string_t EventMarginCall = utility::conversions::to_string_t("MARGIN_CALL");
       const utility::string_t EventOrderTradeUpdate = utility::conversions::to_string_t("ORDER_TRADE_UPDATE");
       const utility::string_t EventAccountUpdate = utility::conversions::to_string_t("ACCOUNT_UPDATE");
+      const utility::string_t EventStreamExpired = utility::conversions::to_string_t("listenKeyExpired");
 
 
       UsdFutureUserData::EventType type = UsdFutureUserData::EventType::Unknown;
@@ -894,6 +897,10 @@ namespace bfcpp
       else if (eventValue == EventAccountUpdate)
       {
         type = UsdFutureUserData::EventType::AccountUpdate;
+      }
+      else if (eventValue == EventStreamExpired)
+      {
+        type = UsdFutureUserData::EventType::DataStreamExpired;
       }
 
       UsdFutureUserData userData(type);
@@ -971,6 +978,10 @@ namespace bfcpp
         }
         break;
 
+
+        case UsdFutureUserData::EventType::DataStreamExpired:
+          throw BfcppException("Usd Futures user data stream has expired");
+          break;
 
         default:
           // handled above

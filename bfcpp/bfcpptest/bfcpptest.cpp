@@ -144,7 +144,16 @@ void monitorMarkPrice()
 	std::cout << "\n\n--- USD-M Futures Mark Price ---\n";
 
 	UsdFuturesMarket usdFutures;
-	usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
+
+	try
+	{
+		usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
+	}
+	catch (bfcpp::BfcppDisconnectException dex)
+	{
+		logg(dex.source() + " has been disconnected");
+	}
+	
 
 	std::this_thread::sleep_for(10s);
 }

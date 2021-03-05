@@ -257,7 +257,7 @@ namespace bfcpp
     }
 
 
-    void handleUserData(shared_ptr<WebSocketSession> session, std::function<void(UsdFutureUserData)> onData)
+    void handleUserDataStream(shared_ptr<WebSocketSession> session, std::function<void(UsdFutureUserData)> onData)
     {
       while (!session->getCancelToken().is_canceled())
       {
@@ -293,13 +293,13 @@ namespace bfcpp
                   }
                   else
                   {
-                    BfcppException("Invalid json: " + strMsg);
+                    throw BfcppException("Invalid json: " + strMsg); // TODO should this be an exception or just ignore?
                   }
                 }
               }
               catch (pplx::task_canceled tc)
               {
-                throw;
+                throw BfcppDisconnectException(session->uri);
               }
               catch (std::exception ex)
               {
