@@ -222,7 +222,7 @@ void monitorSymbol()
 /// <param name="access"></param>
 void allOrders(const ApiAccess& access)
 {
-	std::cout << "\n\n--- USD-M Futures All Orders ---\n";
+	std::cout << "\n\n--- USD-M Futures TESTNET All Orders ---\n";
 
 	auto showResults = [](const AllOrdersResult& result)
 	{
@@ -271,7 +271,7 @@ void allOrders(const ApiAccess& access)
 
 void accountInformation(const ApiAccess& access)
 {
-	std::cout << "\n\n--- USD-M Futures Account Information ---\n";
+	std::cout << "\n\n--- USD-M Futures TESTNET Account Information ---\n";
 
 	auto showResults = [](const AccountInformation& result)
 	{
@@ -309,7 +309,7 @@ void accountInformation(const ApiAccess& access)
 
 void accountBalance(const ApiAccess& access)
 {
-	std::cout << "\n\n--- USD-M Futures Account Balance ---\n";
+	std::cout << "\n\n--- USD-M Futures TESTNET Account Balance ---\n";
 
 	UsdFuturesTestMarket futuresTest{ access };
 
@@ -351,7 +351,7 @@ void takerBuySellVolume(const ApiAccess& access)
 
 void klines(const ApiAccess& access)
 {
-	std::cout << "\n\n--- USD-M Futures Taker Buy Sell Volume ---\n";
+	std::cout << "\n\n--- USD-M Futures Klines ---\n";
 
 	UsdFuturesMarket futuresTest{ access };
 	auto result = futuresTest.klines({ {"symbol","BTCUSDT"}, {"limit","5"}, {"interval", "15m"} });
