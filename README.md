@@ -1,8 +1,12 @@
 # Binance Futures C++
 
-**This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's fully tested and the API is stable.**
+**This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
 
 ## Update
+**5th March 2021**
+- Added accountBalance(), klines(), takerBuySellVolume()
+- Fixed problem with not disconnecting
+
 **3rd March 2021**
 - Added accountInformation() : https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
 - Added allOrders() : https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
@@ -14,9 +18,9 @@
 
 ---
 ## Summary
-binancews is a C++17 library which receives market data from the Binance crypto currency exchange. 
+Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
 
-The project uses Microsoft's cpprestsdk for asynchronous websocket/HTTP functionality.
+The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functionality.
 
 ---
 ## Design
@@ -230,7 +234,7 @@ _NOTE: testing on Linux has been limited, I hope to improve this in the coming w
 ./vcpkg install cpprestsdk[websockets] poco boost-asio --triplet x64-linux
 ```
 3. Go up a directory then into 'binancews' directory and run:   ```cmake . && make```
-4. The binary is in the 'binancews' sub-dir ('binancews/binancews' from the top level directory) 
+4. The binary is in the 'bfcpp' sub-dir ('bfcpp/bfcpptest' from the top level directory) 
 
 
 # Run
