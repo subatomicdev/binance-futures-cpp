@@ -234,7 +234,7 @@ _NOTE: testing on Linux has been limited, I hope to improve this in the coming w
 ./vcpkg install cpprestsdk[websockets] poco boost-asio --triplet x64-linux
 ```
 3. Go up a directory then into 'binancews' directory and run:   ```cmake . && make```
-4. The binary is in the 'binancews' sub-dir ('binancews/binancews' from the top level directory) 
+4. The binary is in the 'bfcpp' sub-dir ('bfcpp/bfcpptest' from the top level directory) 
 
 
 # Run
