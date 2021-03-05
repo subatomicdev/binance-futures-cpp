@@ -18,9 +18,9 @@
 
 ---
 ## Summary
-binancews is a C++17 library which receives market data from the Binance crypto currency exchange. 
+Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
 
-The project uses Microsoft's cpprestsdk for asynchronous websocket/HTTP functionality.
+The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functionality.
 
 ---
 ## Design
