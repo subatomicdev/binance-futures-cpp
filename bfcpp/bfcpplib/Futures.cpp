@@ -389,7 +389,8 @@ namespace bfcpp
   }
 
 
-  NewOrderResult UsdFuturesMarket::newOrder(map<string, string>&& order, const bool async)
+
+  NewOrderResult UsdFuturesMarket::newOrder(map<string, string>&& order)
   {
     try
     {

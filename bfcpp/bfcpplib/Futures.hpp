@@ -199,7 +199,7 @@ namespace bfcpp
     /// </summary>
     /// <param name="order">Order params, see link above.</param>
     /// <returns>See 'response' Rest, see link above.</returns>
-    NewOrderResult newOrder(map<string, string>&& order, const bool async = false);
+    NewOrderResult newOrder(map<string, string>&& order);
 
 
     /// <summary>
