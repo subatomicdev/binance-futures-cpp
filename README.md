@@ -254,3 +254,19 @@ myapiKeyMyKey723423Ju&jNhuayNahas617238Jaiasjd31as52v46523435vs
 8LBwbPvcub5GHtxLgWDZnm23KFcXwXwXwXwLBwbLBwbAABBca-sdasdasdas123
 ```
 Run: ```>./bfcpptest /path/to/mykeyfile.txt```
+
+
+# Performance Check
+There's a version of the new order function which will send a New Order call to the **TestNet*** API and report on the latencies. The ```performanceCheck()``` function in bfcpptest.cpp shows how to use it.
+
+Example results:
+
+![Test Result](https://user-images.githubusercontent.com/74328784/110222751-69e55f00-7ecc-11eb-9e70-5226bc58f82f.png)
+
+- Rest Call Latency: time between send the HTTP request to Binance and receiving the response  (milliseconds)
+- Rest Query Build: time, in nanoseconds, to build the HTTP request objects
+- Rest Response Handler: time, in nanoseconds, to parse/extract the JSON in the HTTP response which populates return object
+- Total Request Handling: Rest Query Build + Rest Response Handler
+- Total: Rest Call Latency + Total Request Handling
+
+The Rest call latency depends on your conditions and varies wildely. Testing has shown anyhing from 350ms to 750 ms even though the ICMP ping is 18ms.
