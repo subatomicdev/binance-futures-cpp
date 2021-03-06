@@ -269,4 +269,4 @@ Example results:
 - Total Request Handling: Rest Query Build + Rest Response Handler
 - Total: Rest Call Latency + Total Request Handling
 
-The Rest call latency depends on your conditions and varies wildely. Testing has shown anyhing from 350ms to 750 ms even though the ICMP ping is 18ms.
+The Rest call latency depends on your conditions and varies wildely. Testing has shown between 350ms to 750ms even though the ICMP ping is 18ms.
