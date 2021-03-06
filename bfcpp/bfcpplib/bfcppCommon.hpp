@@ -310,6 +310,16 @@ namespace bfcpp
   };
 
 
+  struct ListenKey : public RestResult
+  {
+    ListenKey() 
+    {
+
+    }
+
+    string listenKey;
+  };
+
   /// <summary>
   /// Returned by monitor functions, containing an ID for use with cancelMonitor() to close this stream.
   /// </summary>

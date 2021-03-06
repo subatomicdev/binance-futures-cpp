@@ -123,7 +123,7 @@ public:
 		m_orderId = createOrder(m_symbol);
 
 		logg("Waiting");
-		std::this_thread::sleep_for(8s);
+		std::this_thread::sleep_for(5s);
 
 		closeOrder(m_orderId, m_status);
 	}

@@ -643,39 +643,24 @@ namespace bfcpp
 
   bool UsdFuturesMarket::createListenKey(const MarketType marketType)
   {
-    bool ok = false;
-
     try
     {
-      // build the request, with appropriate headers, the API key and the query string with the signature appended
-
-      string uri = getApiUri(m_marketType);
-      string path = getApiPath(m_marketType, RestCall::ListenKey);
-      string queryString;
-
-      if (marketType == MarketType::Futures || marketType == MarketType::FuturesTest)
+      auto handler = [](web::http::http_response response)
       {
-        queryString = createQueryString(map<string, string>{}, RestCall::ListenKey, true);
-      }
+        ListenKey result;
 
-      auto request = createHttpRequest(web::http::methods::POST, path + "?" + queryString);
+        auto json = response.extract_json().get();
 
-      web::http::client::http_client client{ web::uri{utility::conversions::to_string_t(uri)} };
+        result.listenKey = utility::conversions::to_utf8string(json[utility::conversions::to_string_t(ListenKeyName)].as_string());
 
-      client.request(std::move(request)).then([&ok, this](web::http::http_response response)
-        {
-          auto json = response.extract_json().get();
+        return result;
+      };
 
-          if (response.status_code() == web::http::status_codes::OK)
-          {
-            m_listenKey = utility::conversions::to_utf8string(json[utility::conversions::to_string_t(ListenKeyName)].as_string());
-            ok = true;
-          }
-          else
-          {
-            throw std::runtime_error{ "Failed to create listne key:  " + utility::conversions::to_utf8string(json.serialize()) };
-          }
-        }).wait();
+      auto lk = sendRestRequest<ListenKey>(RestCall::ListenKey, web::http::methods::POST, true, marketType, handler).get();
+      
+      m_listenKey = lk.listenKey;
+
+      return lk.valid() && !m_listenKey.empty();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -685,8 +670,6 @@ namespace bfcpp
     {
       throw BfcppException(ex.what());
     }
-
-    return ok;
   }
 
 
