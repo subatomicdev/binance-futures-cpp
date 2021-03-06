@@ -518,9 +518,9 @@ int main(int argc, char** argv)
 
 			//accountBalance(access);
 
-			//klines(access);
+			klines({});
 
-			performanceCheck(access);
+			//performanceCheck(access);
 		}
 		else
 		{
