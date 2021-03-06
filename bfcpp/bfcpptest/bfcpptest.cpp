@@ -239,13 +239,21 @@ void allOrders(const ApiAccess& access)
 	auto showResults = [](const AllOrdersResult& result)
 	{
 		stringstream ss;
-		ss << "\nFound " << result.response.size() << " orders";
 
-		for (const auto& order : result.response)
+		if (result.valid())
 		{
-			ss << "\n{";
-			std::for_each(std::begin(order), std::end(order), [&ss](auto& values) { ss << "\n\t" << values.first << "=" << values.second;  });
-			ss << "\n}";
+			ss << "\nFound " << result.response.size() << " orders";
+
+			for (const auto& order : result.response)
+			{
+				ss << "\n{";
+				std::for_each(std::begin(order), std::end(order), [&ss](auto& values) { ss << "\n\t" << values.first << "=" << values.second;  });
+				ss << "\n}";
+			}
+		}
+		else
+		{
+			ss << "Invalid: " << result.msg();
 		}
 
 		logg(ss.str());
@@ -256,7 +264,7 @@ void allOrders(const ApiAccess& access)
 
 	// --- Get all orders ---
 	auto result = futuresTest.allOrders({ {"symbol", "BTCUSDT"} });
-	
+	logg("All orders");
 	showResults(result);
 
 
@@ -272,8 +280,9 @@ void allOrders(const ApiAccess& access)
 		lt->tm_sec = 0;
 
 		startOfDay = Clock::from_time_t(std::mktime(lt));
-	}	
+	}
 	
+	logg("All orders for today");
 	result = futuresTest.allOrders({ {"symbol", "BTCUSDT"},  {"startTime", std::to_string(bfcpp::getTimestamp(startOfDay))} });
 
 	showResults(result);
@@ -382,6 +391,7 @@ void klines(const ApiAccess& access)
 
 	logg(ss.str());
 }
+
 
 
 

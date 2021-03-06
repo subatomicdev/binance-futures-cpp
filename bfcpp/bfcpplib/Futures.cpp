@@ -14,7 +14,7 @@ namespace bfcpp
 
     if (onData == nullptr)
     {
-      throw std::runtime_error("monitorMiniTicker callback function null");
+      throw BfcppException{ "monitorMiniTicker callback function null" };
     }
 
     auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!miniTicker@arr", keys, "s");
@@ -41,7 +41,7 @@ namespace bfcpp
 
     if (onData == nullptr)
     {
-      throw std::runtime_error("monitorKlineCandlestickStream callback function null");
+      throw BfcppException{ "monitorKlineCandlestickStream callback function null" };
     }
 
 
@@ -74,7 +74,7 @@ namespace bfcpp
 
     if (onData == nullptr)
     {
-      throw std::runtime_error("monitorSymbol callback function null");
+      throw BfcppException{ "monitorSymbol callback function null" };
     }
 
 
@@ -104,7 +104,7 @@ namespace bfcpp
 
     if (onData == nullptr)
     {
-      throw std::runtime_error("monitorSymbolBookStream callback function null");
+      throw BfcppException{ "monitorSymbolBookStream callback function null" };
     }
 
 
@@ -129,7 +129,7 @@ namespace bfcpp
 
     if (onData == nullptr)
     {
-      throw std::runtime_error("monitorMarkPrice callback function null");
+      throw BfcppException{ "monitorMarkPrice callback function null" };
     }
 
     auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!markPrice@arr@1s", keys, "s");
@@ -150,7 +150,7 @@ namespace bfcpp
 
     if (onData == nullptr)
     {
-      throw std::runtime_error("monitorUserData callback function null");
+      throw BfcppException{"monitorUserData callback function null"};
     }
 
     MonitorToken monitorToken;
@@ -221,55 +221,48 @@ namespace bfcpp
 
   AccountInformation UsdFuturesMarket::accountInformation()
   {
-    AccountInformation info;
-
-    string queryString{ createQueryString({}, RestCall::AccountInfo, true) };
-
     try
     {
-      auto request = createHttpRequest(web::http::methods::GET, getApiPath(m_marketType, RestCall::AccountInfo) + "?" + queryString);
-
-      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
-      client.request(std::move(request)).then([this, &info](web::http::http_response response) mutable
+      auto handler = [](web::http::http_response response)
       {
+        AccountInformation info;
+
         auto json = response.extract_json().get();
 
-        if (response.status_code() == web::http::status_codes::OK)
+        const utility::string_t AssetField = utility::conversions::to_string_t("assets");
+        const utility::string_t PositionsField = utility::conversions::to_string_t("positions");
+
+
+        getJsonValues(json, info.data, set<string> {  "feeTier", "canTrade", "canDeposit", "canWithdraw", "updateTime", "totalInitialMargin", "totalMaintMargin", "totalWalletBalance",
+                                                      "totalUnrealizedProfit", "totalMarginBalance", "totalPositionInitialMargin", "totalOpenOrderInitialMargin", "totalCrossWalletBalance",
+                                                      "totalCrossUnPnl", "availableBalance", "maxWithdrawAmount"});
+
+
+        auto& assetArray = json[AssetField].as_array();
+        for (const auto& entry : assetArray)
         {
-          const utility::string_t AssetField = utility::conversions::to_string_t("assets");
-          const utility::string_t PositionsField = utility::conversions::to_string_t("positions");
+          map<string, string> order;
+          getJsonValues(entry, order, set<string> { "asset", "walletBalance", "unrealizedProfit", "marginBalance", "maintMargin", "initialMargin", "positionInitialMargin",
+                                                    "openOrderInitialMargin", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
 
-
-          getJsonValues(json, info.data, set<string> {  "feeTier", "canTrade", "canDeposit", "canWithdraw", "updateTime", "totalInitialMargin", "totalMaintMargin", "totalWalletBalance", "totalUnrealizedProfit",
-                                                        "totalMarginBalance", "totalPositionInitialMargin", "totalOpenOrderInitialMargin", "totalCrossWalletBalance", "totalCrossUnPnl", "availableBalance", "maxWithdrawAmount"});
-
-
-          auto& assetArray = json[AssetField].as_array();
-          for (const auto& entry : assetArray)
-          {
-            map<string, string> order;
-            getJsonValues(entry, order, set<string> { "asset", "walletBalance", "unrealizedProfit", "marginBalance", "maintMargin", "initialMargin", "positionInitialMargin",
-                                                      "openOrderInitialMargin", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
-
-            info.assets.emplace_back(std::move(order));
-          }
-
-
-          auto& positionArray = json[PositionsField].as_array();
-          for (const auto& entry : positionArray)
-          {
-            map<string, string> position;
-            getJsonValues(entry, position, set<string> {  "symbol", "initialMargin", "maintMargin", "unrealizedProfit", "positionInitialMargin", "openOrderInitialMargin",
-                                                          "leverage", "isolated", "entryPrice", "maxNotional", "positionSide", "positionAmt"});
-
-            info.positions.emplace_back(std::move(position));
-          }
+          info.assets.emplace_back(std::move(order));
         }
-        else
+
+
+        auto& positionArray = json[PositionsField].as_array();
+        for (const auto& entry : positionArray)
         {
-          throw std::runtime_error{ "Binance returned error in accountInformation():\n " + utility::conversions::to_utf8string(json.serialize()) };
+          map<string, string> position;
+          getJsonValues(entry, position, set<string> {  "symbol", "initialMargin", "maintMargin", "unrealizedProfit", "positionInitialMargin", "openOrderInitialMargin",
+                                                        "leverage", "isolated", "entryPrice", "maxNotional", "positionSide", "positionAmt"});
+
+          info.positions.emplace_back(std::move(position));
         }
-      }).wait();
+
+        return info;
+      };
+
+      return sendRestRequest<AccountInformation>(RestCall::AccountInfo, web::http::methods::GET, true, m_marketType, handler).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -279,44 +272,31 @@ namespace bfcpp
     {
       throw BfcppException(ex.what());
     }
-
-    return info;
   }
 
 
 
   AccountBalance UsdFuturesMarket::accountBalance()
   {
-    AccountBalance balance;
-
-    string queryString{ createQueryString({}, RestCall::AccountBalance, true) };
-
     try
     {
-      auto request = createHttpRequest(web::http::methods::GET, getApiPath(m_marketType, RestCall::AccountBalance) + "?" + queryString);
-
-      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
-
-      client.request(std::move(request)).then([this, &balance](web::http::http_response response) mutable
+      auto handler = [](web::http::http_response response)
       {
+        AccountBalance balance;
+
         auto json = response.extract_json().get();
-
-        if (response.status_code() == web::http::status_codes::OK)
+        for (const auto& entry : json.as_array())
         {
-          auto& balances = json.as_array();
-          for (const auto& entry : balances)
-          {
-            map<string, string> order;
-            getJsonValues(entry, order, set<string> { "accountAlias", "asset", "balance", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
+          map<string, string> order;
+          getJsonValues(entry, order, set<string> { "accountAlias", "asset", "balance", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
 
-            balance.balances.emplace_back(std::move(order));
-          }
+          balance.balances.emplace_back(std::move(order));
         }
-        else
-        {
-          throw std::runtime_error{ "Binance returned error in accountBalance():\n " + utility::conversions::to_utf8string(json.serialize()) };
-        }
-      }).wait();
+
+        return balance;
+      };
+
+      return sendRestRequest<AccountBalance>(RestCall::AccountBalance, web::http::methods::GET, true, m_marketType, handler).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -326,44 +306,32 @@ namespace bfcpp
     {
       throw BfcppException(ex.what());
     }
-    
-    return balance;
   }
 
 
 
   TakerBuySellVolume UsdFuturesMarket::takerBuySellVolume(map<string, string>&& query)
   {
-    TakerBuySellVolume result;
-
-    string queryString{ createQueryString(std::move(query), RestCall::TakerBuySellVolume, true) };
-
     try
     {
-      auto request = createHttpRequest(web::http::methods::GET, getApiPath(m_marketType, RestCall::TakerBuySellVolume) + "?" + queryString);
-
-      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
-
-      client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
+      auto handler = [](web::http::http_response response)
       {
+        TakerBuySellVolume result;
+
         auto json = response.extract_json().get();
 
-        if (response.status_code() == web::http::status_codes::OK)
+        for (const auto& entry : json.as_array())
         {
-          auto& balances = json.as_array();
-          for (const auto& entry : balances)
-          {
-            map<string, string> order;
-            getJsonValues(entry, order, set<string> { "buySellRatio", "buyVol", "sellVol", "timestamp"});
+          map<string, string> order;
+          getJsonValues(entry, order, set<string> { "buySellRatio", "buyVol", "sellVol", "timestamp"});
 
-            result.response.emplace_back(std::move(order));
-          }
+          result.response.emplace_back(std::move(order));
         }
-        else
-        {
-          throw std::runtime_error{ "Binance returned error in takerBuySellVolume():\n " + utility::conversions::to_utf8string(json.serialize()) };
-        }
-      }).wait();
+
+        return result;
+      };
+
+      return sendRestRequest<TakerBuySellVolume>(RestCall::TakerBuySellVolume, web::http::methods::GET, true, m_marketType, handler, std::move(query)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -373,53 +341,42 @@ namespace bfcpp
     {
       throw BfcppException(ex.what());
     }
-
-    return result;
   }
 
 
 
   KlineCandlestick UsdFuturesMarket::klines(map<string, string>&& query)
   {
-    KlineCandlestick result;
-
-    string queryString{ createQueryString(std::move(query), RestCall::KlineCandles, true) };
-
     try
     {
-      auto request = createHttpRequest(web::http::methods::GET, getApiPath(m_marketType, RestCall::KlineCandles) + "?" + queryString);
-
-      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
-      client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
+      auto handler = [](web::http::http_response response)
       {
+        KlineCandlestick result;
+
         auto json = response.extract_json().get();
 
-        if (response.status_code() == web::http::status_codes::OK)
-        {
-          // kline does not return a key/value map, instead an array of arrays. 
-          // the outer array has an entry per interval, with each inner array containing 12 fields for that interval (i.e. open time, close time, open price, close price, etc)
+        // kline does not return a key/value map, instead an array of arrays. 
+        // the outer array has an entry per interval, with each inner array containing 12 fields for that interval (i.e. open time, close time, open price, close price, etc)
 
-          auto& intervalPeriod = json.as_array();
-          for (auto& interval : intervalPeriod)
+        auto& intervalPeriod = json.as_array();
+        for (auto& interval : intervalPeriod)
+        {
+          vector<string> stickValues;
+          stickValues.reserve(12);
+
+          auto& sticksArray = interval.as_array();
+          for (auto& stick : sticksArray)
           {
-            vector<string> stickValues;
-            stickValues.reserve(12);
-
-            auto& sticksArray = interval.as_array();
-            for (auto& stick : sticksArray)
-            {
-              stickValues.emplace_back(jsonValueToString(stick));
-            }
-            
-            result.response.emplace_back(std::move(stickValues));
+            stickValues.emplace_back(jsonValueToString(stick));
           }
-        }
-        else
-        {
-          throw std::runtime_error{ "Binance returned from klines():\n" + utility::conversions::to_utf8string(json.serialize()) };
+
+          result.response.emplace_back(std::move(stickValues));
         }
 
-      }).wait();
+        return result;
+      };
+
+      return sendRestRequest<KlineCandlestick>(RestCall::KlineCandles, web::http::methods::GET, true, m_marketType, handler, std::move(query)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -429,36 +386,26 @@ namespace bfcpp
     {
       throw BfcppException(ex.what());
     }
-
-    return result;
   }
 
 
-  NewOrderResult UsdFuturesMarket::newOrder(map<string, string>&& order)
+  NewOrderResult UsdFuturesMarket::newOrder(map<string, string>&& order, const bool async)
   {
-    NewOrderResult result;
-
-    string queryString{ createQueryString(std::move(order), RestCall::NewOrder, true) };
-
     try
     {
-      auto request = createHttpRequest(web::http::methods::POST, getApiPath(m_marketType, RestCall::NewOrder) + "?" + queryString);
-
-      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
-      client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
+      auto handler = [](web::http::http_response response)
       {
+        NewOrderResult result;
+
         auto json = response.extract_json().get();
 
-        if (response.status_code() == web::http::status_codes::OK)
-        {
-          getJsonValues(json, result.response, set<string> {  "clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
-                                                              "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
-        }
-        else
-        {
-          throw std::runtime_error{ "Binance returned error in newOrder():\n " + utility::conversions::to_utf8string(json.serialize()) };
-        }
-      }).wait();
+        getJsonValues(json, result.response, set<string> {  "clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
+                                                            "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+
+        return result;
+      };
+
+      return sendRestRequest<NewOrderResult>(RestCall::NewOrder, web::http::methods::POST, true, m_marketType, handler, std::move(order)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -468,45 +415,33 @@ namespace bfcpp
     {
       throw BfcppException(ex.what());
     }
-
-    return result;
   }
 
 
   
   AllOrdersResult UsdFuturesMarket::allOrders(map<string, string>&& query)
   {
-    AllOrdersResult result;
-
-    string queryString{ createQueryString(std::move(query), RestCall::AllOrders, true) };
-
     try
     {
-      auto request = createHttpRequest(web::http::methods::GET, getApiPath(m_marketType, RestCall::AllOrders) + "?" + queryString);
-
-      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
-      client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
+      auto handler = [](web::http::http_response response)
       {
+        AllOrdersResult result;
+
         auto json = response.extract_json().get();
-
-        if (response.status_code() == web::http::status_codes::OK)
+        
+        for (const auto& entry : json.as_array())
         {
-          auto& jsonArray = json.as_array();
+          map<string, string> order;
+          getJsonValues(entry, order, set<string> { "avgPrice", "clientOrderId", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide", "status",
+                                                    "stopPrice", "closePosition", "symbol", "time", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
 
-          for (const auto& entry : jsonArray)
-          {
-            map<string, string> order;
-            getJsonValues(entry, order, set<string> { "avgPrice", "clientOrderId", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide", "status",
-                                                      "stopPrice", "closePosition", "symbol", "time", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+          result.response.emplace_back(std::move(order));
+        }
 
-            result.response.emplace_back(std::move(order));
-          }
-        }
-        else
-        {
-          throw std::runtime_error{ "Binance returned error in allOrders():\n " + utility::conversions::to_utf8string(json.serialize()) };
-        }
-      }).wait();
+        return result;
+      };
+
+      return sendRestRequest<AllOrdersResult>(RestCall::AllOrders, web::http::methods::GET, true, m_marketType, handler, std::move(query)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -516,38 +451,26 @@ namespace bfcpp
     {
       throw BfcppException(ex.what());
     }
-
-    return result;
   }
 
 
 
   CancelOrderResult UsdFuturesMarket::cancelOrder(map<string, string>&& order)
-  {
-    CancelOrderResult result;
-
-    string queryString{ createQueryString(std::move(order), RestCall::CancelOrder, true) };
-
+  {   
     try
     {
-      auto request = createHttpRequest(web::http::methods::DEL, getApiPath(m_marketType, RestCall::CancelOrder) + "?" + queryString);
+      auto handler = [](web::http::http_response response)
+      {
+        CancelOrderResult result;
 
-      web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
-      client.request(std::move(request)).then([this, &result](web::http::http_response response) mutable
-        {
-          auto json = response.extract_json().get();
+        auto json = response.extract_json().get();
+        getJsonValues(json, result.response, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide",
+                                                          "status", "stopPrice", "closePosition", "symbol", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "workingType"});
 
-          if (response.status_code() == web::http::status_codes::OK)
-          {
-            getJsonValues(json, result.response, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide",
-                                                              "status", "stopPrice", "closePosition", "symbol", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "workingType"});
-          }
-          else
-          {
-            throw std::runtime_error{ "Binance returned error cancelling an order:\n" + utility::conversions::to_utf8string(json.serialize()) };  // TODO capture orderId
-          }
+        return result;
+      };
 
-        }).wait();
+      return sendRestRequest<CancelOrderResult>(RestCall::CancelOrder, web::http::methods::DEL, true, m_marketType, handler, std::move(order)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -557,8 +480,6 @@ namespace bfcpp
     {
       throw BfcppException(ex.what());
     }
-
-    return result;
   }
 
 
@@ -581,21 +502,21 @@ namespace bfcpp
       }
 
       session->client.close(ws::client::websocket_close_status::normal).then([&session]()
-        {
-          session->connected = false;
-        }).wait();
+      {
+        session->connected = false;
+      }).wait();
 
-        // when called from disconnect() this flag is false to avoid invalidating iterators in m_idToSession, 
-        // this is tidier than returning the new iterator from erase()
-        if (deleteSession)
+      // when called from disconnect() this flag is false to avoid invalidating iterators in m_idToSession, 
+      // this is tidier than returning the new iterator from erase()
+      if (deleteSession)
+      {
+        if (auto storedSessionIt = std::find_if(m_sessions.cbegin(), m_sessions.cend(), [this, &mt](auto& sesh) { return sesh->id == mt.id; });  storedSessionIt != m_sessions.end())
         {
-          if (auto storedSessionIt = std::find_if(m_sessions.cbegin(), m_sessions.cend(), [this, &mt](auto& sesh) { return sesh->id == mt.id; });  storedSessionIt != m_sessions.end())
-          {
-            m_sessions.erase(storedSessionIt);
-          }
-
-          m_idToSession.erase(itIdToSession);
+          m_sessions.erase(storedSessionIt);
         }
+
+        m_idToSession.erase(itIdToSession);
+      }
     }
   }
 
@@ -775,9 +696,8 @@ namespace bfcpp
   {
     try
     {
-      // get the payload synchronously
       std::string strMsg;
-      websocketInMessage.extract_string().then([=, &strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
+      websocketInMessage.extract_string().then([&strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
       {
         try
         {
@@ -799,7 +719,7 @@ namespace bfcpp
 
         if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
         {
-          std::cout << "\nError: " << utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) << " : " << utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string());
+          throw BfcppException(utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) + " : " + utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string()));
         }
         else if (session->onDataUserCallback)
         {
@@ -871,7 +791,7 @@ namespace bfcpp
 
     if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
     {
-      std::cout << "\nError: " << utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) << " : " << utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string());
+      throw BfcppException(utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) + " : " + utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string()));
     }
     else
     {
@@ -903,6 +823,7 @@ namespace bfcpp
         type = UsdFutureUserData::EventType::DataStreamExpired;
       }
 
+
       UsdFutureUserData userData(type);
 
       if (type != UsdFutureUserData::EventType::Unknown)
@@ -912,7 +833,6 @@ namespace bfcpp
 
         case UsdFutureUserData::EventType::MarginCall:
         {
-
           const utility::string_t BalancesField = utility::conversions::to_string_t("B");
 
           getJsonValues(jsonVal, userData.mc.data, { "e", "E", "cw" });
@@ -982,6 +902,7 @@ namespace bfcpp
         case UsdFutureUserData::EventType::DataStreamExpired:
           throw BfcppException("Usd Futures user data stream has expired");
           break;
+
 
         default:
           // handled above

@@ -197,11 +197,34 @@ namespace bfcpp
   };
 
 
+  struct RestResult
+  {
+    bool valid() const { return m_valid; }
+    
+    void valid(const bool v, string&& msg = {})
+    {
+      m_valid = v;
+      m_msg = msg;
+    }
+
+    const string& msg() const { return m_msg; }
+
+  protected:
+    RestResult(bool valid = true) : m_valid(valid) {}
+
+
+    virtual ~RestResult(){}
+
+    
+    bool m_valid;
+    string m_msg;
+  };
+
   /// <summary>
   /// Returned by newOrder(). 
   /// The key/values in response are here: https://binance-docs.github.io/apidocs/testnet/en/#new-order-trade
   /// </summary>
-  struct NewOrderResult
+  struct NewOrderResult : public RestResult
   {
     NewOrderResult() = default;
 
@@ -213,10 +236,19 @@ namespace bfcpp
   };
 
 
+  template<class RestResultT>
+  inline RestResultT createInvalidRestResult(string&& msg)
+  {
+    RestResultT r{};
+    r.valid(false, std::move(msg));
+    return r;
+  }
+
+
   /// <summary>
   /// See https://binance-docs.github.io/apidocs/futures/en/#cancel-order-trade
   /// </summary>
-  struct CancelOrderResult
+  struct CancelOrderResult : public RestResult
   {
     CancelOrderResult() = default;
 
@@ -232,7 +264,7 @@ namespace bfcpp
   /// <summary>
   /// See https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
   /// </summary>
-  struct AllOrdersResult
+  struct AllOrdersResult : public RestResult
   {
     AllOrdersResult() = default;
 
@@ -243,7 +275,7 @@ namespace bfcpp
   /// <summary>
   /// See https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
   /// </summary>
-  struct AccountInformation
+  struct AccountInformation : public RestResult
   {
     map<string, string> data;
     vector<map<string, string>> assets;
@@ -254,7 +286,7 @@ namespace bfcpp
   /// <summary>
   /// See https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v2-user_data
   /// </summary>
-  struct AccountBalance
+  struct AccountBalance : public RestResult
   {
     vector<map<string, string>> balances;
   };
@@ -263,7 +295,7 @@ namespace bfcpp
   /// <summary>
   /// See https://binance-docs.github.io/apidocs/futures/en/#long-short-ratio
   /// </summary>
-  struct TakerBuySellVolume
+  struct TakerBuySellVolume : public RestResult
   {
     vector<map<string, string>> response;
   };
@@ -272,7 +304,7 @@ namespace bfcpp
   /// <summary>
   /// See https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-data
   /// </summary>
-  struct KlineCandlestick
+  struct KlineCandlestick : public RestResult
   {
     vector<vector<string>> response;
   };

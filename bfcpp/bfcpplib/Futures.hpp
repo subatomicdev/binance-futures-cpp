@@ -199,7 +199,7 @@ namespace bfcpp
     /// </summary>
     /// <param name="order">Order params, see link above.</param>
     /// <returns>See 'response' Rest, see link above.</returns>
-    NewOrderResult newOrder(map<string, string>&& order);
+    NewOrderResult newOrder(map<string, string>&& order, const bool async = false);
 
 
     /// <summary>
@@ -409,6 +409,40 @@ namespace bfcpp
 
 
     void extractKeys(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session, const JsonKeys& keys, const string& arrayKey = {});
+
+    
+    template<class RestResultT>
+    Concurrency::task<RestResultT> sendRestRequest(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<RestResultT(web::http::http_response)> handler, map<string, string>&& query = {})
+    {
+      try
+      {
+        string queryString{ createQueryString(std::move(query), call, true) };
+
+        auto request = createHttpRequest(method, getApiPath(mt, call) + "?" + queryString);
+
+        web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(mt)) } };
+        
+        return client.request(std::move(request)).then([handler](web::http::http_response response)
+        {
+          if (response.status_code() == web::http::status_codes::OK)
+          {
+            return handler(response);
+          }
+          else
+          {
+            return createInvalidRestResult<RestResultT>(utility::conversions::to_utf8string(response.extract_json().get().serialize()));
+          }
+        });
+      }
+      catch (const pplx::task_canceled tc)
+      {
+        throw;
+      }
+      catch (const std::exception ex)
+      {
+        throw;
+      }
+    }
 
 
   private:
