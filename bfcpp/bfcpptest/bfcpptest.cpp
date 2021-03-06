@@ -378,7 +378,11 @@ void klines(const ApiAccess& access)
 	std::cout << "\n\n--- USD-M Futures Klines ---\n";
 
 	UsdFuturesMarket futuresTest{ access };
+	futuresTest.setReceiveWindow(RestCall::KlineCandles, 3000ms);
+
 	auto result = futuresTest.klines({ {"symbol","BTCUSDT"}, {"limit","5"}, {"interval", "15m"} });
+
+	
 
 	stringstream ss;
 	ss << "\nFound " << result.response.size() << " kline sticks";

@@ -262,7 +262,7 @@ namespace bfcpp
         return info;
       };
 
-      return sendRestRequest<AccountInformation>(RestCall::AccountInfo, web::http::methods::GET, true, m_marketType, handler).get();
+      return sendRestRequest<AccountInformation>(RestCall::AccountInfo, web::http::methods::GET, true, m_marketType, handler, receiveWindow(RestCall::AccountInfo)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -296,7 +296,7 @@ namespace bfcpp
         return balance;
       };
 
-      return sendRestRequest<AccountBalance>(RestCall::AccountBalance, web::http::methods::GET, true, m_marketType, handler).get();
+      return sendRestRequest<AccountBalance>(RestCall::AccountBalance, web::http::methods::GET, true, m_marketType, handler, receiveWindow(RestCall::AccountBalance)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -331,7 +331,7 @@ namespace bfcpp
         return result;
       };
 
-      return sendRestRequest<TakerBuySellVolume>(RestCall::TakerBuySellVolume, web::http::methods::GET, true, m_marketType, handler, std::move(query)).get();
+      return sendRestRequest<TakerBuySellVolume>(RestCall::TakerBuySellVolume, web::http::methods::GET, true, m_marketType, handler, receiveWindow(RestCall::TakerBuySellVolume), std::move(query)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -376,7 +376,7 @@ namespace bfcpp
         return result;
       };
 
-      return sendRestRequest<KlineCandlestick>(RestCall::KlineCandles, web::http::methods::GET, true, m_marketType, handler, std::move(query)).get();
+      return sendRestRequest<KlineCandlestick>(RestCall::KlineCandles, web::http::methods::GET, true, m_marketType, handler, receiveWindow(RestCall::KlineCandles), std::move(query)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -406,7 +406,7 @@ namespace bfcpp
         return result;
       };
 
-      return sendRestRequest<NewOrderResult>(RestCall::NewOrder, web::http::methods::POST, true, m_marketType, handler, std::move(order)).get();
+      return sendRestRequest<NewOrderResult>(RestCall::NewOrder, web::http::methods::POST, true, m_marketType, handler, receiveWindow(RestCall::NewOrder), std::move(order)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -442,7 +442,7 @@ namespace bfcpp
         return result;
       };
 
-      return sendRestRequest<AllOrdersResult>(RestCall::AllOrders, web::http::methods::GET, true, m_marketType, handler, std::move(query)).get();
+      return sendRestRequest<AllOrdersResult>(RestCall::AllOrders, web::http::methods::GET, true, m_marketType, handler, receiveWindow(RestCall::AllOrders), std::move(query)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -471,7 +471,7 @@ namespace bfcpp
         return result;
       };
 
-      return sendRestRequest<CancelOrderResult>(RestCall::CancelOrder, web::http::methods::DEL, true, m_marketType, handler, std::move(order)).get();
+      return sendRestRequest<CancelOrderResult>(RestCall::CancelOrder, web::http::methods::DEL, true, m_marketType, handler, receiveWindow(RestCall::CancelOrder), std::move(order)).get();
     }
     catch (const pplx::task_canceled tc)
     {
@@ -656,7 +656,7 @@ namespace bfcpp
         return result;
       };
 
-      auto lk = sendRestRequest<ListenKey>(RestCall::ListenKey, web::http::methods::POST, true, marketType, handler).get();
+      auto lk = sendRestRequest<ListenKey>(RestCall::ListenKey, web::http::methods::POST, true, marketType, handler, receiveWindow(RestCall::ListenKey)).get();
       
       m_listenKey = lk.listenKey;
 

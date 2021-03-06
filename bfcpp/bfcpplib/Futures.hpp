@@ -27,20 +27,6 @@ namespace bfcpp
   {
     inline const static string DefaultReceiveWindwow = "5000";
 
-    // default receive windows. these can be change with setReceiveWindow()
-    inline static map<RestCall, string> ReceiveWindowMap =
-    {
-        {RestCall::NewOrder,    DefaultReceiveWindwow},
-        {RestCall::ListenKey,   DefaultReceiveWindwow},    // no affect for RestCall::ListenKey, here for completion
-        {RestCall::CancelOrder, DefaultReceiveWindwow},
-        {RestCall::AllOrders,   DefaultReceiveWindwow},
-        {RestCall::AccountInfo, DefaultReceiveWindwow},
-        {RestCall::AccountBalance, DefaultReceiveWindwow},
-        {RestCall::TakerBuySellVolume, DefaultReceiveWindwow},
-        {RestCall::KlineCandles, DefaultReceiveWindwow},
-        {RestCall::Ping, DefaultReceiveWindwow}
-    };
-
 
   protected:
     UsdFuturesMarket(MarketType mt, const string& exchangeUri, const ApiAccess& access) : m_marketType(mt), m_exchangeBaseUri(exchangeUri), m_apiAccess(access)
@@ -61,6 +47,13 @@ namespace bfcpp
       disconnect();
     }
 
+    string receiveWindow(const RestCall rc)
+    {
+      if (auto it = m_receiveWindowMap.find(rc); it == m_receiveWindowMap.cend())
+        return DefaultReceiveWindwow;
+      else
+        return it->second;
+    }
 
     /// <summary>
     /// This measures the time it takes to send a "PING" request to the exchange and receive a reply.
@@ -75,7 +68,7 @@ namespace bfcpp
       {
         web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(m_marketType)) } };
 
-        auto request = createHttpRequest(web::http::methods::POST, getApiPath(m_marketType, RestCall::NewOrder) + "?" + createQueryString({}, RestCall::Ping, false));
+        auto request = createHttpRequest(web::http::methods::POST, getApiPath(m_marketType, RestCall::Ping) + "?" + createQueryString({}, RestCall::Ping, false, receiveWindow(RestCall::Ping)));
 
         auto send = Clock::now();
         auto rcv = client.request(std::move(request)).then([](web::http::http_response response) { return Clock::now(); }).get();
@@ -262,7 +255,7 @@ namespace bfcpp
     /// <param name="ms">time in milliseconds</param>
     void setReceiveWindow(const RestCall call, std::chrono::milliseconds ms)
     {
-      ReceiveWindowMap[call] = std::to_string(ms.count());
+      m_receiveWindowMap[call] = std::to_string(ms.count());
     }
 
 
@@ -367,10 +360,11 @@ namespace bfcpp
 
     std::tuple<MonitorToken, shared_ptr<WebSocketSession>> createMonitor(const string& uri, const JsonKeys& keys, const string& arrayKey = {});
 
+
     bool createListenKey(const MarketType marketType);
 
 
-    string createQueryString(map<string, string>&& queryValues, const RestCall call, const bool sign)
+    string createQueryString(map<string, string>&& queryValues, const RestCall call, const bool sign, const string& rcvWindow)
     {
       stringstream ss;
 
@@ -382,7 +376,7 @@ namespace bfcpp
 
       if (sign)
       {
-        ss << "recvWindow=" << ReceiveWindowMap.at(call) << "&timestamp=" << getTimestamp();
+        ss << "recvWindow=" << rcvWindow << "&timestamp=" << getTimestamp();
 
         string qs = ss.str();
         return qs + "&signature=" + (createSignature(m_apiAccess.secretKey, qs));
@@ -412,11 +406,11 @@ namespace bfcpp
 
     
     template<class RestResultT>
-    pplx::task<RestResultT> sendRestRequest(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<RestResultT(web::http::http_response)> handler, map<string, string>&& query = {})
+    pplx::task<RestResultT> sendRestRequest(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<RestResultT(web::http::http_response)> handler, const string& rcvWindow, map<string, string>&& query = {})
     {
       try
       {
-        string queryString{ createQueryString(std::move(query), call, true) };
+        string queryString{ createQueryString(std::move(query), call, true, rcvWindow) };
 
         auto request = createHttpRequest(method, getApiPath(mt, call) + "?" + queryString);
 
@@ -460,6 +454,7 @@ namespace bfcpp
     ApiAccess m_apiAccess;
 
     IntervalTimer m_userDataStreamTimer;
+    map<RestCall, string> m_receiveWindowMap;
 };
 
 

@@ -43,6 +43,7 @@ namespace bfcpp
 
   enum class RestCall
   {
+    None,
     NewOrder,
     ListenKey,
     CancelOrder,
@@ -108,7 +109,6 @@ namespace bfcpp
       {RestCall::KlineCandles, "/fapi/v1/klines"},
       {RestCall::Ping, "/fapi/v1/ping"}
   };
-
 
 
   /// <summary>
@@ -204,36 +204,32 @@ namespace bfcpp
     void valid(const bool v, string&& msg = {})
     {
       m_valid = v;
-      m_msg = msg;
+      m_msg.assign(std::move(msg));
     }
 
     const string& msg() const { return m_msg; }
 
+    /*
+    static string receiveWindow(const RestCall rc)
+    {
+      if (auto it = ReceiveWindowMap.find(rc); it == ReceiveWindowMap.cend())
+        return DefaultReceiveWindwow;
+      else
+        return it->second;
+    }
+    */
+
+
   protected:
-    RestResult(bool valid = true) : m_valid(valid) {}
-
-
+    RestResult(RestCall rc, bool valid = true) : m_rc(rc), m_valid{ valid } {}
     virtual ~RestResult(){}
 
-    
+
+    RestCall m_rc;
     bool m_valid;
     string m_msg;
   };
 
-  /// <summary>
-  /// Returned by newOrder(). 
-  /// The key/values in response are here: https://binance-docs.github.io/apidocs/testnet/en/#new-order-trade
-  /// </summary>
-  struct NewOrderResult : public RestResult
-  {
-    NewOrderResult() = default;
-
-    NewOrderResult(map<string, string>&& data) : response(data)
-    {
-    }
-
-    map<string, string> response;
-  };
 
 
   template<class RestResultT>
@@ -246,13 +242,29 @@ namespace bfcpp
 
 
   /// <summary>
+  /// Returned by newOrder(). 
+  /// The key/values in response are here: https://binance-docs.github.io/apidocs/testnet/en/#new-order-trade
+  /// </summary>
+  struct NewOrderResult : public RestResult
+  {
+    NewOrderResult() : RestResult(RestCall::NewOrder) {}
+
+    NewOrderResult(map<string, string>&& data) : RestResult(RestCall::NewOrder), response(data)
+    {
+    }
+
+    map<string, string> response;
+  };
+
+
+  /// <summary>
   /// See https://binance-docs.github.io/apidocs/futures/en/#cancel-order-trade
   /// </summary>
   struct CancelOrderResult : public RestResult
   {
-    CancelOrderResult() = default;
+    CancelOrderResult() : RestResult(RestCall::CancelOrder) {}
 
-    CancelOrderResult(map<string, string>&& data) : response(data)
+    CancelOrderResult(map<string, string>&& data) :RestResult(RestCall::CancelOrder), response(data)
     {
 
     }
@@ -266,7 +278,7 @@ namespace bfcpp
   /// </summary>
   struct AllOrdersResult : public RestResult
   {
-    AllOrdersResult() = default;
+    AllOrdersResult() : RestResult(RestCall::AllOrders) {}
 
     vector<map<string, string>> response;
   };
@@ -277,6 +289,8 @@ namespace bfcpp
   /// </summary>
   struct AccountInformation : public RestResult
   {
+    AccountInformation() : RestResult(RestCall::AccountInfo) {}
+
     map<string, string> data;
     vector<map<string, string>> assets;
     vector<map<string, string>> positions;
@@ -288,6 +302,8 @@ namespace bfcpp
   /// </summary>
   struct AccountBalance : public RestResult
   {
+    AccountBalance() : RestResult(RestCall::AccountBalance) {}
+
     vector<map<string, string>> balances;
   };
 
@@ -297,6 +313,8 @@ namespace bfcpp
   /// </summary>
   struct TakerBuySellVolume : public RestResult
   {
+    TakerBuySellVolume() : RestResult(RestCall::TakerBuySellVolume) {}
+
     vector<map<string, string>> response;
   };
 
@@ -306,16 +324,15 @@ namespace bfcpp
   /// </summary>
   struct KlineCandlestick : public RestResult
   {
+    KlineCandlestick() : RestResult(RestCall::KlineCandles) {}
+
     vector<vector<string>> response;
   };
 
 
   struct ListenKey : public RestResult
   {
-    ListenKey() 
-    {
-
-    }
+    ListenKey() : RestResult(RestCall::ListenKey) {}
 
     string listenKey;
   };
