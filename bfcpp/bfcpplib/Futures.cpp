@@ -664,7 +664,7 @@ namespace bfcpp
     }
     catch (const pplx::task_canceled tc)
     {
-      // task cancelling is not a problem, it's how the websockets library works to signal the task has quit                               
+      throw BfcppDisconnectException("createListenKey");
     }
     catch (const std::exception ex)
     {
