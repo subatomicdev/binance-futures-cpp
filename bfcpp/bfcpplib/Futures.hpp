@@ -258,7 +258,7 @@ namespace bfcpp
       m_receiveWindowMap[call] = std::to_string(ms.count());
     }
 
-
+    MarketType marketType() const { return m_marketType; }
 
   private:
 
@@ -363,6 +363,14 @@ namespace bfcpp
 
     bool createListenKey(const MarketType marketType);
 
+    
+    MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey);
+
+
+    void extractKeys(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session, const JsonKeys& keys, const string& arrayKey = {});
+
+
+protected:
 
     string createQueryString(map<string, string>&& queryValues, const RestCall call, const bool sign, const string& rcvWindow)
     {
@@ -370,9 +378,9 @@ namespace bfcpp
 
       // can leave a trailing '&' without borking the internets
       std::for_each(queryValues.begin(), queryValues.end(), [&ss](auto& it)
-      {
-        ss << std::move(it.first) << "=" << std::move(it.second) << "&"; // TODO doing a move() with operator<< here  - any advantage?
-      });
+        {
+          ss << std::move(it.first) << "=" << std::move(it.second) << "&"; // TODO doing a move() with operator<< here  - any advantage?
+        });
 
       if (sign)
       {
@@ -398,13 +406,6 @@ namespace bfcpp
       return request;
     }
 
-
-    MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey);
-
-
-    void extractKeys(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session, const JsonKeys& keys, const string& arrayKey = {});
-
-    
     template<class RestResultT>
     pplx::task<RestResultT> sendRestRequest(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<RestResultT(web::http::http_response)> handler, const string& rcvWindow, map<string, string>&& query = {})
     {
@@ -415,7 +416,7 @@ namespace bfcpp
         auto request = createHttpRequest(method, getApiPath(mt, call) + "?" + queryString);
 
         web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(mt)) } };
-        
+
         return client.request(std::move(request)).then([handler](web::http::http_response response)
         {
           if (response.status_code() == web::http::status_codes::OK)
@@ -439,7 +440,7 @@ namespace bfcpp
     }
 
 
-  private:
+private:
     shared_ptr<WebSocketSession> m_session;
     MarketType m_marketType;
 
@@ -486,6 +487,78 @@ namespace bfcpp
     }
   };
 
+
+
+  class UsdFuturesTestMarketPerfomance : public UsdFuturesTestMarket
+  {
+  public:
+    UsdFuturesTestMarketPerfomance(const ApiAccess& access) : UsdFuturesTestMarket(access)
+    {
+
+    }
+
+    virtual ~UsdFuturesTestMarketPerfomance()
+    {
+    }
+
+
+    NewOrderPerformanceResult newOrderPerfomanceCheck(map<string, string>&& order);
+
+
+  private:
+    pplx::task<NewOrderPerformanceResult> sendRestRequestPerformanceCheck(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<NewOrderPerformanceResult (web::http::http_response)> handler, const string& rcvWindow, map<string, string>&& query = {})
+    {
+      try
+      {
+        auto start = std::chrono::high_resolution_clock::now();
+
+        string queryString{ createQueryString(std::move(query), call, true, rcvWindow) };
+
+        auto request = createHttpRequest(method, getApiPath(mt, call) + "?" + queryString);
+
+        web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(mt)) } };
+
+        auto requestSent = std::chrono::high_resolution_clock::now();
+        return client.request(std::move(request)).then([handler, start, requestSent](web::http::http_response response)
+        {
+          auto restCallTime = std::chrono::high_resolution_clock::now() - requestSent;
+
+          if (response.status_code() == web::http::status_codes::OK)
+          { 
+            auto handlerCalled = std::chrono::high_resolution_clock::now();
+            auto result = handler(response);
+            auto handlerDone = std::chrono::high_resolution_clock::now();
+
+            result.restQueryBuild = requestSent - start;
+            result.restResponseHandler = handlerDone - handlerCalled;
+            // requestSent - Start: is the time it takes to build the request
+            // handlerDone - handlerCalled: time for the handler 
+            result.bfcppTotalProcess = result.restQueryBuild + result.restResponseHandler;
+            result.restApiCall = restCallTime;
+            return result;
+          }
+          else
+          {
+            NewOrderPerformanceResult result{};
+            result.bfcppTotalProcess = std::chrono::high_resolution_clock::now() - start;
+            result.restApiCall = restCallTime;
+
+            result.valid(false, utility::conversions::to_utf8string(response.extract_json().get().serialize()));
+            return result;
+          }
+        });
+      }
+      catch (const pplx::task_canceled tc)
+      {
+        throw;
+      }
+      catch (const std::exception ex)
+      {
+        throw;
+      }
+    }
+
+  };
 }
 
 #endif

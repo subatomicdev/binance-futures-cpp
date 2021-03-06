@@ -397,6 +397,63 @@ void klines(const ApiAccess& access)
 }
 
 
+void performanceCheck(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures API Performance ---\n";
+
+	map<string, string> order =
+	{
+		{"symbol", "BTCUSDT"},
+		{"side", "BUY"},
+		{"type", "MARKET"},
+		{"quantity", "0.001"}
+	};
+
+	UsdFuturesTestMarketPerfomance market{ access };
+
+	auto start = Clock::now();
+	auto result = market.newOrderPerfomanceCheck(std::move(order));
+	result.total = Clock::now() - start;
+
+	if (result.valid())
+	{
+		stringstream ss;
+		ss << "\nOrder data:\n";
+		for (const auto& val : result.response)
+		{
+			ss << val.first + "=" + val.second << "\n";
+		}
+
+		logg(ss.str());
+
+		ss.clear(); ss.str("");
+		ss <<	"\nRest Call Latency:\t" << std::chrono::duration_cast<std::chrono::milliseconds>(result.restApiCall).count() << " milliseconds" <<
+					"\n------------------------------------------" <<
+					"\nRest Query Build:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.restQueryBuild).count() << " nanoseconds" <<
+					"\nRest Response Handler:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.restResponseHandler).count() << " nanoseconds" <<
+					"\nTotal Request Handling:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.bfcppTotalProcess).count() << " nanoseconds" <<
+					"\n------------------------------------------" <<
+					"\nTotal:\t\t\t" << std::chrono::duration_cast<std::chrono::milliseconds>(result.total).count() << " milliseconds";
+
+		logg(ss.str());
+	}
+	else
+	{
+		logg("Error: " + result.msg());
+
+		stringstream ss;
+		ss << "\nRest Call Latency:\t" << std::chrono::duration_cast<std::chrono::milliseconds>(result.restApiCall).count() << " milliseconds" <<
+					"\n------------------------------------------" <<
+					"\nRest Query Build:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.restQueryBuild).count() << " nanoseconds" <<
+					"\nTotal Request Handling:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.bfcppTotalProcess).count() << " nanoseconds" <<
+					"\n------------------------------------------" <<
+					"\nTotal:\t\t\t" << std::chrono::duration_cast<std::chrono::milliseconds>(result.total).count() << " milliseconds";
+
+		logg(ss.str());
+	}
+	
+}
+
 
 
 int main(int argc, char** argv)
@@ -457,11 +514,13 @@ int main(int argc, char** argv)
 
 			//allOrders(access);
 
-			accountInformation(access);
+			//accountInformation(access);
 
 			//accountBalance(access);
 
-			klines(access);
+			//klines(access);
+
+			performanceCheck(access);
 		}
 		else
 		{
