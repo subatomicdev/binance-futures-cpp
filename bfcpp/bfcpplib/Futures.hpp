@@ -412,7 +412,7 @@ namespace bfcpp
 
     
     template<class RestResultT>
-    Concurrency::task<RestResultT> sendRestRequest(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<RestResultT(web::http::http_response)> handler, map<string, string>&& query = {})
+    pplx::task<RestResultT> sendRestRequest(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<RestResultT(web::http::http_response)> handler, map<string, string>&& query = {})
     {
       try
       {
