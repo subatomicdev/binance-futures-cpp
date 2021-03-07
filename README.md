@@ -28,12 +28,14 @@ To accurately record timings there's a specific class, ```UsdFuturesTestMarketPe
 
 The bfcpptest.cpp has ```performanceCheckSync()``` and ```performanceCheckAsync()``` functions showing how to use the performance check.
 
+As seen from the results below, each call to newOrder() is at the mercy of the Binance API latency, so doing so synchronously is expensive.
+
 ## Results
 All times in nanoseconds:
 
 Sync:
-- Avg. Rest Call Latency: time between sending the HTTP request to Binance and receiving the response
 - Avg. Rest Query Build: time to build the HTTP request objects
+- Avg. Rest Call Latency: time between sending the HTTP request to Binance and receiving the response
 - Avg. Rest Response Handler: time to parse/extract the JSON in the HTTP response which populates return object
 
 
