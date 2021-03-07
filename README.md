@@ -3,6 +3,11 @@
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
 
 ## Update
+**7th March 2021**
+- Added async version of newOrder() and cancelOrder()
+- Added class and functions to test timing
+- Function to call the "batchOrders" coming soon
+
 **5th March 2021**
 - Added accountBalance(), klines(), takerBuySellVolume()
 - Fixed problem with not disconnecting
@@ -22,7 +27,76 @@ Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
 
 The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functionality.
 
+
+# Performance
+To accurately record timings there's a specific class, ```UsdFuturesTestMarketPerformance```, with functions to create a new order whilst adding timings. This is done on the **TestNet** exchange.
+
+The bfcpptest.cpp has ```performanceCheckSync()``` and ```performanceCheckAsync()``` functions showing how to use the performance check.
+
+As seen from the results below, each call to newOrder() is at the mercy of the Binance API latency, so doing so synchronously is expensive.
+
+## Results
+All times in nanoseconds:
+
+Sync:
+- Avg. Rest Query Build: time to build the HTTP request objects
+- Avg. Rest Call Latency: time between sending the HTTP request to Binance and receiving the response
+- Avg. Rest Response Handler: time to parse/extract the JSON in the HTTP response which populates return object
+
+
+### Sync
+**5 Orders**
+```
+Total: 5 orders in 5940 milliseconds
+
+|                       | time (nanoseconds) |
+------------------------------------------
+Avg. Rest Query Build:              58440
+Avg. Rest Call Latency:         593600960 (Min:370410500, Max: 652192600)
+Avg. Rest Response Handler:        305500
+------------------------------------------
+```
+
+**10 Orders**
+```
+Total: 10 orders in 13564 milliseconds
+
+|                    | time (nanoseconds) |
+------------------------------------------
+Avg. Rest Query Build:         52170
+Avg. Rest Call Latency:	   677898590 (Min:647961400, Max: 835470300)
+Avg. Rest Response Handler:   241510
+------------------------------------------
+```
+
+
+### Async
+**5 Orders**
+```
+Total: 5 orders in 771 milliseconds
+
+|                    | time (nanoseconds) |
+------------------------------------------
+Avg. Rest Query Build:        102700
+Avg. Rest Call Latency:    769450300 (Min:769039600, Max: 770068700)
+Avg. Rest Response Handler:   630020
+------------------------------------------
+```
+
+**10 Orders**
+
+```
+Total: 10 orders in 809 milliseconds
+
+|                    | time (nanoseconds) |
+------------------------------------------
+Avg. Rest Query Build:         55650
+Avg. Rest Call Latency:    702554320 (Min:361157400, Max: 808256700)
+Avg. Rest Response Handler:   206550
+```
+
 ---
+
 ## Design
 **bfcpplib**
 The library which handles all communications with the exchange
@@ -78,7 +152,6 @@ This example monitors the mark price and mini tickers for all symbols. We can us
 #include <Futures.hpp>
 #include <Logger.hpp>
 
-
 int main(int argc, char** argv)
 {
   // lambda for a map<string, map<string, string>>  monitor function
@@ -112,7 +185,7 @@ int main(int argc, char** argv)
 }
 ```
 
-### New Order
+### New Order - Async
 This example uses the mark price monitor to wait for the first mark price, then uses this to create an order.
 
 ```cpp
@@ -121,67 +194,73 @@ This example uses the mark price monitor to wait for the first mark price, then 
 #include <Futures.hpp>
 #include <Logger.hpp>
 
+static size_t NumNewOrders = 5;
+
 int main(int argc, char** argv)
 {
-  string symbol = "BTCUSDT";
-  string markPriceString;
-  std::condition_variable priceSet;
+   std::cout << "\n\n--- USD-M Futures New Order Async ---\n";
 
-  auto handleMarkPrice = [&](Market::BinanceKeyMultiValueData data)
-  {
-      if (auto sym = data.values.find(symbol); sym != data.values.cend())
-      {
-          markPriceString = sym->second["p"];
-          priceSet.notify_all();
-      }
-  };
+   map<string, string> order =
+   {
+      {"symbol", "BTCUSDT"},
+      {"side", "BUY"},
+      {"type", "MARKET"},
+      {"quantity", "0.001"}
+   };
 
+   UsdFuturesTestMarket market{ {"YOUR API KEY", "YOUR SECRET KEY"} };
 
-  map<string, string> order =
-  {
-      {"symbol", symbol},
-      {"side", "BUY"},        
-      {"timeInForce", "GTC"},
-      {"type", "LIMIT"},
-      {"quantity", "1"},
-      {"newClientOrderId", "1234"}, // set to a value you can refer to later, see docs for newOrder()
-      {"price",""} // updated below with mark price 
-  };
+   vector<pplx::task<NewOrderResult>> results;
+   results.reserve(NumNewOrders);
 
-  UsdFuturesTestMarket futuresTest { ApiAccess {"YOUR API KEY", "YOUR SECRET KEY"} };
+   logg("Sending orders");
 
-  futuresTest.monitorMarkPrice(handleMarkPrice);  // to get an accurate price
-  futuresTest.monitorUserData(handleUserDataUsdFutures); // to get order updates
+   for (size_t i = 0; i < NumNewOrders; ++i)
+   {
+      results.emplace_back(std::move(market.newOrderAsync(std::move(order))));  
+   }
 
-  // wait on handleMakrPrice callback to signal it has price 
-  logg("Waiting to receive a mark price for " + symbol);
+   logg("Waiting for all to complete");
 
-  std::mutex mux;
-  std::unique_lock lock (mux);
-  priceSet.wait(lock);
+   // note: you could use pplx::when_any() to handle each task as it completes, 
+   //       then call when_any() until all are finished.
 
-  // update price then send order. priceTransform() to ensure price is suitable for the API
-  order["price"] = Market::priceTransform(markPriceString);
+   // wait for the new order tasks to return, the majority of which is due to the REST call latency
+   pplx::when_all(std::begin(results), std::end(results)).wait();
 
-  logg("Done. Sending order");
-
-  // a blocking call, this waits for the Rest call to return
-  // 1) 'result' contains the reply from the Rest call: 
-  // 2) if the order is successful, the user data stream will also receive updates 
-  auto result = futuresTest.newOrder(std::move(order));
+  logg("Done: ");
 
   stringstream ss;
-  ss << "\nnewOrder() returned:\n";
-  for (const auto& val : result.result)
-  {
-      ss << val.first + "=" + val.second << "\n";
-  }
-  logg(ss.str());
-
-  std::this_thread::sleep_for(10s); // allow time for the user data stream to show updates
+  ss << "\nOrder Ids: ";
   
-  return 0;
+  for (auto& task : results)
+  {
+     NewOrderResult result = task.get();
+
+     if (result.valid())
+     {
+        // do stuff with result
+	ss << "\n" << result.response["orderId"];
+     }
+   }
+
+   logg(ss.str());
+  
+   return 0;
 }
+```
+Output:
+```
+[18:31:50.436] Sending orders
+[18:31:50.438] Waiting for all to complete
+[18:31:51.193] Done:
+[18:31:51.194]
+Order Ids:
+2649069688
+2649069693
+2649069694
+2649069692
+2649069691
 ```
 
 ### Get All Orders
@@ -205,8 +284,6 @@ for (const auto& order : result.response)
 }
 logg(ss.str());
 ```
-
-![output](https://user-images.githubusercontent.com/74328784/109874739-69985a00-7c67-11eb-961d-a43c9e46192c.png)
 ---
 
 
@@ -254,19 +331,3 @@ myapiKeyMyKey723423Ju&jNhuayNahas617238Jaiasjd31as52v46523435vs
 8LBwbPvcub5GHtxLgWDZnm23KFcXwXwXwXwLBwbLBwbAABBca-sdasdasdas123
 ```
 Run: ```>./bfcpptest /path/to/mykeyfile.txt```
-
-
-# Performance Check
-There's a version of the new order function which will send a New Order call to the **TestNet*** API and report on the latencies. The ```performanceCheck()``` function in bfcpptest.cpp shows how to use it.
-
-Example results:
-
-![Test Result](https://user-images.githubusercontent.com/74328784/110222751-69e55f00-7ecc-11eb-9e70-5226bc58f82f.png)
-
-- Rest Call Latency: time between send the HTTP request to Binance and receiving the response  (milliseconds)
-- Rest Query Build: time, in nanoseconds, to build the HTTP request objects
-- Rest Response Handler: time, in nanoseconds, to parse/extract the JSON in the HTTP response which populates return object
-- Total Request Handling: Rest Query Build + Rest Response Handler
-- Total: Rest Call Latency + Total Request Handling
-
-The Rest call latency depends on your conditions and varies wildely. Testing has shown between 350ms to 750ms even though the ICMP ping is 18ms.
