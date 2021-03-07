@@ -397,9 +397,15 @@ void klines(const ApiAccess& access)
 }
 
 
-void performanceCheck(const ApiAccess& access)
+
+static size_t NumNewOrders = 5;
+
+
+using namespace std::chrono;
+
+void performanceCheckSync(const ApiAccess& access)
 {
-	std::cout << "\n\n--- USD-M Futures API Performance ---\n";
+	std::cout << "\n\n--- USD-M Futures New Ordr Sync Performance ---\n";
 
 	map<string, string> order =
 	{
@@ -411,47 +417,131 @@ void performanceCheck(const ApiAccess& access)
 
 	UsdFuturesTestMarketPerfomance market{ access };
 
-	auto start = Clock::now();
-	auto result = market.newOrderPerfomanceCheck(std::move(order));
-	result.total = Clock::now() - start;
+	vector<NewOrderPerformanceResult> results;
+	results.reserve(NumNewOrders);
 
-	if (result.valid())
+	for (size_t i = 0; i < NumNewOrders; ++i)
 	{
-		stringstream ss;
-		ss << "\nOrder data:\n";
-		for (const auto& val : result.response)
-		{
-			ss << val.first + "=" + val.second << "\n";
-		}
-
-		logg(ss.str());
-
-		ss.clear(); ss.str("");
-		ss <<	"\nRest Call Latency:\t" << std::chrono::duration_cast<std::chrono::milliseconds>(result.restApiCall).count() << " milliseconds" <<
-					"\n------------------------------------------" <<
-					"\nRest Query Build:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.restQueryBuild).count() << " nanoseconds" <<
-					"\nRest Response Handler:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.restResponseHandler).count() << " nanoseconds" <<
-					"\nTotal Request Handling:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.bfcppTotalProcess).count() << " nanoseconds" <<
-					"\n------------------------------------------" <<
-					"\nTotal:\t\t\t" << std::chrono::duration_cast<std::chrono::milliseconds>(result.total).count() << " milliseconds";
-
-		logg(ss.str());
-	}
-	else
-	{
-		logg("Error: " + result.msg());
-
-		stringstream ss;
-		ss << "\nRest Call Latency:\t" << std::chrono::duration_cast<std::chrono::milliseconds>(result.restApiCall).count() << " milliseconds" <<
-					"\n------------------------------------------" <<
-					"\nRest Query Build:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.restQueryBuild).count() << " nanoseconds" <<
-					"\nTotal Request Handling:\t" << std::chrono::duration_cast<std::chrono::nanoseconds>(result.bfcppTotalProcess).count() << " nanoseconds" <<
-					"\n------------------------------------------" <<
-					"\nTotal:\t\t\t" << std::chrono::duration_cast<std::chrono::milliseconds>(result.total).count() << " milliseconds";
-
-		logg(ss.str());
+		auto start = Clock::now();
+		auto result = market.newOrderPerfomanceCheck(std::move(order));
+		result.total = Clock::now() - start;
+		results.emplace_back(std::move(result));
 	}
 	
+
+	std::chrono::high_resolution_clock::duration total{};
+
+	for (const auto& result : results)
+	{
+		if (result.valid())
+		{
+			stringstream ss;
+			ss.clear(); ss.str("\n");
+			ss << "\n|\t\t\t| time (nanoseconds) |" <<
+						"\n------------------------------------------" <<
+						"\nRest Query Build:\t" << duration_cast<nanoseconds>(result.restQueryBuild).count() <<
+						"\nRest Call Latency:\t" << duration_cast<nanoseconds>(result.restApiCall).count() <<
+						"\nRest Response Handler:\t" << duration_cast<nanoseconds>(result.restResponseHandler).count() <<
+						"\n------------------------------------------" <<
+						"\nCall Total:\t\t" << duration_cast<milliseconds>(result.total).count() << " milliseconds\n";
+
+			logg(ss.str());
+		}
+		else
+		{
+			logg("Error: " + result.msg());
+
+			stringstream ss;
+			ss <<	"\n|\t\t\t| time (nanoseconds) |" <<
+						"\n------------------------------------------" <<
+						"\nRest Query Build:\t" << duration_cast<nanoseconds>(result.restQueryBuild).count() <<
+						"\nRest Call Latency:\t" << duration_cast<nanoseconds>(result.restApiCall).count() <<
+						"\n------------------------------------------" <<
+						"\nCall Total:\t\t" << duration_cast<milliseconds>(result.total).count() << " milliseconds\n";
+
+			logg(ss.str());
+		}
+
+		total += result.total;
+	}
+
+
+	stringstream ss;
+	ss << "Results\n\nTOTAL: " << NumNewOrders << " orders: " << duration_cast<milliseconds>(total).count() << " milliseconds\n";
+	logg(ss.str());
+}
+
+
+void performanceCheckAsync(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures New Ordr Async Performance ---\n";
+
+	map<string, string> order =
+	{
+		{"symbol", "BTCUSDT"},
+		{"side", "BUY"},
+		{"type", "MARKET"},
+		{"quantity", "0.001"}
+	};
+
+	UsdFuturesTestMarketPerfomance market{ access };
+
+	vector<pplx::task<NewOrderPerformanceResult>> results;
+	results.reserve(NumNewOrders);
+
+	auto start = Clock::now();
+	for (size_t i = 0; i < NumNewOrders; ++i)
+	{
+		auto result = market.newOrderPerfomanceCheckAsync(std::move(order));
+		results.emplace_back(std::move(result));
+	}
+
+	
+	// note: you could use pplx::when_any() to handle each task as it completes, then call again when_any() until all
+	//			 are finished.
+	
+	// wait for the new order tasks to return, the majority of which is due to the REST call latency
+	pplx::when_all(std::begin(results), std::end(results)).wait();
+	auto end = Clock::now();
+
+
+	for (const auto& taskResult : results)
+	{
+		const auto& result = taskResult.get();
+
+		if (result.valid())
+		{
+			stringstream ss;
+			ss.clear(); ss.str("\n");
+			ss << "\n|\t\t\t| time (nanoseconds) |" <<
+						"\n------------------------------------------" <<
+						"\nRest Query Build:\t" << duration_cast<nanoseconds>(result.restQueryBuild).count() <<
+						"\nRest Call Latency:\t" << duration_cast<nanoseconds>(result.restApiCall).count() <<
+						"\nRest Response Handler:\t" << duration_cast<nanoseconds>(result.restResponseHandler).count() <<
+						"\n------------------------------------------";
+
+			logg(ss.str());
+		}
+		else
+		{
+			logg("Error: " + result.msg());
+
+			stringstream ss;
+			ss <<	"\n|\t\t\t| time (nanoseconds) |" <<
+						"\n------------------------------------------" <<
+						"\nRest Query Build:\t" << duration_cast<nanoseconds>(result.restQueryBuild).count() <<
+						"\nRest Call Latency:\t" << duration_cast<nanoseconds>(result.restApiCall).count() <<
+						"\n------------------------------------------" <<
+						"\nCall Total:\t\t" << duration_cast<milliseconds>(result.total).count() << " milliseconds\n";
+
+			logg(ss.str());
+		}
+	}
+	
+
+	stringstream ss;
+	ss << "Results\n\nTOTAL: " << NumNewOrders << " orders: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds\n";
+	logg(ss.str());
 }
 
 
@@ -520,7 +610,9 @@ int main(int argc, char** argv)
 
 			klines({});
 
-			//performanceCheck(access);
+			//performanceCheckSync(access);
+
+			//performanceCheckAsync(access);
 		}
 		else
 		{

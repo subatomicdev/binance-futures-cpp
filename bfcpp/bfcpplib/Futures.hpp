@@ -181,7 +181,7 @@ namespace bfcpp
 
 
     /// <summary>
-    /// Create a new order. 
+    /// Create a new order synchronously. 
     /// 
     /// The NewOrderResult is returned which contains the response from the Rest call,
     /// see https://binance-docs.github.io/apidocs/futures/en/#new-order-trade.
@@ -192,7 +192,21 @@ namespace bfcpp
     /// </summary>
     /// <param name="order">Order params, see link above.</param>
     /// <returns>See 'response' Rest, see link above.</returns>
-    NewOrderResult newOrder(map<string, string>&& order);
+    NewOrderResult newOrder(map<string, string>&& order)
+    {
+      return doNewOrder(std::move(order)).get();
+    }
+
+
+    /// <summary>
+    /// As newOrder() but asynch.
+    /// </summary>
+    /// <param name="order"></param>
+    /// <returns>The NewOrderResult in a task.</returns>
+    pplx::task<NewOrderResult> newOrderAsync(map<string, string>&& order)
+    {
+      return doNewOrder(std::move(order));
+    }
 
 
     /// <summary>
@@ -205,11 +219,25 @@ namespace bfcpp
 
 
     /// <summary>
-    /// 
+    /// Sends a cancel order message synchronously.
+    /// See https://binance-docs.github.io/apidocs/futures/en/#cancel-order-trade
+    /// </summary>
+    /// <returns></returns>
+    CancelOrderResult cancelOrder(map<string, string>&& order)
+    {
+      return doCancelOrder(std::move(order)).get();
+    }
+
+
+    /// <summary>
+    /// As cancelOrder() but asynchronously.
     /// </summary>
     /// <param name="order"></param>
-    /// <returns></returns>
-    CancelOrderResult cancelOrder(map<string, string>&& order);
+    /// <returns>The CancelOrderResult in a task.</returns>
+    pplx::task<CancelOrderResult> cancelOrderAsync(map<string, string>&& order)
+    {
+      return doCancelOrder(std::move(order));
+    }
 
 
     /// <summary>
@@ -265,6 +293,63 @@ namespace bfcpp
     constexpr bool mustConvertStringT()
     {
       return std::is_same_v<utility::string_t, MarketStringType> == false;
+    }
+
+
+    pplx::task<NewOrderResult> doNewOrder(map<string, string>&& order)
+    {
+      try
+      {
+        auto handler = [](web::http::http_response response)
+        {
+          NewOrderResult result;
+
+          auto json = response.extract_json().get();
+
+          getJsonValues(json, result.response, set<string> {  "clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
+                                                              "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+
+          return result;
+        };
+
+        return sendRestRequest<NewOrderResult>(RestCall::NewOrder, web::http::methods::POST, true, m_marketType, handler, receiveWindow(RestCall::NewOrder), std::move(order));
+      }
+      catch (const pplx::task_canceled tc)
+      {
+        throw BfcppDisconnectException("newOrder");
+      }
+      catch (const std::exception ex)
+      {
+        throw BfcppException(ex.what());
+      }
+    }
+
+
+    pplx::task<CancelOrderResult> doCancelOrder(map<string, string>&& order)
+    {
+      try
+      {
+        auto handler = [](web::http::http_response response)
+        {
+          CancelOrderResult result;
+
+          auto json = response.extract_json().get();
+          getJsonValues(json, result.response, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide",
+                                                            "status", "stopPrice", "closePosition", "symbol", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+
+          return result;
+        };
+
+        return sendRestRequest<CancelOrderResult>(RestCall::CancelOrder, web::http::methods::DEL, true, m_marketType, handler, receiveWindow(RestCall::CancelOrder), std::move(order));
+      }
+      catch (const pplx::task_canceled tc)
+      {
+        throw BfcppDisconnectException("cancelOrder");
+      }
+      catch (const std::exception ex)
+      {
+        throw BfcppException(ex.what());
+      }
     }
 
 
@@ -502,10 +587,52 @@ private:
     }
 
 
-    NewOrderPerformanceResult newOrderPerfomanceCheck(map<string, string>&& order);
+    NewOrderPerformanceResult newOrderPerfomanceCheck(map<string, string>&& order)
+    {
+      return doNewOrderPerfomanceCheck(std::move(order)).get();
+    }
+
+
+    pplx::task<NewOrderPerformanceResult>  newOrderPerfomanceCheckAsync(map<string, string>&& order)
+    {
+      return doNewOrderPerfomanceCheck(std::move(order));
+    }
 
 
   private:
+    pplx::task<NewOrderPerformanceResult> doNewOrderPerfomanceCheck(map<string, string>&& order)
+    {
+      try
+      {
+        Clock::time_point handlerStart, handlerStop;
+
+        auto handler = [&handlerStart, &handlerStop](web::http::http_response response)
+        {
+          handlerStart = Clock::now();
+
+          NewOrderPerformanceResult result;
+
+          auto json = response.extract_json().get();
+
+          getJsonValues(json, result.response, set<string> {  "clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
+                                                              "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+
+          return result;
+        };
+
+        return sendRestRequestPerformanceCheck(RestCall::NewOrder, web::http::methods::POST, true, marketType(), handler, receiveWindow(RestCall::NewOrder), std::move(order));
+      }
+      catch (const pplx::task_canceled tc)
+      {
+        throw BfcppDisconnectException("newOrder");
+      }
+      catch (const std::exception ex)
+      {
+        throw BfcppException(ex.what());
+      }
+    }
+
+
     pplx::task<NewOrderPerformanceResult> sendRestRequestPerformanceCheck(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<NewOrderPerformanceResult (web::http::http_response)> handler, const string& rcvWindow, map<string, string>&& query = {})
     {
       try

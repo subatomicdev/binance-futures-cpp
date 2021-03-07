@@ -388,38 +388,8 @@ namespace bfcpp
     }
   }
 
-
-
-  NewOrderResult UsdFuturesMarket::newOrder(map<string, string>&& order)
-  {
-    try
-    {
-      auto handler = [](web::http::http_response response)
-      {
-        NewOrderResult result;
-
-        auto json = response.extract_json().get();
-
-        getJsonValues(json, result.response, set<string> {  "clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
-                                                            "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
-
-        return result;
-      };
-
-      return sendRestRequest<NewOrderResult>(RestCall::NewOrder, web::http::methods::POST, true, m_marketType, handler, receiveWindow(RestCall::NewOrder), std::move(order)).get();
-    }
-    catch (const pplx::task_canceled tc)
-    {
-      throw BfcppDisconnectException("newOrder");
-    }
-    catch (const std::exception ex)
-    {
-      throw BfcppException(ex.what());
-    }
-  }
-
-
   
+
   AllOrdersResult UsdFuturesMarket::allOrders(map<string, string>&& query)
   {
     try
@@ -447,35 +417,6 @@ namespace bfcpp
     catch (const pplx::task_canceled tc)
     {
       throw BfcppDisconnectException("allOrders");
-    }
-    catch (const std::exception ex)
-    {
-      throw BfcppException(ex.what());
-    }
-  }
-
-
-
-  CancelOrderResult UsdFuturesMarket::cancelOrder(map<string, string>&& order)
-  {   
-    try
-    {
-      auto handler = [](web::http::http_response response)
-      {
-        CancelOrderResult result;
-
-        auto json = response.extract_json().get();
-        getJsonValues(json, result.response, set<string> {"clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide",
-                                                          "status", "stopPrice", "closePosition", "symbol", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "workingType"});
-
-        return result;
-      };
-
-      return sendRestRequest<CancelOrderResult>(RestCall::CancelOrder, web::http::methods::DEL, true, m_marketType, handler, receiveWindow(RestCall::CancelOrder), std::move(order)).get();
-    }
-    catch (const pplx::task_canceled tc)
-    {
-      throw BfcppDisconnectException("cancelOrder");
     }
     catch (const std::exception ex)
     {
@@ -896,43 +837,6 @@ namespace bfcpp
 
         session->onUsdFuturesUserDataCallback(std::move(userData));
       }
-    }
-  }
-
-
-
-
-  // -- performance check --
-
-  NewOrderPerformanceResult UsdFuturesTestMarketPerfomance::newOrderPerfomanceCheck(map<string, string>&& order)
-  {
-    try
-    {
-      Clock::time_point handlerStart, handlerStop;
-
-      auto handler = [&handlerStart, &handlerStop](web::http::http_response response)
-      {
-        handlerStart = Clock::now();
-        
-        NewOrderPerformanceResult result;
-
-        auto json = response.extract_json().get();
-
-        getJsonValues(json, result.response, set<string> {  "clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
-                                                            "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
-                
-        return result;
-      };
-
-      return sendRestRequestPerformanceCheck(RestCall::NewOrder, web::http::methods::POST, true, marketType(), handler, receiveWindow(RestCall::NewOrder), std::move(order)).get();      
-    }
-    catch (const pplx::task_canceled tc)
-    {
-      throw BfcppDisconnectException("newOrder");
-    }
-    catch (const std::exception ex)
-    {
-      throw BfcppException(ex.what());
     }
   }
 
