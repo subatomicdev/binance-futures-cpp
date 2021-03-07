@@ -140,7 +140,7 @@ Most of the Rest calls are synchronous, returning an appropriate object, e.g.:
 AllOrdersResult allOrders(map<string, string>&& query)
 ```
 
-There are some which have an asynchronous version, such as ```cpp newOrderAsync()```.
+There are some which have an asynchronous version, such as ```newOrderAsync() ```
 
 
 ## Examples
