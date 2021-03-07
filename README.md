@@ -147,7 +147,6 @@ This example monitors the mark price and mini tickers for all symbols. We can us
 #include <Futures.hpp>
 #include <Logger.hpp>
 
-
 int main(int argc, char** argv)
 {
   // lambda for a map<string, map<string, string>>  monitor function
@@ -194,51 +193,51 @@ int main(int argc, char** argv)
 {
    std::cout << "\n\n--- USD-M Futures New Order Async ---\n";
 
-	map<string, string> order =
-	{
-		{"symbol", "BTCUSDT"},
-		{"side", "BUY"},
-		{"type", "MARKET"},
-		{"quantity", "0.001"}
-	};
+   map<string, string> order =
+   {
+      {"symbol", "BTCUSDT"},
+      {"side", "BUY"},
+      {"type", "MARKET"},
+      {"quantity", "0.001"}
+   };
 
-	UsdFuturesTestMarket market{ {"YOUR API KEY", "YOUR SECRET KEY"} };
+   UsdFuturesTestMarket market{ {"YOUR API KEY", "YOUR SECRET KEY"} };
 
-	vector<pplx::task<NewOrderResult>> results;
-	results.reserve(NumNewOrders);
+   vector<pplx::task<NewOrderResult>> results;
+   results.reserve(NumNewOrders);
 
+   logg("Sending orders");
 
-	logg("Sending orders");
+   for (size_t i = 0; i < NumNewOrders; ++i)
+   {
+      results.emplace_back(std::move(market.newOrderAsync(std::move(order))));  
+   }
 
-	for (size_t i = 0; i < NumNewOrders; ++i)
-	{
-		results.emplace_back(std::move(market.newOrderAsync(std::move(order))));
-	}
+   logg("Waiting for all to complete");
 
-	logg("Waiting for all to complete");
-
-	// note: you could use pplx::when_any() to handle each task as it completes, 
+   // note: you could use pplx::when_any() to handle each task as it completes, 
    //       then call when_any() until all are finished.
 
-	// wait for the new order tasks to return, the majority of which is due to the REST call latency
-	pplx::when_all(std::begin(results), std::end(results)).wait();
+   // wait for the new order tasks to return, the majority of which is due to the REST call latency
+   pplx::when_all(std::begin(results), std::end(results)).wait();
 
-	logg("Done: ");
+  logg("Done: ");
 
-	stringstream ss;
-	ss << "\nOrder Ids: ";
-	for (auto& task : results)
-	{
-		NewOrderResult result = task.get();
+  stringstream ss;
+  ss << "\nOrder Ids: ";
+  
+  for (auto& task : results)
+  {
+     NewOrderResult result = task.get();
 
-		if (result.valid())
-		{
-			// do stuff with result
-			ss << "\n" << result.response["orderId"];
-		}
-	}
+     if (result.valid())
+     {
+        // do stuff with result
+	ss << "\n" << result.response["orderId"];
+     }
+   }
 
-	logg(ss.str());
+   logg(ss.str());
   
    return 0;
 }
