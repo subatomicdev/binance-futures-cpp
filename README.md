@@ -3,6 +3,11 @@
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
 
 ## Update
+**7th March 2021**
+- Added async version of newOrder() and cancelOrder()
+- Added class and functions to test timing
+- Function to call the "batchOrders" coming soon
+
 **5th March 2021**
 - Added accountBalance(), klines(), takerBuySellVolume()
 - Fixed problem with not disconnecting
