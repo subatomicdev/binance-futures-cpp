@@ -39,9 +39,8 @@ See "New Order - Async" for a code example.
 
 
 ## Results
-All times in nanoseconds:
+All times in nanoseconds.
 
-Sync:
 - Avg. Rest Query Build: time to build the HTTP request objects
 - Avg. Rest Call Latency: time between sending the HTTP request to Binance and receiving the response
 - Avg. Rest Response Handler: time to parse/extract the JSON in the HTTP response which populates return object
