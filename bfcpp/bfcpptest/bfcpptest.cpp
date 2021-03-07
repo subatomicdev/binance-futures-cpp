@@ -398,14 +398,14 @@ void klines(const ApiAccess& access)
 
 
 
+using namespace std::chrono;
+
 static size_t NumNewOrders = 5;
 
 
-using namespace std::chrono;
-
 void performanceCheckSync(const ApiAccess& access)
 {
-	std::cout << "\n\n--- USD-M Futures New Ordr Sync Performance ---\n";
+	std::cout << "\n\n--- USD-M Futures New Order Sync Performance ---\n";
 
 	map<string, string> order =
 	{
@@ -429,12 +429,25 @@ void performanceCheckSync(const ApiAccess& access)
 	}
 	
 
-	std::chrono::high_resolution_clock::duration total{};
+	high_resolution_clock::duration total{};
+	high_resolution_clock::duration	avgQueryBuild{}, avgApiCall{}, avgResponseHandler{},
+																	maxApiCall{ high_resolution_clock::duration::min() },
+																	minApiCall{ high_resolution_clock::duration::max() };
 
 	for (const auto& result : results)
 	{
 		if (result.valid())
 		{
+			total += result.total;
+
+			avgQueryBuild += result.restQueryBuild;
+			avgApiCall += result.restApiCall;
+			avgResponseHandler += result.restResponseHandler;
+			minApiCall = std::min<high_resolution_clock::duration>(minApiCall, result.restApiCall);
+			maxApiCall = std::max<high_resolution_clock::duration>(maxApiCall, result.restApiCall);
+			
+
+			/*
 			stringstream ss;
 			ss.clear(); ss.str("\n");
 			ss << "\n|\t\t\t| time (nanoseconds) |" <<
@@ -446,11 +459,13 @@ void performanceCheckSync(const ApiAccess& access)
 						"\nCall Total:\t\t" << duration_cast<milliseconds>(result.total).count() << " milliseconds\n";
 
 			logg(ss.str());
+			*/
 		}
 		else
 		{
 			logg("Error: " + result.msg());
 
+			/*
 			stringstream ss;
 			ss <<	"\n|\t\t\t| time (nanoseconds) |" <<
 						"\n------------------------------------------" <<
@@ -458,23 +473,35 @@ void performanceCheckSync(const ApiAccess& access)
 						"\nRest Call Latency:\t" << duration_cast<nanoseconds>(result.restApiCall).count() <<
 						"\n------------------------------------------" <<
 						"\nCall Total:\t\t" << duration_cast<milliseconds>(result.total).count() << " milliseconds\n";
-
+			
 			logg(ss.str());
+			*/
 		}
-
+		
 		total += result.total;
 	}
 
 
+	avgQueryBuild /= NumNewOrders;
+	avgApiCall /= NumNewOrders;
+	avgResponseHandler /= NumNewOrders;
+
 	stringstream ss;
-	ss << "Results\n\nTOTAL: " << NumNewOrders << " orders: " << duration_cast<milliseconds>(total).count() << " milliseconds\n";
+	ss << "\nTotal: " << NumNewOrders << " orders in " << duration_cast<std::chrono::milliseconds>(total).count() << " milliseconds\n";
+	ss << "\n|\t\t\t| time (nanoseconds) |" <<
+		"\n------------------------------------------" <<
+		"\nAvg. Rest Query Build:\t\t" << duration_cast<nanoseconds>(avgQueryBuild).count() <<
+		"\nAvg. Rest Call Latency:\t\t" << duration_cast<nanoseconds>(avgApiCall).count() << " (Min:" << duration_cast<nanoseconds>(minApiCall).count() << ", Max: " << duration_cast<nanoseconds>(maxApiCall).count() << ")" <<
+		"\nAvg. Rest Response Handler:\t" << duration_cast<nanoseconds>(avgResponseHandler).count() <<
+		"\n------------------------------------------";
+
 	logg(ss.str());
 }
 
 
 void performanceCheckAsync(const ApiAccess& access)
 {
-	std::cout << "\n\n--- USD-M Futures New Ordr Async Performance ---\n";
+	std::cout << "\n\n--- USD-M Futures New Order Async Performance ---\n";
 
 	map<string, string> order =
 	{
@@ -505,42 +532,41 @@ void performanceCheckAsync(const ApiAccess& access)
 	auto end = Clock::now();
 
 
+	high_resolution_clock::duration avgQueryBuild{}, avgApiCall{}, avgResponseHandler{},
+																	maxApiCall{ high_resolution_clock::duration::min() },
+																	minApiCall{ high_resolution_clock::duration::max()};
+
 	for (const auto& taskResult : results)
 	{
 		const auto& result = taskResult.get();
 
 		if (result.valid())
 		{
-			stringstream ss;
-			ss.clear(); ss.str("\n");
-			ss << "\n|\t\t\t| time (nanoseconds) |" <<
-						"\n------------------------------------------" <<
-						"\nRest Query Build:\t" << duration_cast<nanoseconds>(result.restQueryBuild).count() <<
-						"\nRest Call Latency:\t" << duration_cast<nanoseconds>(result.restApiCall).count() <<
-						"\nRest Response Handler:\t" << duration_cast<nanoseconds>(result.restResponseHandler).count() <<
-						"\n------------------------------------------";
-
-			logg(ss.str());
+			avgQueryBuild += result.restQueryBuild;
+			avgApiCall += result.restApiCall;
+			avgResponseHandler += result.restResponseHandler;
+			minApiCall = std::min<high_resolution_clock::duration>(minApiCall, result.restApiCall);
+			maxApiCall = std::max<high_resolution_clock::duration>(maxApiCall, result.restApiCall);
 		}
 		else
-		{
+		{			
 			logg("Error: " + result.msg());
-
-			stringstream ss;
-			ss <<	"\n|\t\t\t| time (nanoseconds) |" <<
-						"\n------------------------------------------" <<
-						"\nRest Query Build:\t" << duration_cast<nanoseconds>(result.restQueryBuild).count() <<
-						"\nRest Call Latency:\t" << duration_cast<nanoseconds>(result.restApiCall).count() <<
-						"\n------------------------------------------" <<
-						"\nCall Total:\t\t" << duration_cast<milliseconds>(result.total).count() << " milliseconds\n";
-
-			logg(ss.str());
 		}
 	}
 	
+	avgQueryBuild /= NumNewOrders;
+	avgApiCall /= NumNewOrders;
+	avgResponseHandler /= NumNewOrders;
 
 	stringstream ss;
-	ss << "Results\n\nTOTAL: " << NumNewOrders << " orders: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds\n";
+	ss << "\nTotal: " << NumNewOrders << " orders in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds\n";
+	ss << "\n|\t\t\t| time (nanoseconds) |" <<
+		"\n------------------------------------------" <<
+		"\nAvg. Rest Query Build:\t\t" << duration_cast<nanoseconds>(avgQueryBuild).count() <<
+		"\nAvg. Rest Call Latency:\t\t" << duration_cast<nanoseconds>(avgApiCall).count() << " (Min:" << duration_cast<nanoseconds>(minApiCall).count() << ", Max: " << duration_cast<nanoseconds>(maxApiCall).count() << ")" <<
+		"\nAvg. Rest Response Handler:\t" << duration_cast<nanoseconds>(avgResponseHandler).count() <<
+		"\n------------------------------------------";
+	
 	logg(ss.str());
 }
 
