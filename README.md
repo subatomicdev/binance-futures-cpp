@@ -322,16 +322,17 @@ _NOTE: testing on Linux has been limited, I hope to improve this in the coming w
 The provided ```bfcpptest/bfcpptest.cpp``` has a few functions to show the basics.
 
 - Some functions can run without an API or secret key, such as Kline/Candlesticks
-- You can pass a api/secret keys by change code or by use a key file path. The key file has 3 lines:
+- You can pass an api/secret key by editing code or using a key file. The key file has 3 lines:
  ```
  <live | test>
  <api key>
  <secret key>
   ```
-i.e. :  
+e.g. :  
 ```
 test
 myapiKeyMyKey723423Ju&jNhuayNahas617238Jaiasjd31as52v46523435vs
 8LBwbPvcub5GHtxLgWDZnm23KFcXwXwXwXwLBwbLBwbAABBca-sdasdasdas123
 ```
+
 Run: ```>./bfcpptest /path/to/mykeyfile.txt```
