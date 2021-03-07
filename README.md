@@ -22,7 +22,73 @@ Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
 
 The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functionality.
 
+
+# Performance
+To accurately record timings there's a specific class, ```UsdFuturesTestMarketPerformance```, with functions to create a new order whilst adding timings. This is done on the **TestNet** exchange.
+
+The bfcpptest.cpp has ```performanceCheckSync()``` and ```performanceCheckAsync()``` functions showing how to use the performance check.
+
+## Results
+All times in nanoseconds:
+
+Sync:
+- Avg. Rest Call Latency: time between sending the HTTP request to Binance and receiving the response
+- Avg. Rest Query Build: time to build the HTTP request objects
+- Avg. Rest Response Handler: time to parse/extract the JSON in the HTTP response which populates return object
+
+
+### Sync
+**5 Orders**
+```
+Total: 5 orders in 5940 milliseconds
+
+|                       | time (nanoseconds) |
+------------------------------------------
+Avg. Rest Query Build:              58440
+Avg. Rest Call Latency:         593600960 (Min:370410500, Max: 652192600)
+Avg. Rest Response Handler:        305500
+------------------------------------------
+```
+
+**10 Orders**
+```
+Total: 10 orders in 13564 milliseconds
+
+|                    | time (nanoseconds) |
+------------------------------------------
+Avg. Rest Query Build:         52170
+Avg. Rest Call Latency:	   677898590 (Min:647961400, Max: 835470300)
+Avg. Rest Response Handler:   241510
+------------------------------------------
+```
+
+
+### Async
+**5 Orders**
+```
+Total: 5 orders in 771 milliseconds
+
+|                    | time (nanoseconds) |
+------------------------------------------
+Avg. Rest Query Build:        102700
+Avg. Rest Call Latency:    769450300 (Min:769039600, Max: 770068700)
+Avg. Rest Response Handler:   630020
+------------------------------------------
+```
+
+**10 Orders**
+
+```
+Total: 10 orders in 809 milliseconds
+
+|                    | time (nanoseconds) |
+------------------------------------------
+Avg. Rest Query Build:         55650
+Avg. Rest Call Latency:    702554320 (Min:361157400, Max: 808256700)
+Avg. Rest Response Handler:   206550
 ---
+
+
 ## Design
 **bfcpplib**
 The library which handles all communications with the exchange
@@ -205,8 +271,6 @@ for (const auto& order : result.response)
 }
 logg(ss.str());
 ```
-
-![output](https://user-images.githubusercontent.com/74328784/109874739-69985a00-7c67-11eb-961d-a43c9e46192c.png)
 ---
 
 
@@ -254,19 +318,3 @@ myapiKeyMyKey723423Ju&jNhuayNahas617238Jaiasjd31as52v46523435vs
 8LBwbPvcub5GHtxLgWDZnm23KFcXwXwXwXwLBwbLBwbAABBca-sdasdasdas123
 ```
 Run: ```>./bfcpptest /path/to/mykeyfile.txt```
-
-
-# Performance Check
-There's a version of the new order function which will send a New Order call to the **TestNet*** API and report on the latencies. The ```performanceCheck()``` function in bfcpptest.cpp shows how to use it.
-
-Example results:
-
-![Test Result](https://user-images.githubusercontent.com/74328784/110222751-69e55f00-7ecc-11eb-9e70-5226bc58f82f.png)
-
-- Rest Call Latency: time between send the HTTP request to Binance and receiving the response  (milliseconds)
-- Rest Query Build: time, in nanoseconds, to build the HTTP request objects
-- Rest Response Handler: time, in nanoseconds, to parse/extract the JSON in the HTTP response which populates return object
-- Total Request Handling: Rest Query Build + Rest Response Handler
-- Total: Rest Call Latency + Total Request Handling
-
-The Rest call latency depends on your conditions and varies wildely. Testing has shown between 350ms to 750ms even though the ICMP ping is 18ms.
