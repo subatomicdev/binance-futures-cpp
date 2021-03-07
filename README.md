@@ -181,7 +181,7 @@ int main(int argc, char** argv)
 }
 ```
 
-### New Order
+### New Order - Async
 This example uses the mark price monitor to wait for the first mark price, then uses this to create an order.
 
 ```cpp
@@ -192,65 +192,69 @@ This example uses the mark price monitor to wait for the first mark price, then 
 
 int main(int argc, char** argv)
 {
-  string symbol = "BTCUSDT";
-  string markPriceString;
-  std::condition_variable priceSet;
+   std::cout << "\n\n--- USD-M Futures New Order Async ---\n";
 
-  auto handleMarkPrice = [&](Market::BinanceKeyMultiValueData data)
-  {
-      if (auto sym = data.values.find(symbol); sym != data.values.cend())
-      {
-          markPriceString = sym->second["p"];
-          priceSet.notify_all();
-      }
-  };
+	map<string, string> order =
+	{
+		{"symbol", "BTCUSDT"},
+		{"side", "BUY"},
+		{"type", "MARKET"},
+		{"quantity", "0.001"}
+	};
+
+	UsdFuturesTestMarket market{ {"YOUR API KEY", "YOUR SECRET KEY"} };
+
+	vector<pplx::task<NewOrderResult>> results;
+	results.reserve(NumNewOrders);
 
 
-  map<string, string> order =
-  {
-      {"symbol", symbol},
-      {"side", "BUY"},        
-      {"timeInForce", "GTC"},
-      {"type", "LIMIT"},
-      {"quantity", "1"},
-      {"newClientOrderId", "1234"}, // set to a value you can refer to later, see docs for newOrder()
-      {"price",""} // updated below with mark price 
-  };
+	logg("Sending orders");
 
-  UsdFuturesTestMarket futuresTest { ApiAccess {"YOUR API KEY", "YOUR SECRET KEY"} };
+	for (size_t i = 0; i < NumNewOrders; ++i)
+	{
+		results.emplace_back(std::move(market.newOrderAsync(std::move(order))));
+	}
 
-  futuresTest.monitorMarkPrice(handleMarkPrice);  // to get an accurate price
-  futuresTest.monitorUserData(handleUserDataUsdFutures); // to get order updates
+	logg("Waiting for all to complete");
 
-  // wait on handleMakrPrice callback to signal it has price 
-  logg("Waiting to receive a mark price for " + symbol);
+	// note: you could use pplx::when_any() to handle each task as it completes, 
+   //       then call when_any() until all are finished.
 
-  std::mutex mux;
-  std::unique_lock lock (mux);
-  priceSet.wait(lock);
+	// wait for the new order tasks to return, the majority of which is due to the REST call latency
+	pplx::when_all(std::begin(results), std::end(results)).wait();
 
-  // update price then send order. priceTransform() to ensure price is suitable for the API
-  order["price"] = Market::priceTransform(markPriceString);
+	logg("Done: ");
 
-  logg("Done. Sending order");
+	stringstream ss;
+	ss << "\nOrder Ids: ";
+	for (auto& task : results)
+	{
+		NewOrderResult result = task.get();
 
-  // a blocking call, this waits for the Rest call to return
-  // 1) 'result' contains the reply from the Rest call: 
-  // 2) if the order is successful, the user data stream will also receive updates 
-  auto result = futuresTest.newOrder(std::move(order));
+		if (result.valid())
+		{
+			// do stuff with result
+			ss << "\n" << result.response["orderId"];
+		}
+	}
 
-  stringstream ss;
-  ss << "\nnewOrder() returned:\n";
-  for (const auto& val : result.result)
-  {
-      ss << val.first + "=" + val.second << "\n";
-  }
-  logg(ss.str());
-
-  std::this_thread::sleep_for(10s); // allow time for the user data stream to show updates
+	logg(ss.str());
   
-  return 0;
+   return 0;
 }
+```
+Output:
+```
+[18:31:50.436] Sending orders
+[18:31:50.438] Waiting for all to complete
+[18:31:51.193] Done:
+[18:31:51.194]
+Order Ids:
+2649069688
+2649069693
+2649069694
+2649069692
+2649069691
 ```
 
 ### Get All Orders
