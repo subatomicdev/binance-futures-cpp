@@ -728,7 +728,7 @@ int main(int argc, char** argv)
 
 			//accountBalance(access);
 
-			//klines({});
+			klines({});
 
 			//performanceCheckSync(access);
 
