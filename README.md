@@ -3,6 +3,9 @@
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
 
 ## Update
+**8th March 2021**
+- Added newOrderBatch() and newOrderBatchAsync()
+
 **7th March 2021**
 - Added async version of newOrder() and cancelOrder()
 - Added class and functions to test timing
@@ -15,11 +18,6 @@
 **3rd March 2021**
 - Added accountInformation() : https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
 - Added allOrders() : https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
-
-**1st March 2021**
-- Dropped support for the Spot market to concentrate on futures
-- Spot code removed from repo
-- Repo renamed to "binance-futures-cpp", code namespace now "bfcpp"
 
 ---
 ## Summary
