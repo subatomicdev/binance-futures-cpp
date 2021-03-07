@@ -623,6 +623,49 @@ void newOrderAsync(const ApiAccess& access)
 }
 
 
+
+void newOrderBatch(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures New Order Batch ---\n";
+
+	map<string, string> order =
+	{
+		{"symbol", "BTCUSDT"},
+		{"side", "BUY"},
+		{"type", "MARKET"},
+		{"quantity", "0.001"}
+	};
+
+	vector<map<string, string>> orders;
+	orders.push_back(order);
+	orders.push_back(order);
+	orders.push_back(order);
+
+
+	UsdFuturesTestMarket market{ access };
+
+	try
+	{
+		auto result = market.newOrderBatch(std::move(orders));
+
+		stringstream ss;
+		ss << "\nResponse:";
+		for (const auto& order : result.response)
+		{
+			ss << "\n{";
+			std::for_each(std::begin(order), std::end(order), [&ss](auto& info) { ss << "\n\t" << info.first + "=" + info.second ;  });
+			ss << "\n}";
+		}
+		logg(ss.str());
+	}
+	catch (BfcppException bef)
+	{
+		logg("error: " + string{ bef.what() });
+	}
+}
+
+
+
 int main(int argc, char** argv)
 {
 	try
@@ -685,13 +728,15 @@ int main(int argc, char** argv)
 
 			//accountBalance(access);
 
-			klines({});
+			//klines({});
 
 			//performanceCheckSync(access);
 
 			//performanceCheckAsync(access);
 
 			//newOrderAsync(access);
+
+			//newOrderBatch(access);
 		}
 		else
 		{

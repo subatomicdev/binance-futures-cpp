@@ -52,7 +52,8 @@ namespace bfcpp
     AccountBalance,
     TakerBuySellVolume,
     KlineCandles,
-    Ping
+    Ping,
+    NewBatchOrder
   };
   
   enum class MarketType
@@ -107,7 +108,8 @@ namespace bfcpp
       {RestCall::AccountBalance, "/fapi/v2/balance"},
       {RestCall::TakerBuySellVolume, "/futures/data/takerlongshortRatio"},
       {RestCall::KlineCandles, "/fapi/v1/klines"},
-      {RestCall::Ping, "/fapi/v1/ping"}
+      {RestCall::Ping, "/fapi/v1/ping"},
+      {RestCall::NewBatchOrder, "/fapi/v1/batchOrders"}
   };
 
 
@@ -254,6 +256,18 @@ namespace bfcpp
     }
 
     map<string, string> response;
+  };
+
+
+  struct NewOrderBatchResult : public RestResult
+  {
+    NewOrderBatchResult() : RestResult(RestCall::NewBatchOrder) {}
+
+    NewOrderBatchResult(vector<map<string, string>>&& data) : RestResult(RestCall::NewBatchOrder), response(data)
+    {
+    }
+
+    vector<map<string, string>> response;
   };
 
 

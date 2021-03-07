@@ -199,13 +199,35 @@ namespace bfcpp
 
 
     /// <summary>
-    /// As newOrder() but asynch.
+    /// As newOrder() but async.
     /// </summary>
     /// <param name="order"></param>
     /// <returns>The NewOrderResult in a task.</returns>
     pplx::task<NewOrderResult> newOrderAsync(map<string, string>&& order)
     {
       return doNewOrder(std::move(order));
+    }
+
+
+    /// <summary>
+    /// Allows up to a MAX of 5 orders in a single call. 
+    /// </summary>
+    /// <param name="order">A vector of orders, i.e. a vector of the same map you'd create for newOrder()</param>
+    /// <returns></returns>
+    NewOrderBatchResult newOrderBatch(vector<map<string, string>>&& order)
+    {
+      return doNewOrderBatch(std::move(order)).get();
+    }
+
+
+    /// <summary>
+    /// As newOrderBatch() but async.
+    /// </summary>
+    /// <param name="order"></param>
+    /// <returns>The NewOrderBatchResult in a task.</returns>
+    pplx::task<NewOrderBatchResult> newOrderBatchAsync(vector<map<string, string>>&& order)
+    {
+      return doNewOrderBatch(std::move(order));
     }
 
 
@@ -353,6 +375,80 @@ namespace bfcpp
     }
 
 
+    pplx::task<NewOrderBatchResult> doNewOrderBatch(vector<map<string, string>>&& orders)
+    {
+      try
+      {
+        auto handler = [](web::http::http_response response)
+        {
+          NewOrderBatchResult result;
+
+          auto json = response.extract_json().get();
+
+          for (auto& order : json.as_array())
+          {
+            map<string, string> orderValues;
+            getJsonValues(order, orderValues, set<string> {  "clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
+                                                              "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+
+            result.response.emplace_back(std::move(orderValues));
+          }
+
+          return result;
+        };
+
+
+        // convert the vector of orders to single JSON string and create the query string from that
+        const static map<string, web::json::value::value_type> NonStringTypes = { {"orderId", web::json::value::Number}, {"reduceOnly", web::json::value::Boolean},
+                                                                                  {"updateTime", web::json::value::Number}, {"priceProtect", web::json::value::Boolean}
+                                                                                };
+
+        web::json::value list = web::json::value::array();
+        size_t i = 0;
+
+        for (auto& order : orders)
+        {
+          auto entry = list.object();
+          
+          for (auto& pair : order)
+          {
+            auto key = utility::conversions::to_string_t(pair.first);
+
+            if (auto typeEntry = NonStringTypes.find(pair.first); typeEntry == NonStringTypes.end())
+            {
+              entry[key] = web::json::value::string(utility::conversions::to_string_t(pair.second));
+            }
+            else
+            {
+              if (typeEntry->second == web::json::value::Number)
+              {
+                entry[key] = web::json::value::number(std::stoll(utility::conversions::to_string_t(pair.second))); // TODO confirm long long correct
+              }
+              else if (typeEntry->second == web::json::value::Boolean)
+              {
+                entry[key] = web::json::value::boolean(pair.second == "true" || pair.second == "TRUE");
+              }
+            }
+          }
+
+          list[i++] = std::move(entry);
+        }
+
+        map<string, string> query;
+        query["batchOrders"] = utility::conversions::to_utf8string(web::http::uri::encode_data_string(list.serialize()));
+
+        return sendRestRequest<NewOrderBatchResult>(RestCall::NewBatchOrder, web::http::methods::POST, true, m_marketType, handler, receiveWindow(RestCall::NewBatchOrder), std::move(query));
+      }
+      catch (const pplx::task_canceled tc)
+      {
+        throw BfcppDisconnectException("doNewOrderBatch");
+      }
+      catch (const std::exception ex)
+      {
+        throw BfcppException(ex.what());
+      }
+    }
+
     void onUserDataTimer()
     {
       auto request = createHttpRequest(web::http::methods::PUT, getApiPath(m_marketType, RestCall::ListenKey));
@@ -463,9 +559,9 @@ protected:
 
       // can leave a trailing '&' without borking the internets
       std::for_each(queryValues.begin(), queryValues.end(), [&ss](auto& it)
-        {
-          ss << std::move(it.first) << "=" << std::move(it.second) << "&"; // TODO doing a move() with operator<< here  - any advantage?
-        });
+      {
+        ss << std::move(it.first) << "=" << std::move(it.second) << "&"; // TODO doing a move() with operator<< here  - any advantage?
+      });
 
       if (sign)
       {
@@ -491,6 +587,7 @@ protected:
       return request;
     }
 
+
     template<class RestResultT>
     pplx::task<RestResultT> sendRestRequest(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<RestResultT(web::http::http_response)> handler, const string& rcvWindow, map<string, string>&& query = {})
     {
@@ -510,7 +607,8 @@ protected:
           }
           else
           {
-            return createInvalidRestResult<RestResultT>(utility::conversions::to_utf8string(response.extract_json().get().serialize()));
+            auto json = response.extract_json().get();
+            return createInvalidRestResult<RestResultT>(utility::conversions::to_utf8string(json.serialize()));
           }
         });
       }
