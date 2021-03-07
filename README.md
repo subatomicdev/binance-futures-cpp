@@ -189,8 +189,6 @@ This example uses the mark price monitor to wait for the first mark price, then 
 #include <Futures.hpp>
 #include <Logger.hpp>
 
-using namespace std::chrono;
-
 static size_t NumNewOrders = 5;
 
 int main(int argc, char** argv)
