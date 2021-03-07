@@ -35,10 +35,12 @@ The bfcpptest.cpp has ```performanceCheckSync()``` and ```performanceCheckAsync(
 
 As seen from the results below, each call to newOrder() is at the mercy of the Binance API latency, so doing so synchronously is expensive.
 
-## Results
-All times in nanoseconds:
+See "New Order - Async" for a code example.
 
-Sync:
+
+## Results
+All times in nanoseconds.
+
 - Avg. Rest Query Build: time to build the HTTP request objects
 - Avg. Rest Call Latency: time between sending the HTTP request to Binance and receiving the response
 - Avg. Rest Response Handler: time to parse/extract the JSON in the HTTP response which populates return object
@@ -144,7 +146,7 @@ Most/all of the Rest functions expect an rvalue because query strings are built 
 ## Examples
 
 ### Monitor Mark Price and Mini Ticker
-This example monitors the mark price and mini tickers for all symbols. We can use the same callback function here because it's only printing the values.
+This monitors the mark price and mini tickers for all symbols. We can use the same callback function here because it's only printing the values.
 
 ```cpp
 #include <iostream>
@@ -186,7 +188,9 @@ int main(int argc, char** argv)
 ```
 
 ### New Order - Async
-This example uses the mark price monitor to wait for the first mark price, then uses this to create an order.
+This shows how to create orders asynchronously. The ```newOrder()``` returns a ```pplx::task``` which contains the API result (NewOrderResult). 
+Each task is stored in a vector then we use ```pplx::when_all()``` to wait for all to complete.
+
 
 ```cpp
 #include <iostream>
