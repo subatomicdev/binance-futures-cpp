@@ -86,8 +86,9 @@ Total: 10 orders in 809 milliseconds
 Avg. Rest Query Build:         55650
 Avg. Rest Call Latency:    702554320 (Min:361157400, Max: 808256700)
 Avg. Rest Response Handler:   206550
----
+```
 
+---
 
 ## Design
 **bfcpplib**
