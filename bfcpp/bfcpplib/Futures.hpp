@@ -422,7 +422,7 @@ namespace bfcpp
             {
               if (typeEntry->second == web::json::value::Number)
               {
-                entry[key] = web::json::value::number(std::stoll(utility::conversions::to_string_t(pair.second))); // TODO confirm long long correct
+                entry[key] = web::json::value::number(static_cast<int64_t>(std::stoll(utility::conversions::to_string_t(pair.second)))); // TODO confirm long long correct
               }
               else if (typeEntry->second == web::json::value::Boolean)
               {
