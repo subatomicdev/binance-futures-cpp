@@ -35,6 +35,9 @@ The bfcpptest.cpp has ```performanceCheckSync()``` and ```performanceCheckAsync(
 
 As seen from the results below, each call to newOrder() is at the mercy of the Binance API latency, so doing so synchronously is expensive.
 
+See "New Order - Async" for a code example.
+
+
 ## Results
 All times in nanoseconds:
 
