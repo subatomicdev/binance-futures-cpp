@@ -134,13 +134,13 @@ MonitorToken monitorMarkPrice(std::function<void(BinanceKeyMultiValueData)> onDa
 ```
 
 ### Rest Functions
-The Rest calls are synchronous, returning an appropriate object, e.g.:  
+Most of the Rest calls are synchronous, returning an appropriate object, e.g.:  
 
 ```cpp
 AllOrdersResult allOrders(map<string, string>&& query)
 ```
 
-Most/all of the Rest functions expect an rvalue because query strings are built by moving key/values rather than copying.
+There are some which have an asynchronous version, such as ```cpp newOrderAsync()```.
 
 
 ## Examples
