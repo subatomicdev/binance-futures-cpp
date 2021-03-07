@@ -571,6 +571,57 @@ void performanceCheckAsync(const ApiAccess& access)
 }
 
 
+void newOrderAsync(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures New Order Async ---\n";
+	
+	map<string, string> order =
+	{
+		{"symbol", "BTCUSDT"},
+		{"side", "BUY"},
+		{"type", "MARKET"},
+		{"quantity", "0.001"}
+	};
+
+	UsdFuturesTestMarket market{ access };
+
+	vector<pplx::task<NewOrderResult>> results;
+	results.reserve(NumNewOrders);
+
+
+	logg("Sending orders");
+
+	for (size_t i = 0; i < NumNewOrders; ++i)
+	{
+		results.emplace_back(std::move(market.newOrderAsync(std::move(order))));
+	}
+
+	logg("Waiting for all to complete");
+
+	// note: you could use pplx::when_any() to handle each task as it completes, 
+	//			 then call when_any() until all are finished.
+
+	// wait for the new order tasks to return, the majority of which is due to the REST call latency
+	pplx::when_all(std::begin(results), std::end(results)).wait();
+
+	logg("Done: ");
+
+	stringstream ss;
+	ss << "\nOrder Ids: ";
+	for (auto& task : results)
+	{
+		NewOrderResult result = task.get();
+
+		if (result.valid())
+		{
+			// do stuff with result
+			ss << "\n" << result.response["orderId"];
+		}
+	}
+
+	logg(ss.str());
+}
+
 
 int main(int argc, char** argv)
 {
@@ -639,6 +690,8 @@ int main(int argc, char** argv)
 			//performanceCheckSync(access);
 
 			//performanceCheckAsync(access);
+
+			//newOrderAsync(access);
 		}
 		else
 		{
