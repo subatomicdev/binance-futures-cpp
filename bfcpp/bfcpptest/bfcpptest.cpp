@@ -373,11 +373,11 @@ void takerBuySellVolume(const ApiAccess& access)
 
 
 
-void klines(const ApiAccess& access)
+void klines()
 {
 	std::cout << "\n\n--- USD-M Futures Klines ---\n";
 
-	UsdFuturesMarket futuresTest{ access };
+	UsdFuturesMarket futuresTest{};
 	futuresTest.setReceiveWindow(RestCall::KlineCandles, 3000ms);
 
 	auto result = futuresTest.klines({ {"symbol","BTCUSDT"}, {"limit","5"}, {"interval", "15m"} });
@@ -666,6 +666,73 @@ void newOrderBatch(const ApiAccess& access)
 
 
 
+void exchangeInfo ()
+{
+	std::cout << "\n\n--- USD-M Futures Exchange Info ---\n";
+
+
+	UsdFuturesTestMarket market{};
+
+	try
+	{
+		auto result = market.exchangeInfo();
+
+		stringstream ss;
+		ss << "\nResponse:";
+
+		ss << "\nSymbols\n{";
+		for (const auto& symbol: result.symbols)
+		{
+			ss << "\n\tdata\n\t{";
+			std::for_each(std::begin(symbol.data), std::end(symbol.data), [&ss](auto& info) { ss << "\n\t\t" << info.first + "=" + info.second;  });
+			ss << "\n\t}";
+
+			ss << "\n\tfilters\n\t{";
+			for (const auto& filter : symbol.filters)
+			{
+				std::for_each(std::begin(filter), std::end(filter), [&ss](auto& info) { ss << "\n\t\t" << info.first + "=" + info.second;  });
+			}
+			ss << "\n\t}";
+
+
+			ss << "\n\torderType\n\t{";
+			std::for_each(std::begin(symbol.orderTypes), std::end(symbol.orderTypes), [&ss](auto& info) { ss << "\n\t\t" << info;  });
+			ss << "\n\t}";
+
+			ss << "\n\ttimeInForce\n\t{";
+			std::for_each(std::begin(symbol.timeInForce), std::end(symbol.timeInForce), [&ss](auto& info) { ss << "\n\t\t" << info;  });
+			ss << "\n\t}";
+		}
+		ss << "\n}";
+
+
+		ss << "\nRate Limits\n{";
+		for (const auto& rate : result.rateLimits)
+		{
+			std::for_each(std::begin(rate), std::end(rate), [&ss](auto& info) { ss << "\n\t" << info.first + "=" + info.second;  });
+		}
+		ss << "\n}";
+
+		
+		ss << "\nExchange Filters\n{";
+		for (const auto& filter : result.exchangeFilters)
+		{
+			std::for_each(std::begin(filter), std::end(filter), [&ss](auto& info) { ss << "\n\t" << info.first + "=" + info.second;  });
+		}
+		ss << "\n}";
+
+
+		ss << "\nserverTime=" << result.serverTime << "\ntimezone=" << result.timezone;
+
+		logg(ss.str());
+	}
+	catch (BfcppException bef)
+	{
+		logg("error: " + string{ bef.what() });
+	}
+}
+
+
 int main(int argc, char** argv)
 {
 	try
@@ -712,7 +779,8 @@ int main(int argc, char** argv)
 		//monitorMarkPrice();
 		//monitorSymbol();
 		//monitorMultipleStreams();
-
+		klines();
+		//exchangeInfo();
 
 		if (testNetMode)
 		{
@@ -727,8 +795,6 @@ int main(int argc, char** argv)
 			//accountInformation(access);
 
 			//accountBalance(access);
-
-			klines({});
 
 			//performanceCheckSync(access);
 

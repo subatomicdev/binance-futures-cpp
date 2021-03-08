@@ -53,7 +53,8 @@ namespace bfcpp
     TakerBuySellVolume,
     KlineCandles,
     Ping,
-    NewBatchOrder
+    NewBatchOrder,
+    ExchangeInfo
   };
   
   enum class MarketType
@@ -109,7 +110,8 @@ namespace bfcpp
       {RestCall::TakerBuySellVolume, "/futures/data/takerlongshortRatio"},
       {RestCall::KlineCandles, "/fapi/v1/klines"},
       {RestCall::Ping, "/fapi/v1/ping"},
-      {RestCall::NewBatchOrder, "/fapi/v1/batchOrders"}
+      {RestCall::NewBatchOrder, "/fapi/v1/batchOrders"},
+      {RestCall::ExchangeInfo, "/fapi/v1/exchangeInfo"}
   };
 
 
@@ -210,16 +212,6 @@ namespace bfcpp
     }
 
     const string& msg() const { return m_msg; }
-
-    /*
-    static string receiveWindow(const RestCall rc)
-    {
-      if (auto it = ReceiveWindowMap.find(rc); it == ReceiveWindowMap.cend())
-        return DefaultReceiveWindwow;
-      else
-        return it->second;
-    }
-    */
 
 
   protected:
@@ -359,6 +351,28 @@ namespace bfcpp
 
     string listenKey;
   };
+
+
+  struct ExchangeInfo : public RestResult
+  {
+    ExchangeInfo() : RestResult(RestCall::ExchangeInfo) {}
+
+    struct Symbol
+    {
+      map<string, string> data; // top level key/value pairs with in teh symbol, i.e. "status", "pricePrecision", etc
+      vector<map<string, string>> filters;
+      vector<string> orderTypes;
+      vector<string> timeInForce;
+      vector<string> underlyingSubType;
+    };
+
+    string timezone;
+    string serverTime;
+    vector<map<string, string>> exchangeFilters;
+    vector<map<string, string>> rateLimits;
+    vector<ExchangeInfo::Symbol> symbols;
+  };
+
 
   /// <summary>
   /// Returned by monitor functions, containing an ID for use with cancelMonitor() to close this stream.

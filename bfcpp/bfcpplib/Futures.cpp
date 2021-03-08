@@ -426,6 +426,90 @@ namespace bfcpp
 
 
 
+  ExchangeInfo UsdFuturesMarket::exchangeInfo()
+  {
+    try
+    {
+      auto handler = [](web::http::http_response response)
+      {
+        ExchangeInfo result;
+
+        auto json = response.extract_json().get();
+
+        result.timezone = jsonValueToString(json[utility::conversions::to_string_t("timezone")]);
+        result.serverTime = jsonValueToString(json[utility::conversions::to_string_t("serverTime")]);
+
+        // rate limits
+        auto& rateLimits = json[utility::conversions::to_string_t("rateLimits")].as_array();
+        for (auto& rate : rateLimits)
+        {
+          map<string, string> values;
+          getJsonValues(rate, values, set<string> { "rateLimitType", "interval", "intervalNum", "limit"});
+
+          result.rateLimits.emplace_back(std::move(values));
+        }
+        
+
+        // symbols
+        auto& symbols = json[utility::conversions::to_string_t("symbols")].as_array();
+        for (auto& symbol : symbols)
+        {
+          ExchangeInfo::Symbol sym;
+
+          getJsonValues(symbol, sym.data, set<string> { "symbol", "pair", "contractType", "deliveryDate", "onboardDate", "status", "maintMarginPercent", "requiredMarginPercent", "baseAsset",
+                                                        "quoteAsset", "marginAsset", "pricePrecision", "quantityPrecision", "baseAssetPrecision", "quotePrecision", "underlyingType",
+                                                        "settlePlan", "triggerProtect"});
+
+
+          auto& subType = symbol[utility::conversions::to_string_t("underlyingSubType")].as_array();
+          for (auto& st : subType)
+          {
+            sym.underlyingSubType.emplace_back(jsonValueToString(st));
+          }
+          
+
+          auto& filters = symbol[utility::conversions::to_string_t("filters")].as_array();
+          for (auto& filter : filters)
+          {
+            map<string, string> values;
+            getJsonValues(filter, values, set<string> {"filterType", "maxPrice", "minPrice", "tickSize", "stepSize", "maxQty", "minQty", "notional", "multiplierDown", "multiplierUp", "multiplierDecimal"});
+
+            sym.filters.emplace_back(std::move(values));
+          }
+
+
+          auto& orderTypes = symbol[utility::conversions::to_string_t("orderTypes")].as_array();
+          for (auto& ot : orderTypes)
+          {
+            sym.orderTypes.emplace_back(jsonValueToString(ot));
+          }
+
+
+          auto& tif = symbol[utility::conversions::to_string_t("timeInForce")].as_array();
+          for (auto& t : tif)
+          {
+            sym.timeInForce.emplace_back(jsonValueToString(t));
+          }
+
+          result.symbols.emplace_back(sym);
+        }
+
+        return result;
+      };
+
+      return sendRestRequest<ExchangeInfo>(RestCall::ExchangeInfo, web::http::methods::GET, true, m_marketType, handler, receiveWindow(RestCall::ExchangeInfo)).get();
+    }
+    catch (const pplx::task_canceled tc)
+    {
+      throw BfcppDisconnectException("klines");
+    }
+    catch (const std::exception ex)
+    {
+      throw BfcppException(ex.what());
+    }
+  }
+
+
 
   // -- connection/session ---
 
@@ -497,13 +581,9 @@ namespace bfcpp
         session->connected = true;
       }).wait();
     }
-    catch (const web::websockets::client::websocket_exception we)
-    {
-      std::cout << we.what();
-    }
     catch (const std::exception ex)
     {
-      std::cout << ex.what();
+      throw BfcppException(ex.what());
     }
 
     return session;

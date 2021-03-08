@@ -144,18 +144,6 @@ namespace bfcpp
     MonitorToken monitorSymbolBookStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData);
 
 
-    /// <summary>
-    /// See https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
-    /// </summary>
-    /// <returns></returns>
-    AccountInformation accountInformation();
-
-
-    /// <summary>
-    /// See https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v2-user_data
-    /// </summary>
-    /// <returns></returns>
-    AccountBalance accountBalance();
 
 
     /// <summary>
@@ -177,6 +165,27 @@ namespace bfcpp
 
     
     
+    // --- account/useful/info
+
+    /// <summary>
+    /// See https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
+    /// </summary>
+    /// <returns></returns>
+    AccountInformation accountInformation();
+
+
+    /// <summary>
+    /// See https://binance-docs.github.io/apidocs/futures/en/#futures-account-balance-v2-user_data
+    /// </summary>
+    /// <returns></returns>
+    AccountBalance accountBalance();
+
+
+
+    ExchangeInfo exchangeInfo();
+
+
+
     // --- order management
 
 
@@ -448,6 +457,7 @@ namespace bfcpp
         throw BfcppException(ex.what());
       }
     }
+
 
     void onUserDataTimer()
     {
