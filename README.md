@@ -202,13 +202,7 @@ int main(int argc, char** argv)
 {
    std::cout << "\n\n--- USD-M Futures New Order Async ---\n";
 
-   map<string, string> order =
-   {
-      {"symbol", "BTCUSDT"},
-      {"side", "BUY"},
-      {"type", "MARKET"},
-      {"quantity", "0.001"}
-   };
+   
 
    UsdFuturesTestMarket market{ {"YOUR API KEY", "YOUR SECRET KEY"} };
 
@@ -219,6 +213,14 @@ int main(int argc, char** argv)
 
    for (size_t i = 0; i < NumNewOrders; ++i)
    {
+      map<string, string> order =
+      {
+         {"symbol", "BTCUSDT"},
+	 {"side", "BUY"},
+	 {"type", "MARKET"},
+	 {"quantity", "0.001"}
+      };
+
       results.emplace_back(std::move(market.newOrderAsync(std::move(order))));  
    }
 
