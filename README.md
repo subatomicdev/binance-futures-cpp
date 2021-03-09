@@ -5,6 +5,7 @@
 ## Update
 **8th March 2021**
 - Added newOrderBatch() and newOrderBatchAsync() - https://binance-docs.github.io/apidocs/futures/en/#place-multiple-orders-trade
+- Added exchangeInfo() - https://binance-docs.github.io/apidocs/futures/en/#exchange-information
 
 **7th March 2021**
 - Added async version of newOrder() and cancelOrder()
