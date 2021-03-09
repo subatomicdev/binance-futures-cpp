@@ -2,7 +2,7 @@
 
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
 
-## Update
+## Recent Updates
 **9th March 2021**
 - Changed the design of monitor functions,removing the BinanceKeyValueMap and BinanceMultiKeyValueMap
 - Monitor functions now take an std::any , with which you std::any_cast to the appropriate type (see Example section)
