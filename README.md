@@ -5,7 +5,7 @@
 ## Update
 **9th March 2021**
 - Changed the design of monitor functions,removing the BinanceKeyValueMap and BinanceMultiKeyValueMap
-- Monitor functions now take a std::any , with which you std::any_cast to the appropriate type (see Example section)
+- Monitor functions now take an std::any , with which you std::any_cast to the appropriate type (see Example section)
 
 **8th March 2021**
 - Added newOrderBatch() and newOrderBatchAsync() - https://binance-docs.github.io/apidocs/futures/en/#place-multiple-orders-trade
