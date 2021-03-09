@@ -144,43 +144,43 @@ This monitors the mark price and mini tickers for all symbols. We can use the sa
 
 int main(int argc, char** argv)
 {
-	std::cout << "\n\n--- USD-M Futures Multiple Streams on Futures ---\n";
+   std::cout << "\n\n--- USD-M Futures Multiple Streams on Futures ---\n";
 
-	auto markPriceHandler = [](std::any data)
-	{
-		auto priceData = std::any_cast<MarkPriceStream> (data);
+   auto markPriceHandler = [](std::any data)
+   {
+      auto priceData = std::any_cast<MarkPriceStream> (data);
 
-		std::stringstream ss;
+      std::stringstream ss;
 
-		for (const auto& pair : priceData.prices)
-		{
-			std::for_each(std::begin(pair), std::end(pair), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
-		}
+      for (const auto& pair : priceData.prices)
+      {
+         std::for_each(std::begin(pair), std::end(pair), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+      }
 
-		logg(ss.str());
-	};
+      logg(ss.str());
+    };
 
 
-	auto onSymbolMiniTickHandler = [](std::any data)
-	{
-		auto ticker = std::any_cast<AllMarketMiniTickerStream> (data);
-		stringstream ss;
+   auto onSymbolMiniTickHandler = [](std::any data)
+   {
+      auto ticker = std::any_cast<AllMarketMiniTickerStream> (data);
+      stringstream ss;
 
-		for (auto& tick : ticker.data)
-		{
-			std::for_each(std::begin(tick), std::end(tick), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
-		}
+      for (auto& tick : ticker.data)
+      {
+         std::for_each(std::begin(tick), std::end(tick), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+      }
 		
-		logg(ss.str());
-	};
+      logg(ss.str());
+   };
 
-	UsdFuturesMarket usdFutures;
-	usdFutures.monitorMarkPrice(markPriceHandler);
-	usdFutures.monitorMiniTicker(onSymbolMiniTickHandler);
+   UsdFuturesMarket usdFutures;
+   usdFutures.monitorMarkPrice(markPriceHandler);
+   usdFutures.monitorMiniTicker(onSymbolMiniTickHandler);
 
-	std::this_thread::sleep_for(10s);
+   std::this_thread::sleep_for(10s);
 
-  return 0;
+   return 0;
 }
 ```
 
