@@ -114,7 +114,7 @@ This is to avoid creating and populating objects when users will either already 
 ### WebSocket Monitor Functions
 Websocket streams are opened using the monitor functions, such as ```monitorMarkPrice()```.
 
-The monitor functions return a ```MonitorToken``` and take a ```std::function<std::any>``` argument.  The MonitorToken is used when cancelling the monitor function.
+The monitor functions return a ```MonitorToken``` and take an ```std::function<std::any>``` argument.  The MonitorToken is used when cancelling the monitor function.
 
 ```cpp
 MonitorToken monitorMarkPrice(std::function<void(std::any)> onData);
@@ -134,7 +134,7 @@ There are some which have an asynchronous version, such as ```newOrderAsync() ``
 ## Examples
 
 ### Websockets - Monitor Mark Price and Mini Ticker
-This monitors the mark price and mini tickers for all symbols. We can use the same callback function here because it's only printing the values.
+This monitors the mark price and mini tickers for all symbols.
 
 ```cpp
 #include <iostream>
