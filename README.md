@@ -33,7 +33,7 @@ To accurately record timings there's a specific class, ```UsdFuturesTestMarketPe
 
 The bfcpptest.cpp has ```performanceCheckSync()``` and ```performanceCheckAsync()``` functions showing how to use the performance check.
 
-As seen from the results below, each call to newOrder() is at the mercy of the Binance API latency, so doing so synchronously is expensive.
+As seen from the results below, each call to newOrder() is mostly dependent on the Binance API latency, which is the ping plus Binance's processing time, ranging from 300ms to 750ms.
 
 See "New Order - Async" for a code example.
 
@@ -115,7 +115,7 @@ This is to avoid creating and populating objects when users will either already 
 ### WebSocket Monitor Functions
 Websocket streams are opened using the monitor functions, such as ```monitorMarkPrice()```.
 
-The monitor functions return a ```MonitorToken``` and take a ```std::function<std::any>>``` argument.  The MonitorToken is used when cancelling the monitor function.
+The monitor functions return a ```MonitorToken``` and take a ```std::function<std::any>``` argument.  The MonitorToken is used when cancelling the monitor function.
 
 ```cpp
 MonitorToken monitorMarkPrice(std::function<void(std::any)> onData);
