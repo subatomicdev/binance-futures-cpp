@@ -91,7 +91,7 @@ namespace bfcpp
     /// </summary>
     /// <param name = "onData">Your callback function. See this classes docs for an explanation </param>
     /// <returns></returns>
-    MonitorToken monitorMarkPrice(std::function<void(BinanceKeyMultiValueData)> onData);
+    MonitorToken monitorMarkPrice(std::function<void(std::any)> onData);
 
 
     /// <summary>
@@ -101,7 +101,7 @@ namespace bfcpp
     /// <param name="onData"></param>
     /// <param name="mode"></param>
     /// <returns></returns>
-    MonitorToken monitorUserData(std::function<void(UsdFutureUserData)> onData);
+    MonitorToken monitorUserData(std::function<void(std::any)> onData);
 
 
     // --- monitor functions
@@ -113,7 +113,7 @@ namespace bfcpp
     /// </summary>
     /// <param name="onData">Your callback function. See this classes docs for an explanation</param>
     /// <returns>A MonitorToken. If MonitorToken::isValid() is a problem occured.</returns>
-    MonitorToken monitorMiniTicker(std::function<void(BinanceKeyMultiValueData)> onData);
+    MonitorToken monitorMiniTicker(std::function<void(std::any)> onData);
 
 
     /// <summary>
@@ -122,7 +122,7 @@ namespace bfcpp
     /// <param name="symbol"></param>
     /// <param name="onData"></param>
     /// <returns></returns>
-    MonitorToken monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(BinanceKeyMultiValueData)> onData);
+    MonitorToken monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(std::any)> onData);
 
 
     /// <summary>
@@ -132,16 +132,16 @@ namespace bfcpp
     /// <param name="symbol">The symbtol to monitor</param>
     /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
     /// <returns></returns>
-    MonitorToken monitorSymbol(const string& symbol, std::function<void(BinanceKeyValueData)> onData);
+    MonitorToken monitorSymbol(const string& symbol, std::function<void(std::any)> onData);
 
 
     /// <summary>
-    /// Receives from the Individual Symbol Book stream for a given symbol.
+    /// Receives from the Individual Symbol Book stream for a given symbol in real time.
     /// </summary>
     /// <param name="symbol">The symbol</param>
     /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
     /// <returns></returns>
-    MonitorToken monitorSymbolBookStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData);
+    MonitorToken monitorSymbolBookStream(const string& symbol, std::function<void(std::any)> onData);
 
 
 
@@ -543,22 +543,98 @@ namespace bfcpp
     void extractUsdFuturesUserData(shared_ptr<WebSocketSession> session, web::json::value&& jsonVal);
   
 
-    shared_ptr<WebSocketSession> connect(const string& uri);
-    
     void disconnect(const MonitorToken& mt, const bool deleteSession);
     void disconnect();
 
 
-    std::tuple<MonitorToken, shared_ptr<WebSocketSession>> createMonitor(const string& uri, const JsonKeys& keys, const string& arrayKey = {});
-
-
     bool createListenKey(const MarketType marketType);
 
-    
-    MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey);
+
+    shared_ptr<WebSocketSession> connect3(const string& uri)
+    {
+      auto session = std::make_shared<WebSocketSession>();
+      session->uri = uri;
+
+      try
+      {
+        web::uri wsUri(utility::conversions::to_string_t(uri));
+        session->client.connect(wsUri).then([&session]
+        {
+          session->connected = true;
+        }).wait();
+      }
+      catch (const std::exception ex)
+      {
+        throw BfcppException(ex.what());
+      }
+
+      return session;
+    }
 
 
-    void extractKeys(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session, const JsonKeys& keys, const string& arrayKey = {});
+    std::tuple<MonitorToken, shared_ptr<WebSocketSession>> createMonitor3(const string& uri, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>)> handler)
+    {
+      std::tuple<MonitorToken, shared_ptr<WebSocketSession>> tokenAndSession;
+
+      if (shared_ptr<WebSocketSession> session = connect3(uri); session)
+      {
+        if (MonitorToken monitor = createReceiveTask3(session, handler);  monitor.isValid())
+        {
+          session->id = monitor.id;
+
+          m_sessions.push_back(session);
+          m_idToSession[monitor.id] = session;
+
+          tokenAndSession = std::make_tuple(monitor, session);
+        }
+      }
+
+      return tokenAndSession;
+    }
+
+
+    MonitorToken createReceiveTask3(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>)> extractFunc)
+    {
+      MonitorToken monitorToken;
+
+      try
+      {
+        auto token = session->getCancelToken();
+        monitorToken.id = m_monitorId++;
+
+        session->receiveTask = pplx::create_task([session, token, extractFunc, mt = monitorToken.id, this]
+          {
+            while (!token.is_canceled())
+            {
+              session->client.receive().then([=](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
+              {
+                if (!token.is_canceled())
+                {
+                  extractFunc(websocketInMessage.get(), session);
+                }
+                else
+                {
+                  pplx::cancel_current_task();
+                }
+
+              }, token).wait();
+            }
+
+            pplx::cancel_current_task();
+
+          }, token);
+      }
+      catch (const web::websockets::client::websocket_exception we)
+      {
+        std::cout << we.what();
+      }
+      catch (const std::exception ex)
+      {
+        std::cout << ex.what();
+      }
+
+      return monitorToken;
+    }
 
 
 protected:
@@ -634,11 +710,11 @@ protected:
 
 
 private:
-    shared_ptr<WebSocketSession> m_session;
     MarketType m_marketType;
 
     vector<shared_ptr<WebSocketSession>> m_sessions;
     map<MonitorTokenId, shared_ptr<WebSocketSession>> m_idToSession;
+
 
     std::atomic_size_t m_monitorId;
     string m_exchangeBaseUri;

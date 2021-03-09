@@ -12,6 +12,7 @@
 #include <chrono>
 #include <sstream>
 #include <string>
+#include <any>
 #include <cpprest/json.h>
 #include <cpprest/ws_client.h>
 #include <cpprest/http_client.h>
@@ -41,6 +42,11 @@ namespace bfcpp
   typedef std::string MarketStringType;
 
 
+
+  #define BFCPP_FUNCTION std::string {__func__}
+  #define BFCPP_FUNCTION_MSG(msg) std::string {__func__} + msg
+
+
   enum class RestCall
   {
     None,
@@ -55,6 +61,17 @@ namespace bfcpp
     Ping,
     NewBatchOrder,
     ExchangeInfo
+  };
+
+
+  enum class StreamCall
+  {
+    None,
+    Candlesticks,
+    MarkPrice,
+    SymbolMiniTicker,
+    SymbolBookTicker,
+    AllMarketMiniTicker
   };
   
   enum class MarketType
@@ -118,6 +135,8 @@ namespace bfcpp
   /// <summary>
   /// Struct used in some of the monitor functions to store a direct key/value pair.
   /// </summary>
+  
+  /*
   struct BinanceKeyValueData
   {
     BinanceKeyValueData() = default;
@@ -153,7 +172,7 @@ namespace bfcpp
 
     map<string, map<string, string>> values;
   };
-
+  */
 
 
   /// <summary>
@@ -374,6 +393,71 @@ namespace bfcpp
   };
 
 
+
+
+  // Data used in Monitor callbacks
+
+  struct StreamCallbackData
+  {
+    StreamCallbackData(const StreamCall sc) : call(sc)
+    {
+
+    }
+
+    StreamCall call;
+  };
+
+  struct CandleStream : public StreamCallbackData
+  {
+    CandleStream() : StreamCallbackData(StreamCall::Candlesticks)
+    {
+    }
+
+    string eventTime;
+    string symbol;
+    map<string, string> candle;
+  };
+
+  struct MarkPriceStream : public StreamCallbackData
+  {
+    MarkPriceStream() : StreamCallbackData(StreamCall::MarkPrice)
+    {
+    }
+    
+    vector<map<string, string>> prices;
+  };
+
+
+  struct SymbolMiniTickerStream : public StreamCallbackData
+  {
+    SymbolMiniTickerStream() : StreamCallbackData(StreamCall::SymbolMiniTicker)
+    {
+    }
+
+    map<string, string> data;
+  };
+
+
+  struct SymbolBookTickerStream : public StreamCallbackData
+  {
+    SymbolBookTickerStream() : StreamCallbackData(StreamCall::SymbolBookTicker)
+    {
+    }
+
+    map<string, string> data;
+  };
+
+
+  struct AllMarketMiniTickerStream : public StreamCallbackData
+  {
+    AllMarketMiniTickerStream() : StreamCallbackData(StreamCall::AllMarketMiniTicker)
+    {
+    }
+
+    vector<map<string, string>> data;
+  };
+
+
   /// <summary>
   /// Returned by monitor functions, containing an ID for use with cancelMonitor() to close this stream.
   /// </summary>
@@ -438,6 +522,7 @@ namespace bfcpp
   };
 
 
+
   struct WebSocketSession
   {
   private:
@@ -463,14 +548,11 @@ namespace bfcpp
     pplx::task<void> receiveTask;
 
     // callback functions for user functions
-    std::function<void(BinanceKeyValueData)> onDataUserCallback;
-    std::function<void(BinanceKeyMultiValueData)> onMultiValueDataUserCallback;
-    std::function<void(UsdFutureUserData)> onUsdFuturesUserDataCallback;
+    std::function<void(std::any)>  callback;
 
     // the monitor id. The MonitorToken is returned to the caller which can be used to cancel the monitor
     MonitorTokenId id;
     std::atomic_bool connected;
-
 
     void cancel()
     {
@@ -483,11 +565,14 @@ namespace bfcpp
       return cancelToken;
     }
 
+    
 
   private:
     pplx::cancellation_token_source cancelTokenSource;
     pplx::cancellation_token cancelToken;
+
   };
+
 
 
 
@@ -552,7 +637,6 @@ namespace bfcpp
       }
     }
   }
-
 
 
   inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, const set<string>& keys)
@@ -661,8 +745,9 @@ namespace bfcpp
   }
 
 
-    /// <summary>
+  /// <summary>
   /// Ensure price is in a suitable format for the exchange, i.e. changing precision.
+  /// You can get the precision for a symbol from exchangeInfo.
   /// </summary>
   /// <param name="price">The unformatted price</param>
   /// <param name="precision">The precision</param>

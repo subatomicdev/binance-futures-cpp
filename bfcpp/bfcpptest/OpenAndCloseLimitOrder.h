@@ -22,18 +22,26 @@ public:
 	}
 
 
-	void handleMarkPrice(BinanceKeyMultiValueData data)
+	void handleMarkPrice(std::any data)
 	{
-		if (auto sym = data.values.find(m_symbol); sym != data.values.cend())
+		auto priceData = std::any_cast<MarkPriceStream> (data);
+
+		for (auto& price : priceData.prices)
 		{
-			m_markPriceString = sym->second["p"];
-			m_priceSet.notify_all();
+			if (price["s"] == m_symbol)
+			{
+				m_markPriceString = price["p"];
+				m_priceSet.notify_all();
+				break;
+			}
 		}
 	}
 
 
-	void handleUserDataUsdFutures(UsdFutureUserData data)
+	void handleUserDataUsdFutures(std::any userData)
 	{
+		UsdFutureUserData data = std::any_cast<UsdFutureUserData> (userData);
+
 		if (data.type == UsdFutureUserData::EventType::MarginCall)
 		{
 			std::stringstream ss;

@@ -3,25 +3,38 @@
 
 namespace bfcpp
 {
-  // -- monitors --
+  // -- Websocket monitors --
 
-  MonitorToken UsdFuturesMarket::monitorMiniTicker(std::function<void(BinanceKeyMultiValueData)> onData)
+  MonitorToken UsdFuturesMarket::monitorMiniTicker(std::function<void(std::any)> onData)
   {
-    static const JsonKeys keys
-    {
-      { {"s"}, {"e", "E", "s", "c", "o", "h", "l", "v", "q"} }
-    };
-
     if (onData == nullptr)
     {
-      throw BfcppException{ "monitorMiniTicker callback function null" };
+      throw BfcppException{ BFCPP_FUNCTION_MSG(" callback function null") };
     }
 
-    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!miniTicker@arr", keys, "s");
+    auto handler = [](ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session)
+    {
+      auto json = web::json::value::parse(websocketInMessage.extract_string().get());
+
+      AllMarketMiniTickerStream mtt;
+
+      auto& data = json.as_array();
+      for (auto& entry : data)
+      {
+        map<string, string> values;
+        getJsonValues(entry, values, { "e", "E", "s", "c", "o", "h", "l", "v", "q" });
+
+        mtt.data.emplace_back(std::move(values));
+      }
+
+      session->callback(std::any{ std::move(mtt) });
+    };
+
+    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/!miniTicker@arr", handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {
-      std::get<1>(tokenAndSession)->onMultiValueDataUserCallback = onData;
+      std::get<1>(tokenAndSession)->callback = onData;
     }
 
     return std::get<0>(tokenAndSession);
@@ -29,27 +42,34 @@ namespace bfcpp
 
 
 
-  MonitorToken UsdFuturesMarket::monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(BinanceKeyMultiValueData)> onData)
+  MonitorToken UsdFuturesMarket::monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(std::any)> onData)
   {
-    static const JsonKeys keys
-    {
-      {"e", {}},
-      {"E", {}},
-      {"s", {}},
-      {"k", {"t", "T", "s", "i", "f", "L", "o", "c", "h", "l", "v", "n", "x", "q", "V", "Q", "B"}}
-    };
-
     if (onData == nullptr)
     {
-      throw BfcppException{ "monitorKlineCandlestickStream callback function null" };
+      throw BfcppException{ BFCPP_FUNCTION_MSG(" callback function null")};
     }
 
 
-    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@kline_" + interval, keys);
+    auto handler = [](ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session)
+    {
+      auto json = web::json::value::parse(websocketInMessage.extract_string().get());
+
+      CandleStream cs;
+
+      cs.eventTime = jsonValueToString(json[utility::conversions::to_string_t("E")]);
+      cs.symbol = jsonValueToString(json[utility::conversions::to_string_t("s")]);
+
+      auto& candleData = json[utility::conversions::to_string_t("k")].as_object();
+      getJsonValues(candleData, cs.candle, { "t", "T", "s", "i", "f", "L", "o", "c", "h", "l", "v", "n", "x", "q", "V", "Q", "B" });
+
+      session->callback( std::any{ std::move(cs) });
+    };
+        
+    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@kline_" + interval, handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {
-      std::get<1>(tokenAndSession)->onMultiValueDataUserCallback = onData;
+      std::get<1>(tokenAndSession)->callback = onData;
     }
 
     return std::get<0>(tokenAndSession);
@@ -57,32 +77,61 @@ namespace bfcpp
 
 
 
-  MonitorToken UsdFuturesMarket::monitorSymbol(const string& symbol, std::function<void(BinanceKeyValueData)> onData)
+  MonitorToken UsdFuturesMarket::monitorSymbol(const string& symbol, std::function<void(std::any)> onData)
   {
-    static const JsonKeys keys
-    {
-      {"e", {}},
-      {"E", {}},
-      {"s", {}},
-      {"c", {}},
-      {"o", {}},
-      {"h", {}},
-      {"l", {}},
-      {"v", {}},
-      {"q", {}}
-    };
-
     if (onData == nullptr)
     {
-      throw BfcppException{ "monitorSymbol callback function null" };
+      throw BfcppException{ BFCPP_FUNCTION_MSG(" callback function null") };
     }
 
+    auto handler = [](ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session)
+    {
+      auto json = web::json::value::parse(websocketInMessage.extract_string().get());
 
-    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@miniTicker", keys);
+      SymbolMiniTickerStream symbol;
+     
+      getJsonValues(json, symbol.data, { "e", "E", "s", "c", "o", "h", "l", "v", "q" });
+
+      session->callback(std::any{ std::move(symbol) });
+    };
+
+
+    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@miniTicker", handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {
-      std::get<1>(tokenAndSession)->onDataUserCallback = onData;
+      std::get<1>(tokenAndSession)->callback = onData;
+    }
+
+    return std::get<0>(tokenAndSession);
+  }
+  
+
+
+  MonitorToken UsdFuturesMarket::monitorSymbolBookStream(const string& symbol, std::function<void(std::any)> onData)
+  {
+    if (onData == nullptr)
+    {
+      throw BfcppException{ BFCPP_FUNCTION_MSG("callback function null") };
+    }
+
+    auto handler = [](ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session)
+    {
+      auto json = web::json::value::parse(websocketInMessage.extract_string().get());
+
+      SymbolBookTickerStream symbol;
+
+      getJsonValues(json, symbol.data, { "e", "u","E","T","s","b","B", "a", "A" });
+
+      session->callback(std::any{ std::move(symbol) });
+    };
+    
+
+    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@bookTicker", handler);
+
+    if (std::get<0>(tokenAndSession).isValid())
+    {
+      std::get<1>(tokenAndSession)->callback = onData;
     }
 
     return std::get<0>(tokenAndSession);
@@ -90,29 +139,37 @@ namespace bfcpp
 
 
 
-  MonitorToken UsdFuturesMarket::monitorSymbolBookStream(const string& symbol, std::function<void(BinanceKeyValueData)> onData)
+  MonitorToken UsdFuturesMarket::monitorMarkPrice(std::function<void(std::any)> onData)
   {
-    static const JsonKeys keys
-    {
-      {"u", {}},
-      {"s", {}},
-      {"b", {}},
-      {"B", {}},
-      {"a", {}},
-      {"A", {}}
-    };
-
     if (onData == nullptr)
     {
-      throw BfcppException{ "monitorSymbolBookStream callback function null" };
+      throw BfcppException{ BFCPP_FUNCTION_MSG(" callback function null") };
     }
 
 
-    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@bookTicker", keys);
+    auto handler = [](ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session)
+    {
+      auto json = web::json::value::parse(websocketInMessage.extract_string().get());
+
+      MarkPriceStream mp;
+            
+      auto& prices = json.as_array();
+      for (auto& price : prices)
+      {
+        map<string, string> values;
+        getJsonValues(price, values, { "e", "E","s","p","i","P","r","T" });
+        
+        mp.prices.emplace_back(std::move(values));
+      }
+      
+      session->callback(std::any{ std::move(mp) });
+    };
+
+    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/!markPrice@arr@1s", handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {
-      std::get<1>(tokenAndSession)->onDataUserCallback = onData;
+      std::get<1>(tokenAndSession)->callback = onData;
     }
 
     return std::get<0>(tokenAndSession);
@@ -120,51 +177,27 @@ namespace bfcpp
 
 
 
-  MonitorToken UsdFuturesMarket::monitorMarkPrice(std::function<void(BinanceKeyMultiValueData)> onData)
-  {
-    static const JsonKeys keys
-    {
-        {"s", {"e", "E","s","p","i","P","r","T"}}
-    };
-
-    if (onData == nullptr)
-    {
-      throw BfcppException{ "monitorMarkPrice callback function null" };
-    }
-
-    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!markPrice@arr@1s", keys, "s");
-
-    if (std::get<0>(tokenAndSession).isValid())
-    {
-      std::get<1>(tokenAndSession)->onMultiValueDataUserCallback = onData;
-    }
-
-    return std::get<0>(tokenAndSession);
-  }
-
-
-
-  MonitorToken UsdFuturesMarket::monitorUserData(std::function<void(UsdFutureUserData)> onData)
+  MonitorToken UsdFuturesMarket::monitorUserData(std::function<void(std::any)> onData)
   {
     using namespace std::chrono_literals;
 
     if (onData == nullptr)
     {
-      throw BfcppException{"monitorUserData callback function null"};
+      throw BfcppException{ BFCPP_FUNCTION_MSG("callback function null")};
     }
 
     MonitorToken monitorToken;
 
     if (createListenKey(m_marketType))
     {
-      if (auto session = connect(m_exchangeBaseUri + "/ws/" + m_listenKey); session)
+      if (auto session = connect3(m_exchangeBaseUri + "/ws/" + m_listenKey); session)
       {
         try
         {
           monitorToken.id = m_monitorId++;
 
           session->id = monitorToken.id;
-          session->onUsdFuturesUserDataCallback = onData;
+          session->callback = onData;
 
           m_idToSession[monitorToken.id] = session;
           m_sessions.push_back(session);
@@ -215,8 +248,7 @@ namespace bfcpp
 
 
 
-
-  // -- REST  --
+  // -- REST Calls --
 
 
   AccountInformation UsdFuturesMarket::accountInformation()
@@ -568,100 +600,6 @@ namespace bfcpp
 
 
 
-  shared_ptr<WebSocketSession> UsdFuturesMarket::connect(const string& uri)
-  {
-    auto session = std::make_shared<WebSocketSession>();
-    session->uri = uri;
-
-    try
-    {
-      web::uri wsUri(utility::conversions::to_string_t(uri));
-      session->client.connect(wsUri).then([&session]
-      {
-        session->connected = true;
-      }).wait();
-    }
-    catch (const std::exception ex)
-    {
-      throw BfcppException(ex.what());
-    }
-
-    return session;
-  }
-
-
-
-  std::tuple<MonitorToken, shared_ptr<WebSocketSession>> UsdFuturesMarket::createMonitor(const string& uri, const JsonKeys& keys, const string& arrayKey)
-  {
-    std::tuple<MonitorToken, shared_ptr<WebSocketSession>> tokenAndSession;
-
-    if (auto session = connect(uri); session)
-    {
-      auto extractFunction = std::bind(&UsdFuturesMarket::extractKeys, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-
-      if (MonitorToken monitor = createReceiveTask(session, extractFunction, keys, arrayKey);  monitor.isValid())
-      {
-        session->id = monitor.id;
-
-        m_sessions.push_back(session);
-        m_idToSession[monitor.id] = session;
-
-        tokenAndSession = std::make_tuple(monitor, session);
-      }
-    }
-
-    return tokenAndSession;
-  }
-
-
-
-  MonitorToken UsdFuturesMarket::createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>, const JsonKeys&, const string&)> extractFunc, const JsonKeys& keys, const string& arrayKey)
-  {
-    MonitorToken monitorToken;
-
-    try
-    {
-      auto token = session->getCancelToken();
-
-      session->receiveTask = pplx::create_task([session, token, extractFunc, keys, arrayKey, this]
-      {
-        while (!token.is_canceled())
-        {
-          session->client.receive().then([=](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
-          {
-            if (!token.is_canceled())
-            {
-              extractFunc(websocketInMessage.get(), session, keys, arrayKey);
-            }
-            else
-            {
-              pplx::cancel_current_task();
-            }
-
-          }, token).wait();
-        }
-
-        pplx::cancel_current_task();
-
-      }, token);
-
-
-      monitorToken.id = m_monitorId++;
-    }
-    catch (const web::websockets::client::websocket_exception we)
-    {
-      std::cout << we.what();
-    }
-    catch (const std::exception ex)
-    {
-      std::cout << ex.what();
-    }
-
-    return monitorToken;
-  }
-    
-
-
   bool UsdFuturesMarket::createListenKey(const MarketType marketType)
   {
     try
@@ -696,98 +634,6 @@ namespace bfcpp
 
 
   // -- data/util --
-  
-  void UsdFuturesMarket::extractKeys(ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session, const JsonKeys& keys, const string& arrayKey)
-  {
-    try
-    {
-      std::string strMsg;
-      websocketInMessage.extract_string().then([&strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
-      {
-        try
-        {
-          if (!cancelToken.is_canceled())
-            strMsg = str_tsk.get();
-        }
-        catch (...)
-        {
-
-        }
-      }, session->getCancelToken()).wait();
-
-
-      // we have the message as a string, pass to the json parser and extract fields if no error
-      if (web::json::value jsonVal = web::json::value::parse(strMsg); jsonVal.size())
-      {
-        const utility::string_t CodeField = utility::conversions::to_string_t("code");
-        const utility::string_t MsgField = utility::conversions::to_string_t("msg");
-
-        if (jsonVal.has_string_field(CodeField) && jsonVal.has_string_field(MsgField))
-        {
-          throw BfcppException(utility::conversions::to_utf8string(jsonVal.at(CodeField).as_string()) + " : " + utility::conversions::to_utf8string(jsonVal.at(MsgField).as_string()));
-        }
-        else if (session->onDataUserCallback)
-        {
-          map<string, string> values;
-
-          for (const auto& key : keys)
-          {
-            getJsonValues(jsonVal, values, key.first);
-          }
-
-          session->onDataUserCallback(std::move(values));    // TODO async?
-        }
-        else if (session->onMultiValueDataUserCallback)
-        {
-          map<string, map<string, string>> values;
-
-          if (jsonVal.is_array())
-          {
-            for (auto& val : jsonVal.as_array())
-            {
-              map<string, string> innerValues;
-
-              getJsonValues(val, innerValues, keys.find(arrayKey)->second);
-
-              values[innerValues[arrayKey]] = std::move(innerValues);
-            }
-          }
-          else
-          {
-            for (const auto& key : keys)
-            {
-              if (key.second.empty())
-              {
-                map<string, string> inner;
-
-                getJsonValues(jsonVal, inner, key.first);
-
-                values[key.first] = std::move(inner);
-              }
-              else
-              {
-                // key has nested keys
-                map<string, string> inner;
-
-                if (jsonVal.at(utility::conversions::to_string_t(key.first)).is_object())
-                {
-                  getJsonValues(jsonVal.at(utility::conversions::to_string_t(key.first)).as_object(), inner, key.second);
-                  values[key.first] = std::move(inner);
-                }
-              }
-            }
-          }
-
-          session->onMultiValueDataUserCallback(std::move(values));    // TODO async?
-        }
-      }
-    }
-    catch (...)
-    {
-
-    }
-  }
-
 
   void UsdFuturesMarket::extractUsdFuturesUserData(shared_ptr<WebSocketSession> session, web::json::value&& jsonVal)
   {
@@ -915,7 +761,7 @@ namespace bfcpp
         }
 
 
-        session->onUsdFuturesUserDataCallback(std::move(userData));
+        session->callback(std::any{ std::move(userData) });
       }
     }
   }

@@ -15,37 +15,11 @@ using namespace std::chrono_literals;
 using namespace bfcpp;
 
 
-auto handleKeyMultipleValueData = [](BinanceKeyMultiValueData data)
+
+auto handleUserDataUsdFutures = [](std::any userData)
 {
-	std::stringstream ss;
+	UsdFutureUserData data = std::any_cast<UsdFutureUserData> (userData);
 
-	for (const auto& s : data.values)
-	{
-			ss << "\n" << s.first << "\n{";
-
-			for (auto& value : s.second)
-			{
-					ss << "\n\t" << value.first << "=" << value.second;
-			}
-
-			ss << "\n}";
-	}
-
-	logg(ss.str());
-};
-
-
-auto handleKeyValueData = [](BinanceKeyValueData data)
-{
-	for (const auto& p : data.values)
-	{
-			logg(p.first + "=" + p.second);
-	}
-};
-
-
-auto handleUserDataUsdFutures = [](UsdFutureUserData data)
-{
 	if (data.type == UsdFutureUserData::EventType::MarginCall)
 	{
 			std::stringstream ss;
@@ -143,11 +117,26 @@ void monitorMarkPrice()
 {
 	std::cout << "\n\n--- USD-M Futures Mark Price ---\n";
 
+	auto markPriceHanlder = [](std::any data)
+	{
+		auto priceData = std::any_cast<MarkPriceStream> (data);
+
+		std::stringstream ss;
+
+		for (const auto& pair : priceData.prices)
+		{
+			std::for_each(std::begin(pair), std::end(pair), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+		}
+
+		logg(ss.str());
+	};
+
+
 	UsdFuturesMarket usdFutures;
 
 	try
 	{
-		usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
+		usdFutures.monitorMarkPrice(markPriceHanlder);
 	}
 	catch (bfcpp::BfcppDisconnectException dex)
 	{
@@ -160,15 +149,82 @@ void monitorMarkPrice()
 
 
 /// <summary>
+/// Receive candlesticks from websocket stream
+/// </summary>
+void monitorCandleSticks()
+{
+	std::cout << "\n\n--- USD-M Futures Candles ---\n";
+
+	auto onStickHandler = [](std::any data)
+	{
+		auto candleData = std::any_cast<CandleStream> (data);
+
+		std::stringstream ss;
+		ss << "\neventType=" << candleData.eventTime;
+		ss << "\nsymbol=" << candleData.symbol;
+
+		std::for_each(std::begin(candleData.candle), std::end(candleData.candle), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+		logg(ss.str());
+	};
+
+
+	UsdFuturesMarket usdFutures;
+
+	try
+	{
+		usdFutures.monitorKlineCandlestickStream("btcusdt", "15m", onStickHandler);
+	}
+	catch (bfcpp::BfcppDisconnectException dex)
+	{
+		logg(dex.source() + " has been disconnected");
+	}
+
+
+	std::this_thread::sleep_for(30s);
+}
+
+
+
+/// <summary>
 /// Shows it's easy to receive multiple streams.
 /// </summary>
 void monitorMultipleStreams()
 {
 	std::cout << "\n\n--- USD-M Futures Multiple Streams on Futures ---\n";
 
+	auto markPriceHandler = [](std::any data)
+	{
+		auto priceData = std::any_cast<MarkPriceStream> (data);
+
+		std::stringstream ss;
+
+		for (const auto& pair : priceData.prices)
+		{
+			std::for_each(std::begin(pair), std::end(pair), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+		}
+
+		logg(ss.str());
+	};
+
+
+	auto onSymbolMiniTickHandler = [](std::any data)
+	{
+		auto ticker = std::any_cast<AllMarketMiniTickerStream> (data);
+
+		stringstream ss;
+
+		for (auto& tick : ticker.data)
+		{
+			std::for_each(std::begin(tick), std::end(tick), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+		}
+
+		logg(ss.str());
+	};
+
+
 	UsdFuturesMarket usdFutures;
-	usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
-	usdFutures.monitorMiniTicker(handleKeyMultipleValueData);
+	usdFutures.monitorMarkPrice(markPriceHandler);
+	usdFutures.monitorMiniTicker(onSymbolMiniTickHandler);
 
 	std::this_thread::sleep_for(10s);
 }
@@ -215,15 +271,76 @@ void usdFutureDataStream(const ApiAccess& access)
 /// </summary>
 void monitorSymbol()
 {
-	std::cout << "\n\n--- USD-M Futures Monitor Symbol ---\n";
+	std::cout << "\n\n--- USD-M Futures Monitor Symbol Mini Ticker ---\n";
+
+	auto onSymbolMiniTickHandler = [](std::any data)
+	{
+		auto tick = std::any_cast<SymbolMiniTickerStream> (data);
+
+		stringstream ss;
+		std::for_each(std::begin(tick.data), std::end(tick.data), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+
+		logg(ss.str());
+	};
+
 
 	UsdFuturesMarket futures;
-	futures.monitorSymbol("BTCUSDT", handleKeyValueData);
+	futures.monitorSymbol("BTCUSDT", onSymbolMiniTickHandler);
 
 	std::this_thread::sleep_for(10s);
 }
 
 
+/// <summary>
+/// Received any update to the best bid or ask's price or quantity in real-time for a specified symbol.
+/// </summary>
+void monitorSymbolBook()
+{
+	std::cout << "\n\n--- USD-M Futures Monitor Symbol Book Ticker ---\n";
+
+	auto onBookSymbolMiniTickHandler = [](std::any data)
+	{
+		auto tick = std::any_cast<SymbolBookTickerStream> (data);
+
+		stringstream ss;
+		std::for_each(std::begin(tick.data), std::end(tick.data), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+
+		logg(ss.str());
+	};
+
+
+	UsdFuturesMarket futures;
+	futures.monitorSymbolBookStream("BTCUSDT", onBookSymbolMiniTickHandler);
+
+	std::this_thread::sleep_for(10s);
+}
+
+
+
+void monitorAllMarketMiniTicker()
+{
+	std::cout << "\n\n--- USD-M Futures Monitor All Market Symbol Ticker ---\n";
+
+	auto onSymbolMiniTickHandler = [](std::any data)
+	{
+		auto ticker = std::any_cast<AllMarketMiniTickerStream> (data);
+
+		stringstream ss;
+
+		for (auto& tick : ticker.data)
+		{
+			std::for_each(std::begin(tick), std::end(tick), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+		}
+
+		logg(ss.str());
+	};
+
+
+	UsdFuturesMarket futures;
+	futures.monitorMiniTicker(onSymbolMiniTickHandler);
+
+	std::this_thread::sleep_for(10s);
+}
 
 /// <summary>
 /// 1. Get all orders (which defaults to within 7 days)
@@ -429,7 +546,7 @@ void performanceCheckSync(const ApiAccess& access)
 	}
 	
 
-	high_resolution_clock::duration total{};
+	high_resolution_clock::duration	total{};
 	high_resolution_clock::duration	avgQueryBuild{}, avgApiCall{}, avgResponseHandler{},
 																	maxApiCall{ high_resolution_clock::duration::min() },
 																	minApiCall{ high_resolution_clock::duration::max() };
@@ -445,37 +562,10 @@ void performanceCheckSync(const ApiAccess& access)
 			avgResponseHandler += result.restResponseHandler;
 			minApiCall = std::min<high_resolution_clock::duration>(minApiCall, result.restApiCall);
 			maxApiCall = std::max<high_resolution_clock::duration>(maxApiCall, result.restApiCall);
-			
-
-			/*
-			stringstream ss;
-			ss.clear(); ss.str("\n");
-			ss << "\n|\t\t\t| time (nanoseconds) |" <<
-						"\n------------------------------------------" <<
-						"\nRest Query Build:\t" << duration_cast<nanoseconds>(result.restQueryBuild).count() <<
-						"\nRest Call Latency:\t" << duration_cast<nanoseconds>(result.restApiCall).count() <<
-						"\nRest Response Handler:\t" << duration_cast<nanoseconds>(result.restResponseHandler).count() <<
-						"\n------------------------------------------" <<
-						"\nCall Total:\t\t" << duration_cast<milliseconds>(result.total).count() << " milliseconds\n";
-
-			logg(ss.str());
-			*/
 		}
 		else
 		{
 			logg("Error: " + result.msg());
-
-			/*
-			stringstream ss;
-			ss <<	"\n|\t\t\t| time (nanoseconds) |" <<
-						"\n------------------------------------------" <<
-						"\nRest Query Build:\t" << duration_cast<nanoseconds>(result.restQueryBuild).count() <<
-						"\nRest Call Latency:\t" << duration_cast<nanoseconds>(result.restApiCall).count() <<
-						"\n------------------------------------------" <<
-						"\nCall Total:\t\t" << duration_cast<milliseconds>(result.total).count() << " milliseconds\n";
-			
-			logg(ss.str());
-			*/
 		}
 		
 		total += result.total;
@@ -777,8 +867,12 @@ int main(int argc, char** argv)
 
 		// these don't require keys
 		//monitorMarkPrice();
+		//monitorCandleSticks();
 		//monitorSymbol();
+		//monitorSymbolBook();
+		//monitorAllMarketMiniTicker();
 		//monitorMultipleStreams();
+		
 		klines();
 		//exchangeInfo();
 
@@ -803,14 +897,14 @@ int main(int argc, char** argv)
 			//newOrderAsync(access);
 
 			//newOrderBatch(access);
+
+			//usdFutureDataStream(ApiAccess{ apiFut, secretFut });
 		}
 		else
 		{
 			ApiAccess access{ apiFut, secretFut };
 
 			//takerBuySellVolume(access);
-
-			//usdFutureDataStream(ApiAccess {apiFut, secretFut});
 		}
 	}
 	catch (const std::exception ex)
