@@ -3,6 +3,10 @@
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
 
 ## Update
+**9th March 2021**
+- Changed the design of monitor functions,removing the BinanceKeyValueMap and BinanceMultiKeyValueMap
+- Monitor functions now take a std::any , with which you std::any_cast to the appropriate type (see Example section)
+
 **8th March 2021**
 - Added newOrderBatch() and newOrderBatchAsync() - https://binance-docs.github.io/apidocs/futures/en/#place-multiple-orders-trade
 - Added exchangeInfo() - https://binance-docs.github.io/apidocs/futures/en/#exchange-information
@@ -15,10 +19,6 @@
 **5th March 2021**
 - Added accountBalance(), klines(), takerBuySellVolume()
 - Fixed problem with not disconnecting
-
-**3rd March 2021**
-- Added accountInformation() : https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
-- Added allOrders() : https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
 
 ---
 ## Summary
