@@ -107,30 +107,19 @@ The library which handles all communications with the exchange
 A test app to show how to use the library. 
 
 ### API
-The API is thin - it expects and returns data in maps rather than encapsulating data in classes/structs, e.g:
-
-```cpp
-class BinanceOrder : public Order
-{
-   Symbol m_symbol;
-   MarketPrice m_price;
-   OrderType m_type; 
-   // etc
-};
-```
+The API is thin - it returns data in structs, which are wrappers for vectors and maps which contain the JSON.
 
 This is to avoid creating and populating objects when users will either already have, or intend to, create a class structure for their needs.
 
-Objects returned from functions, and callback arguments, are by value to take advantage of RVO and move-semantics.
-
-
 ### WebSocket Monitor Functions
 Websocket streams are opened using the monitor functions, such as ```monitorMarkPrice()```.
-The monitor functions require a callback function/lambda and are async, e.g.
+
+The monitor functions return a ```MonitorToken``` and take a ```std::function<std::any>>``` argument.  The MonitorToken is used when cancelling the monitor function.
 
 ```cpp
-MonitorToken monitorMarkPrice(std::function<void(BinanceKeyMultiValueData)> onData)
+MonitorToken monitorMarkPrice(std::function<void(std::any)> onData);
 ```
+
 
 ### Rest Functions
 Most of the Rest calls are synchronous, returning an appropriate object, e.g.:  
@@ -144,7 +133,7 @@ There are some which have an asynchronous version, such as ```newOrderAsync() ``
 
 ## Examples
 
-### Monitor Mark Price and Mini Ticker
+### Websockets - Monitor Mark Price and Mini Ticker
 This monitors the mark price and mini tickers for all symbols. We can use the same callback function here because it's only printing the values.
 
 ```cpp
@@ -155,34 +144,43 @@ This monitors the mark price and mini tickers for all symbols. We can use the sa
 
 int main(int argc, char** argv)
 {
-  // lambda for a map<string, map<string, string>>  monitor function
-  auto handleKeyMultipleValueData = [](Binance::BinanceKeyMultiValueData data)
-  {
-    std::stringstream ss;
+   std::cout << "\n\n--- USD-M Futures Multiple Streams on Futures ---\n";
 
-    for (auto& s : data.values)
-    {
-      ss << s.first << "\n{";
+   auto markPriceHandler = [](std::any data)
+   {
+      auto priceData = std::any_cast<MarkPriceStream> (data);
 
-      for (auto& value : s.second)
+      std::stringstream ss;
+
+      for (const auto& pair : priceData.prices)
       {
-        ss << "\n" << value.first << "=" << value.second;
+         std::for_each(std::begin(pair), std::end(pair), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
       }
 
-      ss << "\n}";
-    }
+      logg(ss.str());
+    };
 
-    logg(ss.str());
-  };
-  
-  UsdFuturesMarket usdFutures;
 
-  usdFutures.monitorMarkPrice(handleKeyMultipleValueData);
-  usdFutures.monitorMiniTicker(handleKeyMultipleValueData);
+   auto onSymbolMiniTickHandler = [](std::any data)
+   {
+      auto ticker = std::any_cast<AllMarketMiniTickerStream> (data);
+      stringstream ss;
 
-  std::this_thread::sleep_for(10s);
+      for (auto& tick : ticker.data)
+      {
+         std::for_each(std::begin(tick), std::end(tick), [&ss](auto pair) { ss << "\n" << pair.first << "=" << pair.second; });
+      }
+		
+      logg(ss.str());
+   };
 
-  return 0;
+   UsdFuturesMarket usdFutures;
+   usdFutures.monitorMarkPrice(markPriceHandler);
+   usdFutures.monitorMiniTicker(onSymbolMiniTickHandler);
+
+   std::this_thread::sleep_for(10s);
+
+   return 0;
 }
 ```
 
@@ -201,9 +199,7 @@ static size_t NumNewOrders = 5;
 
 int main(int argc, char** argv)
 {
-   std::cout << "\n\n--- USD-M Futures New Order Async ---\n";
-
-   
+   std::cout << "\n\n--- USD-M Futures New Order Async ---\n"; 
 
    UsdFuturesTestMarket market{ {"YOUR API KEY", "YOUR SECRET KEY"} };
 
