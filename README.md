@@ -20,7 +20,6 @@ The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functio
 **7th March 2021**
 - Added async version of newOrder() and cancelOrder()
 - Added class and functions to test timing
-- Function to call the "batchOrders" coming soon
 
 **5th March 2021**
 - Added accountBalance(), klines(), takerBuySellVolume()
