@@ -1,6 +1,12 @@
 # Binance Futures C++
 
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
+# Summary
+Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
+
+The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functionality.
+
+---
 
 ## Recent Updates
 **9th March 2021**
@@ -21,11 +27,6 @@
 - Fixed problem with not disconnecting
 
 ---
-# Summary
-Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
-
-The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functionality.
-
 
 # Performance
 To accurately record timings there's a specific class, ```UsdFuturesTestMarketPerformance```, with functions to create a new order whilst adding timings. This is done on the **TestNet** exchange.
