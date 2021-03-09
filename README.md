@@ -14,8 +14,8 @@ The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functio
 - Monitor functions now take an std::any , with which you std::any_cast to the appropriate type (see Example section)
 
 **8th March 2021**
-- Added newOrderBatch() and newOrderBatchAsync() - https://binance-docs.github.io/apidocs/futures/en/#place-multiple-orders-trade
-- Added exchangeInfo() - https://binance-docs.github.io/apidocs/futures/en/#exchange-information
+- Added newOrderBatch() and newOrderBatchAsync()
+- Added exchangeInfo()
 
 **7th March 2021**
 - Added async version of newOrder() and cancelOrder()
