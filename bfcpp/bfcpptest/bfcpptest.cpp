@@ -592,15 +592,7 @@ void performanceCheckSync(const ApiAccess& access)
 void performanceCheckAsync(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures New Order Async Performance ---\n";
-
-	map<string, string> order =
-	{
-		{"symbol", "BTCUSDT"},
-		{"side", "BUY"},
-		{"type", "MARKET"},
-		{"quantity", "0.001"}
-	};
-
+	
 	UsdFuturesTestMarketPerfomance market{ access };
 
 	vector<pplx::task<NewOrderPerformanceResult>> results;
@@ -609,6 +601,14 @@ void performanceCheckAsync(const ApiAccess& access)
 	auto start = Clock::now();
 	for (size_t i = 0; i < NumNewOrders; ++i)
 	{
+		map<string, string> order =
+		{
+			{"symbol", "BTCUSDT"},
+			{"side", "BUY"},
+			{"type", "MARKET"},
+			{"quantity", "0.001"}
+		};
+
 		auto result = market.newOrderPerfomanceCheckAsync(std::move(order));
 		results.emplace_back(std::move(result));
 	}
@@ -665,14 +665,6 @@ void newOrderAsync(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures New Order Async ---\n";
 	
-	map<string, string> order =
-	{
-		{"symbol", "BTCUSDT"},
-		{"side", "BUY"},
-		{"type", "MARKET"},
-		{"quantity", "0.001"}
-	};
-
 	UsdFuturesTestMarket market{ access };
 
 	vector<pplx::task<NewOrderResult>> results;
@@ -683,6 +675,14 @@ void newOrderAsync(const ApiAccess& access)
 
 	for (size_t i = 0; i < NumNewOrders; ++i)
 	{
+		map<string, string> order =
+		{
+			{"symbol", "BTCUSDT"},
+			{"side", "BUY"},
+			{"type", "MARKET"},
+			{"quantity", "0.001"}
+		};
+
 		results.emplace_back(std::move(market.newOrderAsync(std::move(order))));
 	}
 
