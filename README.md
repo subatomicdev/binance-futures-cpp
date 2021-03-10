@@ -1,38 +1,38 @@
 # Binance Futures C++
 
 **This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
+# Summary
+Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
 
-## Update
+The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functionality.
+
+---
+
+## Recent Updates
+**9th March 2021**
+- Changed the design of monitor functions,removing the BinanceKeyValueMap and BinanceMultiKeyValueMap
+- Monitor functions now take an std::any , with which you std::any_cast to the appropriate type (see Example section)
+
 **8th March 2021**
-- Added newOrderBatch() and newOrderBatchAsync() - https://binance-docs.github.io/apidocs/futures/en/#place-multiple-orders-trade
-- Added exchangeInfo() - https://binance-docs.github.io/apidocs/futures/en/#exchange-information
+- Added newOrderBatch() and newOrderBatchAsync()
+- Added exchangeInfo()
 
 **7th March 2021**
 - Added async version of newOrder() and cancelOrder()
 - Added class and functions to test timing
-- Function to call the "batchOrders" coming soon
 
 **5th March 2021**
 - Added accountBalance(), klines(), takerBuySellVolume()
 - Fixed problem with not disconnecting
 
-**3rd March 2021**
-- Added accountInformation() : https://binance-docs.github.io/apidocs/futures/en/#account-information-v2-user_data
-- Added allOrders() : https://binance-docs.github.io/apidocs/futures/en/#all-orders-user_data
-
 ---
-## Summary
-Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
-
-The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functionality.
-
 
 # Performance
 To accurately record timings there's a specific class, ```UsdFuturesTestMarketPerformance```, with functions to create a new order whilst adding timings. This is done on the **TestNet** exchange.
 
 The bfcpptest.cpp has ```performanceCheckSync()``` and ```performanceCheckAsync()``` functions showing how to use the performance check.
 
-As seen from the results below, each call to newOrder() is at the mercy of the Binance API latency, so doing so synchronously is expensive.
+As seen from the results below, each call to newOrder() is mostly dependent on the Binance API latency, which is the ping plus Binance's processing time, ranging from 300ms to 750ms.
 
 See "New Order - Async" for a code example.
 
@@ -114,7 +114,7 @@ This is to avoid creating and populating objects when users will either already 
 ### WebSocket Monitor Functions
 Websocket streams are opened using the monitor functions, such as ```monitorMarkPrice()```.
 
-The monitor functions return a ```MonitorToken``` and take a ```std::function<std::any>>``` argument.  The MonitorToken is used when cancelling the monitor function.
+The monitor functions return a ```MonitorToken``` and take an ```std::function<std::any>``` argument.  The MonitorToken is used when cancelling the monitor function.
 
 ```cpp
 MonitorToken monitorMarkPrice(std::function<void(std::any)> onData);
@@ -134,7 +134,7 @@ There are some which have an asynchronous version, such as ```newOrderAsync() ``
 ## Examples
 
 ### Websockets - Monitor Mark Price and Mini Ticker
-This monitors the mark price and mini tickers for all symbols. We can use the same callback function here because it's only printing the values.
+This monitors the mark price and mini tickers for all symbols.
 
 ```cpp
 #include <iostream>
