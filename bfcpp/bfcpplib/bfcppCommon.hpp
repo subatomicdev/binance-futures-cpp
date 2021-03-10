@@ -291,6 +291,17 @@ namespace bfcpp
     std::chrono::high_resolution_clock::duration total ;
   };
 
+
+  struct NewOrderBatchPerformanceResult : public NewOrderBatchResult
+  {
+    std::chrono::high_resolution_clock::duration restApiCall;
+    std::chrono::high_resolution_clock::duration restQueryBuild;
+    std::chrono::high_resolution_clock::duration restResponseHandler;
+    std::chrono::high_resolution_clock::duration bfcppTotalProcess;
+    std::chrono::high_resolution_clock::duration total;
+  };
+
+
   /// <summary>
   /// See https://binance-docs.github.io/apidocs/futures/en/#cancel-order-trade
   /// </summary>

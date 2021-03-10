@@ -685,7 +685,7 @@ protected:
 
         web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(mt)) } };
 
-        return client.request(std::move(request)).then([handler](web::http::http_response response)
+        return client.request(std::move(request)).then([handler, this](web::http::http_response response)
         {
           if (response.status_code() == web::http::status_codes::OK)
           {
@@ -693,8 +693,7 @@ protected:
           }
           else
           {
-            auto json = response.extract_json().get();
-            return createInvalidRestResult<RestResultT>(utility::conversions::to_utf8string(json.serialize()));
+            return createInvalidRestResult<RestResultT>(handleRestCallError(response));
           }
         });
       }
@@ -708,6 +707,13 @@ protected:
       }
     }
 
+
+    string handleRestCallError(web::http::http_response& response)
+    {
+      auto isJson = response.headers()[utility::conversions::to_string_t("content-type")].find(utility::conversions::to_string_t("json")) != utility::string_t::npos;
+      return isJson ? utility::conversions::to_utf8string(response.extract_json().get().serialize()) :
+                      utility::conversions::to_utf8string(response.extract_string().get());
+    }
 
 private:
     MarketType m_marketType;
@@ -783,7 +789,76 @@ private:
     }
 
 
+    NewOrderBatchPerformanceResult newOrderBatchPerfomanceCheck(vector<map<string, string>>&& orders)
+    {
+      return doNewOrderBatchPerfomanceCheck(std::move(orders)).get();
+    }
+
+    pplx::task <NewOrderBatchPerformanceResult> newOrderBatchPerfomanceCheckAsync(vector<map<string, string>>&& orders)
+    {
+      return doNewOrderBatchPerfomanceCheck(std::move(orders));
+    }
+
+
   private:
+    template<typename ResultT>
+    pplx::task<ResultT> sendRestRequestPerformanceCheck(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<ResultT(web::http::http_response)> handler, const string& rcvWindow, map<string, string>&& query = {})
+    {
+      try
+      {
+        auto start = std::chrono::high_resolution_clock::now();
+
+        string queryString{ createQueryString(std::move(query), call, true, rcvWindow) };
+
+        auto request = createHttpRequest(method, getApiPath(mt, call) + "?" + queryString);
+
+        web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(mt)) } };
+
+        auto requestSent = std::chrono::high_resolution_clock::now();
+        return client.request(std::move(request)).then([handler, start, requestSent, this](web::http::http_response response)
+        {
+          try
+          {
+            auto restCallTime = std::chrono::high_resolution_clock::now() - requestSent;
+
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+              auto handlerCalled = std::chrono::high_resolution_clock::now();
+              auto result = handler(response);
+              auto handlerDone = std::chrono::high_resolution_clock::now();
+
+              result.restQueryBuild = requestSent - start;
+              result.restResponseHandler = handlerDone - handlerCalled;
+              result.bfcppTotalProcess = result.restQueryBuild + result.restResponseHandler;
+              result.restApiCall = restCallTime;
+              return result;
+            }
+            else
+            {
+              ResultT result{};
+              result.bfcppTotalProcess = std::chrono::high_resolution_clock::now() - start;
+              result.restApiCall = restCallTime;
+              result.valid(false, handleRestCallError(response));
+              return result;
+            }         
+          }
+          catch (const std::exception ex)
+          {
+            throw BfcppException(ex.what());
+          }          
+        });
+      }
+      catch (const pplx::task_canceled tc)
+      {
+        throw BfcppException("Receive task cancelled: " + string{ tc.what() });
+      }
+      catch (const std::exception ex)
+      {
+        throw BfcppException(ex.what());
+      }
+    }
+
+
     pplx::task<NewOrderPerformanceResult> doNewOrderPerfomanceCheck(map<string, string>&& order)
     {
       try
@@ -804,7 +879,7 @@ private:
           return result;
         };
 
-        return sendRestRequestPerformanceCheck(RestCall::NewOrder, web::http::methods::POST, true, marketType(), handler, receiveWindow(RestCall::NewOrder), std::move(order));
+        return sendRestRequestPerformanceCheck<NewOrderPerformanceResult>(RestCall::NewOrder, web::http::methods::POST, true, marketType(), handler, receiveWindow(RestCall::NewOrder), std::move(order));
       }
       catch (const pplx::task_canceled tc)
       {
@@ -817,58 +892,83 @@ private:
     }
 
 
-    pplx::task<NewOrderPerformanceResult> sendRestRequestPerformanceCheck(const RestCall call, const web::http::method method, const bool sign, const MarketType mt, std::function<NewOrderPerformanceResult (web::http::http_response)> handler, const string& rcvWindow, map<string, string>&& query = {})
+
+    pplx::task<NewOrderBatchPerformanceResult> doNewOrderBatchPerfomanceCheck(vector<map<string, string>>&& orders)
     {
       try
       {
-        auto start = std::chrono::high_resolution_clock::now();
+        Clock::time_point handlerStart, handlerStop;
 
-        string queryString{ createQueryString(std::move(query), call, true, rcvWindow) };
-
-        auto request = createHttpRequest(method, getApiPath(mt, call) + "?" + queryString);
-
-        web::http::client::http_client client{ web::uri { utility::conversions::to_string_t(getApiUri(mt)) } };
-
-        auto requestSent = std::chrono::high_resolution_clock::now();
-        return client.request(std::move(request)).then([handler, start, requestSent](web::http::http_response response)
+        auto handler = [&handlerStart, &handlerStop](web::http::http_response response)
         {
-          auto restCallTime = std::chrono::high_resolution_clock::now() - requestSent;
+          handlerStart = Clock::now();
 
-          if (response.status_code() == web::http::status_codes::OK)
-          { 
-            auto handlerCalled = std::chrono::high_resolution_clock::now();
-            auto result = handler(response);
-            auto handlerDone = std::chrono::high_resolution_clock::now();
-
-            result.restQueryBuild = requestSent - start;
-            result.restResponseHandler = handlerDone - handlerCalled;
-            // requestSent - Start: is the time it takes to build the request
-            // handlerDone - handlerCalled: time for the handler 
-            result.bfcppTotalProcess = result.restQueryBuild + result.restResponseHandler;
-            result.restApiCall = restCallTime;
-            return result;
-          }
-          else
+          NewOrderBatchPerformanceResult result;
+          
+          auto json = response.extract_json().get();
+          
+          auto& jsonArray = json.as_array();
+          for (auto& order : jsonArray)
           {
-            NewOrderPerformanceResult result{};
-            result.bfcppTotalProcess = std::chrono::high_resolution_clock::now() - start;
-            result.restApiCall = restCallTime;
+            map<string, string> orderValues;
+            getJsonValues(order, orderValues, set<string> {  "clientOrderId", "cumQty", "cumQuote", "executedQty", "orderId", "avgPrice", "origQty", "price", "reduceOnly", "side", "positionSide", "status",
+                                                              "stopPrice", "closePosition", "symbol", "timeInForce", "type", "origType", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
 
-            result.valid(false, utility::conversions::to_utf8string(response.extract_json().get().serialize()));
-            return result;
+            result.response.emplace_back(std::move(orderValues));
           }
-        });
+          
+          return result;          
+        };
+
+        // convert the vector of orders to single JSON string and create the query string from that
+        const static map<string, web::json::value::value_type> NonStringTypes = { {"orderId", web::json::value::Number}, {"reduceOnly", web::json::value::Boolean},
+                                                                                  {"updateTime", web::json::value::Number}, {"priceProtect", web::json::value::Boolean}};
+
+        web::json::value list = web::json::value::array();
+        size_t i = 0;
+
+        for (auto& order : orders)
+        {
+          auto entry = list.object();
+
+          for (auto& pair : order)
+          {
+            auto key = utility::conversions::to_string_t(pair.first);
+
+            if (auto typeEntry = NonStringTypes.find(pair.first); typeEntry == NonStringTypes.end())
+            {
+              entry[key] = web::json::value::string(utility::conversions::to_string_t(pair.second));
+            }
+            else
+            {
+              if (typeEntry->second == web::json::value::Number)
+              {
+                entry[key] = web::json::value::number(static_cast<int64_t>(std::stoll(utility::conversions::to_string_t(pair.second)))); // TODO confirm long long correct
+              }
+              else if (typeEntry->second == web::json::value::Boolean)
+              {
+                entry[key] = web::json::value::boolean(pair.second == "true" || pair.second == "TRUE");
+              }
+            }
+          }
+
+          list[i++] = std::move(entry);
+        }
+
+        map<string, string> query;
+        query["batchOrders"] = utility::conversions::to_utf8string(web::http::uri::encode_data_string(list.serialize()));
+
+        return sendRestRequestPerformanceCheck<NewOrderBatchPerformanceResult>(RestCall::NewBatchOrder, web::http::methods::POST, true, marketType(), handler, receiveWindow(RestCall::NewBatchOrder), std::move(query));
       }
       catch (const pplx::task_canceled tc)
       {
-        throw;
+        throw BfcppDisconnectException("newOrder");
       }
       catch (const std::exception ex)
       {
-        throw;
+        throw BfcppException(ex.what());
       }
     }
-
   };
 }
 

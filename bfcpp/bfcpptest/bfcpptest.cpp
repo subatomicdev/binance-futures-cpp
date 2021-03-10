@@ -520,7 +520,7 @@ using namespace std::chrono;
 static size_t NumNewOrders = 5;
 
 
-void performanceCheckSync(const ApiAccess& access)
+void performanceNewOrderCheckSync(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures New Order Sync Performance ---\n";
 
@@ -589,7 +589,7 @@ void performanceCheckSync(const ApiAccess& access)
 }
 
 
-void performanceCheckAsync(const ApiAccess& access)
+void performanceNewOrderCheckAsync(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures New Order Async Performance ---\n";
 	
@@ -661,6 +661,78 @@ void performanceCheckAsync(const ApiAccess& access)
 }
 
 
+// The batch order isn't very reliable, at least on the Testnet, there's a regular Bad Gateway error
+void performanceNewOrderBatchCheckAsync(const ApiAccess& access)
+{
+	std::cout << "\n\n--- USD-M Futures New Order Async Performance ---\n";
+
+	static size_t NumBatchOrders = 10;
+	static size_t MaxOrdersPerBatchCall = 5;
+
+	UsdFuturesTestMarketPerfomance market{ access };
+
+	vector<pplx::task<NewOrderBatchPerformanceResult>> results;
+	results.reserve(NumBatchOrders/MaxOrdersPerBatchCall);
+
+
+	auto start = Clock::now();
+	for (size_t i = 0; i < NumBatchOrders/MaxOrdersPerBatchCall; ++i)
+	{
+		vector<map<string, string>> orders;
+		for (size_t i = 0; i < MaxOrdersPerBatchCall; ++i)
+		{
+			orders.emplace_back(map<string, string> { { "symbol", "BTCUSDT" }, { "side", "BUY" }, { "type", "MARKET" }, { "quantity", "0.001" } });
+		}
+
+		auto result = market.newOrderBatchPerfomanceCheckAsync(std::move(orders));
+		results.emplace_back(std::move(result));
+	}
+
+
+	// wait for the new order tasks to return
+	pplx::when_all(std::begin(results), std::end(results)).wait();
+
+	auto end = Clock::now();
+
+	high_resolution_clock::duration avgQueryBuild{}, avgApiCall{}, avgResponseHandler{},
+																	maxApiCall{ high_resolution_clock::duration::min() },
+																	minApiCall{ high_resolution_clock::duration::max() };
+
+	for (const auto& taskResult : results)
+	{
+		const auto& result = taskResult.get();
+
+		if (result.valid())
+		{
+			avgQueryBuild += result.restQueryBuild;
+			avgApiCall += result.restApiCall;
+			avgResponseHandler += result.restResponseHandler;
+			minApiCall = std::min<high_resolution_clock::duration>(minApiCall, result.restApiCall);
+			maxApiCall = std::max<high_resolution_clock::duration>(maxApiCall, result.restApiCall);
+		}
+		else
+		{
+			logg("Error: " + result.msg());
+		}
+	}
+
+	avgQueryBuild /= NumBatchOrders;
+	avgApiCall /= (NumBatchOrders/MaxOrdersPerBatchCall);
+	avgResponseHandler /= NumBatchOrders;
+
+	stringstream ss;
+	ss << "\nTotal: " << NumBatchOrders << " orders in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds\n";
+	ss << "\n|\t\t\t| time (nanoseconds) |" <<
+		"\n------------------------------------------" <<
+		"\nAvg. Rest Query Build:\t\t" << duration_cast<nanoseconds>(avgQueryBuild).count() <<
+		"\nAvg. Rest Call Latency:\t\t" << duration_cast<nanoseconds>(avgApiCall).count() << " (Min:" << duration_cast<nanoseconds>(minApiCall).count() << ", Max: " << duration_cast<nanoseconds>(maxApiCall).count() << ")" <<
+		"\nAvg. Rest Response Handler:\t" << duration_cast<nanoseconds>(avgResponseHandler).count() <<
+		"\n------------------------------------------";
+
+	logg(ss.str());
+}
+
+
 void newOrderAsync(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures New Order Async ---\n";
@@ -713,7 +785,6 @@ void newOrderAsync(const ApiAccess& access)
 }
 
 
-
 void newOrderBatch(const ApiAccess& access)
 {
 	std::cout << "\n\n--- USD-M Futures New Order Batch ---\n";
@@ -747,10 +818,10 @@ void newOrderBatch(const ApiAccess& access)
 			ss << "\n}";
 		}
 		logg(ss.str());
-	}
-	catch (BfcppException bef)
+	}	
+	catch (std::exception ex)
 	{
-		logg("error: " + string{ bef.what() });
+		logg(ex.what());
 	}
 }
 
@@ -873,7 +944,7 @@ int main(int argc, char** argv)
 		//monitorAllMarketMiniTicker();
 		//monitorMultipleStreams();
 		
-		klines();
+		//klines();
 		//exchangeInfo();
 
 		if (testNetMode)
@@ -890,9 +961,11 @@ int main(int argc, char** argv)
 
 			//accountBalance(access);
 
-			//performanceCheckSync(access);
+			//performanceNewOrderCheckSync(access);
 
-			//performanceCheckAsync(access);
+			//performanceNewOrderCheckAsync(access);
+
+			//performanceNewOrderBatchCheckAsync(access);
 
 			//newOrderAsync(access);
 
