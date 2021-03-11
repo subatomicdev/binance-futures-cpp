@@ -30,7 +30,7 @@ namespace bfcpp
       session->callback(std::any{ std::move(mtt) });
     };
 
-    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/!miniTicker@arr", handler);
+    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!miniTicker@arr", handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {
@@ -65,7 +65,7 @@ namespace bfcpp
       session->callback( std::any{ std::move(cs) });
     };
         
-    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@kline_" + interval, handler);
+    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@kline_" + interval, handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {
@@ -96,7 +96,7 @@ namespace bfcpp
     };
 
 
-    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@miniTicker", handler);
+    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@miniTicker", handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {
@@ -127,7 +127,7 @@ namespace bfcpp
     };
     
 
-    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@bookTicker", handler);
+    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@bookTicker", handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {
@@ -165,7 +165,7 @@ namespace bfcpp
       session->callback(std::any{ std::move(mp) });
     };
 
-    auto tokenAndSession = createMonitor3(m_exchangeBaseUri + "/ws/!markPrice@arr@1s", handler);
+    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!markPrice@arr@1s", handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {
@@ -190,7 +190,7 @@ namespace bfcpp
 
     if (createListenKey(m_marketType))
     {
-      if (auto session = connect3(m_exchangeBaseUri + "/ws/" + m_listenKey); session)
+      if (auto session = connect(m_exchangeBaseUri + "/ws/" + m_listenKey); session)
       {
         try
         {

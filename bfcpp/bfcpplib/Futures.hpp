@@ -550,7 +550,7 @@ namespace bfcpp
     bool createListenKey(const MarketType marketType);
 
 
-    shared_ptr<WebSocketSession> connect3(const string& uri)
+    shared_ptr<WebSocketSession> connect(const string& uri)
     {
       auto session = std::make_shared<WebSocketSession>();
       session->uri = uri;
@@ -572,13 +572,13 @@ namespace bfcpp
     }
 
 
-    std::tuple<MonitorToken, shared_ptr<WebSocketSession>> createMonitor3(const string& uri, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>)> handler)
+    std::tuple<MonitorToken, shared_ptr<WebSocketSession>> createMonitor(const string& uri, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>)> handler)
     {
       std::tuple<MonitorToken, shared_ptr<WebSocketSession>> tokenAndSession;
 
-      if (shared_ptr<WebSocketSession> session = connect3(uri); session)
+      if (shared_ptr<WebSocketSession> session = connect(uri); session)
       {
-        if (MonitorToken monitor = createReceiveTask3(session, handler);  monitor.isValid())
+        if (MonitorToken monitor = createReceiveTask(session, handler);  monitor.isValid())
         {
           session->id = monitor.id;
 
@@ -593,7 +593,7 @@ namespace bfcpp
     }
 
 
-    MonitorToken createReceiveTask3(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>)> extractFunc)
+    MonitorToken createReceiveTask(shared_ptr<WebSocketSession> session, std::function<void(ws::client::websocket_incoming_message, shared_ptr<WebSocketSession>)> extractFunc)
     {
       MonitorToken monitorToken;
 

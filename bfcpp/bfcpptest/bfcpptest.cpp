@@ -944,7 +944,7 @@ int main(int argc, char** argv)
 		//monitorAllMarketMiniTicker();
 		//monitorMultipleStreams();
 		
-		//klines();
+		klines();
 		//exchangeInfo();
 
 		if (testNetMode)
