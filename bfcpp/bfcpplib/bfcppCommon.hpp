@@ -60,7 +60,8 @@ namespace bfcpp
     KlineCandles,
     Ping,
     NewBatchOrder,
-    ExchangeInfo
+    ExchangeInfo,
+    OrderBook
   };
 
 
@@ -71,7 +72,8 @@ namespace bfcpp
     MarkPrice,
     SymbolMiniTicker,
     SymbolBookTicker,
-    AllMarketMiniTicker
+    AllMarketMiniTicker,
+    BookDepth
   };
   
   enum class MarketType
@@ -128,7 +130,8 @@ namespace bfcpp
       {RestCall::KlineCandles, "/fapi/v1/klines"},
       {RestCall::Ping, "/fapi/v1/ping"},
       {RestCall::NewBatchOrder, "/fapi/v1/batchOrders"},
-      {RestCall::ExchangeInfo, "/fapi/v1/exchangeInfo"}
+      {RestCall::ExchangeInfo, "/fapi/v1/exchangeInfo"},
+      {RestCall::OrderBook, "/fapi/v1/depth"}
   };
 
 
@@ -404,6 +407,16 @@ namespace bfcpp
   };
 
 
+  struct OrderBook : public RestResult
+  {
+    OrderBook() : RestResult(RestCall::OrderBook) {}
+
+    string transactionTime;
+    string messageOutputTime;
+    string lastUpdateId;
+    vector<std::pair<string, string>> bids;
+    vector<std::pair<string, string>> asks;
+  };
 
 
   // Data used in Monitor callbacks
@@ -466,6 +479,23 @@ namespace bfcpp
     }
 
     vector<map<string, string>> data;
+  };
+
+
+  struct BookDepthStream : public StreamCallbackData
+  {
+    BookDepthStream() : StreamCallbackData(StreamCall::BookDepth)
+    {
+    }
+
+    string eventTime;
+    string transactionTime;
+    string symbol;
+    string firstUpdateId;
+    string finalUpdateId;
+    string previousFinalUpdateId; // 'pu' field
+    vector<pair<string, string>> bids;
+    vector<pair<string, string>> asks;
   };
 
 

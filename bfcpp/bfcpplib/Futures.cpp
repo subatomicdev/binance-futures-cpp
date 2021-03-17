@@ -248,6 +248,87 @@ namespace bfcpp
 
 
 
+  MonitorToken UsdFuturesMarket::monitorPartialBookDepth(const string& symbol, const string& level, const string& interval, std::function<void(std::any)> onData)
+  {
+    if (onData == nullptr)
+    {
+      throw BfcppException{ BFCPP_FUNCTION_MSG(" callback function null") };
+    }
+
+    return doMonitorBookDepth(symbol, level, interval, onData);
+  }
+
+
+
+  MonitorToken UsdFuturesMarket::monitorDiffBookDepth(const string& symbol, const string& interval, std::function<void(std::any)> onData)
+  {
+    if (onData == nullptr)
+    {
+      throw BfcppException{ BFCPP_FUNCTION_MSG(" callback function null") };
+    }
+
+    return doMonitorBookDepth(symbol, "", interval, onData);
+  }
+
+
+
+  MonitorToken UsdFuturesMarket::doMonitorBookDepth(const string& symbol, const string& level, const string& interval, std::function<void(std::any)> onData)
+  {
+    auto handler = [](ws::client::websocket_incoming_message websocketInMessage, shared_ptr<WebSocketSession> session)
+    {
+      static const utility::string_t SymbolField = utility::conversions::to_string_t("s");
+      static const utility::string_t EventTimeField = utility::conversions::to_string_t("E");
+      static const utility::string_t TransactionTimeField = utility::conversions::to_string_t("T");
+      static const utility::string_t FirstUpdateIdField = utility::conversions::to_string_t("U");
+      static const utility::string_t FinalUpdateIdField = utility::conversions::to_string_t("u");
+      static const utility::string_t PreviousFinalUpdateIdField = utility::conversions::to_string_t("pu");
+      static const utility::string_t BidsField = utility::conversions::to_string_t("b");
+      static const utility::string_t AsksField = utility::conversions::to_string_t("a");
+
+
+      BookDepthStream result;
+
+      auto json = web::json::value::parse(websocketInMessage.extract_string().get());
+
+      result.symbol = jsonValueToString(json[utility::conversions::to_string_t(SymbolField)]);
+      result.eventTime = jsonValueToString(json[utility::conversions::to_string_t(EventTimeField)]);
+      result.transactionTime = jsonValueToString(json[utility::conversions::to_string_t(TransactionTimeField)]);
+      result.firstUpdateId = jsonValueToString(json[utility::conversions::to_string_t(FirstUpdateIdField)]);
+      result.finalUpdateId = jsonValueToString(json[utility::conversions::to_string_t(FinalUpdateIdField)]);
+      result.previousFinalUpdateId = jsonValueToString(json[utility::conversions::to_string_t(PreviousFinalUpdateIdField)]);
+
+      // bids
+      auto& bidsArray = json[BidsField].as_array();
+
+      for (auto& bid : bidsArray)
+      {
+        auto& bidValue = bid.as_array();
+        result.bids.emplace_back(std::make_pair(jsonValueToString(bidValue[0]), jsonValueToString(bidValue[1])));
+      }
+
+      // asks 
+      auto& asksArray = json[AsksField].as_array();
+
+      for (auto& ask : asksArray)
+      {
+        auto& askValue = ask.as_array();
+        result.asks.emplace_back(std::make_pair(jsonValueToString(askValue[0]), jsonValueToString(askValue[1])));
+      }
+
+      session->callback(std::any{ std::move(result) });
+    };
+
+    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/" + strToLower(symbol) + "@depth" + level + "@" + interval, handler);
+
+    if (std::get<0>(tokenAndSession).isValid())
+    {
+      std::get<1>(tokenAndSession)->callback = onData;
+    }
+
+    return std::get<0>(tokenAndSession);
+  }
+
+
   // -- REST Calls --
 
 
@@ -543,6 +624,61 @@ namespace bfcpp
 
 
 
+  OrderBook UsdFuturesMarket::orderBook(map<string, string>&& query)
+  {
+    try
+    {
+      auto handler = [](web::http::http_response response)
+      {
+        OrderBook result;
+
+        auto json = response.extract_json().get();
+
+        static const utility::string_t BidsField = utility::conversions::to_string_t("bids");
+        static const utility::string_t AsksField = utility::conversions::to_string_t("asks");
+
+        result.messageOutputTime = jsonValueToString(json[utility::conversions::to_string_t("E")]);
+        result.transactionTime = jsonValueToString(json[utility::conversions::to_string_t("T")]);
+        result.lastUpdateId = jsonValueToString(json[utility::conversions::to_string_t("lastUpdateId")]);
+
+        // bids
+        auto& bidsArray = json[BidsField].as_array();
+
+        for (auto& bid : bidsArray)
+        {
+          auto& bidValue = bid.as_array();
+          result.bids.emplace_back(std::make_pair(jsonValueToString(bidValue[0]), jsonValueToString(bidValue[1])));
+        }
+
+        // asks 
+        auto& asksArray = json[AsksField].as_array();
+
+        for (auto& ask : asksArray)
+        {
+          auto& askValue = ask.as_array();
+          result.asks.emplace_back(std::make_pair(jsonValueToString(askValue[0]), jsonValueToString(askValue[1])));
+        }
+
+        return result;
+      };
+
+      return sendRestRequest<OrderBook>(RestCall::OrderBook , web::http::methods::GET, false, m_marketType, handler, receiveWindow(RestCall::OrderBook), std::move(query)).get();
+    }
+    catch (const pplx::task_canceled tc)
+    {
+      throw BfcppDisconnectException("klines");
+    }
+    catch (const std::exception ex)
+    {
+      throw BfcppException(ex.what());
+    }
+  }
+
+  
+
+
+
+
   // -- connection/session ---
 
   void UsdFuturesMarket::disconnect(const MonitorToken& mt, const bool deleteSession)
@@ -630,6 +766,7 @@ namespace bfcpp
       throw BfcppException(ex.what());
     }
   }
+
 
 
 

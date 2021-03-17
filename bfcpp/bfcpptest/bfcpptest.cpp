@@ -342,6 +342,85 @@ void monitorAllMarketMiniTicker()
 	std::this_thread::sleep_for(10s);
 }
 
+
+
+void monitorPartialBookDepth()
+{
+	std::cout << "\n\n--- USD-M Futures Monitor Partial Book ---\n";
+
+	auto onPartialBookDepthHandler = [](std::any data)
+	{
+		auto result = std::any_cast<BookDepthStream> (data);
+
+		stringstream ss;
+
+		ss << "\nsymbol: " << result.symbol << "\nfirstUpdateId: " << result.firstUpdateId << "\nfinalUpdateId: " << result.finalUpdateId << "\npreviousFinalUpdateId: " << result.previousFinalUpdateId
+			 << "\ntransactionTime: " << result.transactionTime;
+
+		ss << "\nBids:\n{";
+		std::for_each(std::begin(result.bids), std::end(result.bids), [&ss](auto& value) { ss << "\n\tPrice: " << value.first << ", Qty: " << value.second;  });
+		ss << "\n}";
+
+		ss << "\nBids:\n{";
+		std::for_each(std::begin(result.asks), std::end(result.asks), [&ss](auto& value) { ss << "\n\tPrice: " << value.first << ", Qty: " << value.second;  });
+		ss << "\n}";
+
+		logg(ss.str());
+	};
+
+
+	UsdFuturesMarket futures;
+	if (auto token = futures.monitorPartialBookDepth("BTCUSDT", "20", "100ms", onPartialBookDepthHandler); !token.isValid())
+	{
+		logg("Failed to create monitor");
+		futures.cancelMonitor(token);
+	}
+	else
+	{
+		std::this_thread::sleep_for(10s);
+	}	
+}
+
+
+
+void monitorDiffBookDepth()
+{
+	std::cout << "\n\n--- USD-M Futures Monitor Diff Book ---\n";
+
+	auto onPartialBookDepthHandler = [](std::any data)
+	{
+		auto result = std::any_cast<BookDepthStream> (data);
+
+		stringstream ss;
+
+		ss << "\nsymbol: " << result.symbol << "\nfirstUpdateId: " << result.firstUpdateId << "\nfinalUpdateId: " << result.finalUpdateId << "\npreviousFinalUpdateId: " << result.previousFinalUpdateId
+			<< "\ntransactionTime: " << result.transactionTime;
+
+		ss << "\nBids:\n{";
+		std::for_each(std::begin(result.bids), std::end(result.bids), [&ss](auto& value) { ss << "\n\tPrice: " << value.first << ", Qty: " << value.second;  });
+		ss << "\n}";
+
+		ss << "\nBids:\n{";
+		std::for_each(std::begin(result.asks), std::end(result.asks), [&ss](auto& value) { ss << "\n\tPrice: " << value.first << ", Qty: " << value.second;  });
+		ss << "\n}";
+
+		logg(ss.str());
+	};
+
+
+	UsdFuturesMarket futures;
+	if (auto token = futures.monitorDiffBookDepth("BTCUSDT", "100ms", onPartialBookDepthHandler); !token.isValid())
+	{
+		logg("Failed to create monitor");
+		futures.cancelMonitor(token);
+	}
+	else
+	{
+		std::this_thread::sleep_for(10s);
+	}
+}
+
+
 /// <summary>
 /// 1. Get all orders (which defaults to within 7 days)
 /// 2. Get all orders for today
@@ -894,6 +973,36 @@ void exchangeInfo ()
 }
 
 
+
+void orderBook()
+{
+	std::cout << "\n\n--- USD-M Futures Order Book/Depth ---\n";
+
+	UsdFuturesMarket futuresTest{};
+
+	logg("Sending request");
+
+	auto result = futuresTest.orderBook({ {"symbol","BTCUSDT"}, {"limit","50"}});
+
+
+	stringstream ss;
+
+	ss << "\nlastUpdateId: " << result.lastUpdateId << "\nE: " << result.messageOutputTime << "\nT: " << result.transactionTime;
+	
+	ss << "\nBids:\n{";
+	std::for_each(std::begin(result.bids), std::end(result.bids), [&ss](auto& value) { ss << "\n\tPrice: " << value.first << ", Qty: " << value.second;  });
+	ss << "\n}";
+
+	ss << "\nBids:\n{";
+	std::for_each(std::begin(result.asks), std::end(result.asks), [&ss](auto& value) { ss << "\n\tPrice: " << value.first << ", Qty: " << value.second;  });
+	ss << "\n}";
+
+	logg(ss.str());
+}
+
+
+
+
 int main(int argc, char** argv)
 {
 	try
@@ -943,9 +1052,14 @@ int main(int argc, char** argv)
 		//monitorSymbolBook();
 		//monitorAllMarketMiniTicker();
 		//monitorMultipleStreams();
-		
-		klines();
-		//exchangeInfo();
+		//monitorPartialBookDepth();
+		//monitorDiffBookDepth();
+
+
+		//klines();
+		exchangeInfo();
+		//orderBook();
+
 
 		if (testNetMode)
 		{

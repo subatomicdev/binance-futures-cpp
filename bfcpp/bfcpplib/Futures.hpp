@@ -108,8 +108,8 @@ namespace bfcpp
 
 
     /// <summary>
-    /// Receives from the miniTicker stream for all symbols
-    /// Updates every 1000ms (limited by the Binance API).
+    /// Receives from the miniTicker stream for all symbols. Updates every 1000ms (limited by the Binance API).
+    /// See https://binance-docs.github.io/apidocs/futures/en/#all-market-mini-tickers-stream
     /// </summary>
     /// <param name="onData">Your callback function. See this classes docs for an explanation</param>
     /// <returns>A MonitorToken. If MonitorToken::isValid() is a problem occured.</returns>
@@ -117,7 +117,8 @@ namespace bfcpp
 
 
     /// <summary>
-    /// Receives from the 
+    /// Receives from the Kline/Candlestick stream.
+    /// See https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-streams
     /// </summary>
     /// <param name="symbol"></param>
     /// <param name="onData"></param>
@@ -128,6 +129,7 @@ namespace bfcpp
     /// <summary>
     /// Receives from the symbol mini ticker
     /// Updated every 1000ms (limited by the Binance API).
+    /// See https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-mini-ticker-stream
     /// </summary>
     /// <param name="symbol">The symbtol to monitor</param>
     /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
@@ -137,12 +139,28 @@ namespace bfcpp
 
     /// <summary>
     /// Receives from the Individual Symbol Book stream for a given symbol in real time.
+    /// See https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-book-ticker-streams
     /// </summary>
     /// <param name="symbol">The symbol</param>
     /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
     /// <returns></returns>
     MonitorToken monitorSymbolBookStream(const string& symbol, std::function<void(std::any)> onData);
 
+
+    /// <summary>
+    /// Receives from the Partial Book Depth Stream.
+    /// See https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams.
+    /// </summary>
+    /// <param name="symbol"></param>
+    /// <param name="level"></param>
+    /// <param name="interval"></param>
+    /// <param name="onData"></param>
+    /// <returns></returns>
+    MonitorToken monitorPartialBookDepth(const string& symbol, const string& level, const string& interval, std::function<void(std::any)> onData);
+
+
+
+    MonitorToken monitorDiffBookDepth(const string& symbol, const string& interval, std::function<void(std::any)> onData);
 
 
 
@@ -184,6 +202,8 @@ namespace bfcpp
 
     ExchangeInfo exchangeInfo();
 
+
+    OrderBook orderBook(map<string, string>&& query);
 
 
     // --- order management
@@ -459,6 +479,9 @@ namespace bfcpp
     }
 
 
+    MonitorToken doMonitorBookDepth(const string& symbol, const string& level, const string& interval, std::function<void(std::any)> onData);
+
+
     void onUserDataTimer()
     {
       auto request = createHttpRequest(web::http::methods::PUT, getApiPath(m_marketType, RestCall::ListenKey));
@@ -603,34 +626,34 @@ namespace bfcpp
         monitorToken.id = m_monitorId++;
 
         session->receiveTask = pplx::create_task([session, token, extractFunc, mt = monitorToken.id, this]
+        {
+          while (!token.is_canceled())
           {
-            while (!token.is_canceled())
+            session->client.receive().then([=](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
             {
-              session->client.receive().then([=](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
+              if (!token.is_canceled())
               {
-                if (!token.is_canceled())
-                {
-                  extractFunc(websocketInMessage.get(), session);
-                }
-                else
-                {
-                  pplx::cancel_current_task();
-                }
+                extractFunc(websocketInMessage.get(), session);
+              }
+              else
+              {
+                pplx::cancel_current_task();
+              }
 
-              }, token).wait();
-            }
+            }, token).wait();
+          }
 
-            pplx::cancel_current_task();
+          pplx::cancel_current_task();
 
-          }, token);
+        }, token);
       }
-      catch (const web::websockets::client::websocket_exception we)
+      catch (pplx::task_canceled tc)
       {
-        std::cout << we.what();
+        throw BfcppDisconnectException(session->uri);
       }
       catch (const std::exception ex)
       {
-        std::cout << ex.what();
+        throw BfcppException(ex.what());
       }
 
       return monitorToken;
