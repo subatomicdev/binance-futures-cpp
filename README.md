@@ -9,21 +9,9 @@ The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functio
 ---
 
 ## Recent Updates
-**9th March 2021**
-- Changed the design of monitor functions,removing the BinanceKeyValueMap and BinanceMultiKeyValueMap
-- Monitor functions now take an std::any , with which you std::any_cast to the appropriate type (see Example section)
-
-**8th March 2021**
-- Added newOrderBatch() and newOrderBatchAsync()
-- Added exchangeInfo()
-
-**7th March 2021**
-- Added async version of newOrder() and cancelOrder()
-- Added class and functions to test timing
-
-**5th March 2021**
-- Added accountBalance(), klines(), takerBuySellVolume()
-- Fixed problem with not disconnecting
+**17th March 2021**
+- Added monitor of partialBookDepth and diffBookDepth for websocket streams
+- Added orderBook Rest call
 
 ---
 
