@@ -203,7 +203,7 @@ namespace bfcpp
           m_sessions.push_back(session);
 
           auto token = session->getCancelToken();
-          session->receiveTask = pplx::create_task([session, token, &onData, this]
+          session->receiveTask = pplx::create_task([session, token, onData, this]
           {
             try
             {
@@ -821,7 +821,7 @@ namespace bfcpp
 
         case UsdFutureUserData::EventType::MarginCall:
         {
-          const utility::string_t BalancesField = utility::conversions::to_string_t("B");
+          const utility::string_t BalancesField = utility::conversions::to_string_t("p");
 
           getJsonValues(jsonVal, userData.mc.data, { "e", "E", "cw" });
 
