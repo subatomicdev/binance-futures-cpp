@@ -558,8 +558,6 @@ namespace bfcpp
           throw;
         }
       }
-
-      pplx::cancel_current_task();
     }
 
 
@@ -620,12 +618,12 @@ namespace bfcpp
     {
       MonitorToken monitorToken;
 
-      try
-      {
-        auto token = session->getCancelToken();
-        monitorToken.id = m_monitorId++;
+      auto token = session->getCancelToken();
+      monitorToken.id = m_monitorId++;
 
-        session->receiveTask = pplx::create_task([session, token, extractFunc, mt = monitorToken.id, this]
+      session->receiveTask = pplx::create_task([session, token, extractFunc, mt = monitorToken.id, this]
+      {
+        try
         {
           while (!token.is_canceled())
           {
@@ -633,20 +631,30 @@ namespace bfcpp
             {
               if (!token.is_canceled())
               {
-                extractFunc(websocketInMessage.get(), session);
+                try
+                {                  
+                  if (auto msg = websocketInMessage.get(); msg.message_type() == ws::client::websocket_message_type::text_message)
+                  {
+                    extractFunc(msg, session);
+                  }                  
+                }
+                catch (const std::exception ex)
+                {
+                  throw BfcppException(ex.what());
+                }                
               }
             }, token).wait();
           }
-        }, token);
-      }
-      catch (pplx::task_canceled tc)
-      {
-        throw BfcppDisconnectException(session->uri);
-      }
-      catch (const std::exception ex)
-      {
-        throw BfcppException(ex.what());
-      }
+        }
+        catch (pplx::task_canceled)
+        {
+          throw BfcppDisconnectException(session->uri);
+        }
+        catch (const std::exception ex)
+        {
+          throw BfcppException(ex.what());
+        }
+      }, token);
 
       return monitorToken;
     }
