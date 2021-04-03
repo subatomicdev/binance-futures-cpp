@@ -695,7 +695,7 @@ namespace bfcpp
         session->receiveTask.wait();
       }
 
-      session->client.close(ws::client::websocket_close_status::normal).then([&session]()
+      session->client.close(ws::client::websocket_close_status::going_away).then([&session]()
       {
         session->connected = false;
       }).wait();

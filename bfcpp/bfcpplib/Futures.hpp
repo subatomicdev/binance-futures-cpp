@@ -635,16 +635,8 @@ namespace bfcpp
               {
                 extractFunc(websocketInMessage.get(), session);
               }
-              else
-              {
-                pplx::cancel_current_task();
-              }
-
             }, token).wait();
           }
-
-          pplx::cancel_current_task();
-
         }, token);
       }
       catch (pplx::task_canceled tc)
