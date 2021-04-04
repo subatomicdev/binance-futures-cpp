@@ -28,11 +28,11 @@ See "New Order - Async" for a code example.
 
 
 ## Results
-All times in nanoseconds.
+All times in nanoseconds. Ran on an Intel i7-6700 (8Mb L3 cache, 4 cores/8 threads). 
 
 - Avg. Rest Query Build: time to build the HTTP request objects
 - Avg. Rest Call Latency: time between sending the HTTP request to Binance and receiving the response
-- Avg. Rest Response Handler: time to parse/extract the JSON in the HTTP response which populates return object
+- Avg. Rest Response Handler: time to parse/extract the JSON in the HTTP response which populates the return object
 
 
 ### Sync
