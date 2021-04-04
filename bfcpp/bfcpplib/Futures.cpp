@@ -139,7 +139,7 @@ namespace bfcpp
 
 
 
-  MonitorToken UsdFuturesMarket::monitorMarkPrice(std::function<void(std::any)> onData)
+  MonitorToken UsdFuturesMarket::monitorMarkPrice(std::function<void(std::any)> onData, const string& symbol)
   {
     if (onData == nullptr)
     {
@@ -152,20 +152,36 @@ namespace bfcpp
       auto json = web::json::value::parse(websocketInMessage.extract_string().get());
 
       MarkPriceStream mp;
-            
-      auto& prices = json.as_array();
-      for (auto& price : prices)
+      
+      if (json.is_array())
       {
+        auto& prices = json.as_array();
+        for (auto& price : prices)
+        {
+          map<string, string> values;
+          getJsonValues(price, values, { "e", "E","s","p","i","P","r","T" });
+
+          mp.prices.emplace_back(std::move(values));
+        }
+      }
+      else
+      {
+        // called with the symbol set, so not an array
         map<string, string> values;
-        getJsonValues(price, values, { "e", "E","s","p","i","P","r","T" });
-        
+        getJsonValues(json, values, { "e", "E","s","p","i","P","r","T" });
+
         mp.prices.emplace_back(std::move(values));
       }
       
       session->callback(std::any{ std::move(mp) });
     };
 
-    auto tokenAndSession = createMonitor(m_exchangeBaseUri + "/ws/!markPrice@arr@1s", handler);
+    string uri = "/ws/!markPrice@arr@1s";
+
+    if (!symbol.empty())
+      uri = "/ws/"+ strToLower(symbol)+"@markPrice@1s";
+
+    auto tokenAndSession = createMonitor(m_exchangeBaseUri + uri, handler);
 
     if (std::get<0>(tokenAndSession).isValid())
     {

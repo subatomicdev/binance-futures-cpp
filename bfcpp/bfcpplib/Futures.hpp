@@ -25,7 +25,7 @@ namespace bfcpp
   /// </summary>
   class UsdFuturesMarket
   {
-    inline const static string DefaultReceiveWindwow = "5000";
+    inline const static string DefaultReceiveWindow = "5000";
 
 
   protected:
@@ -47,17 +47,23 @@ namespace bfcpp
       disconnect();
     }
 
+    /// <summary>
+    /// Gets the receive window for the given call. This will return the default (DefaultReceiveWindow) unless 
+    /// overwritten with setReceiveWindow().
+    /// </summary>
+    /// <param name="rc">The rest call type</param>
+    /// <returns>Time, in milliseconds, as a string</returns>
     string receiveWindow(const RestCall rc)
     {
       if (auto it = m_receiveWindowMap.find(rc); it == m_receiveWindowMap.cend())
-        return DefaultReceiveWindwow;
+        return DefaultReceiveWindow;
       else
         return it->second;
     }
 
     /// <summary>
     /// This measures the time it takes to send a "PING" request to the exchange and receive a reply.
-    /// It includes near zero processing time by bfcpp, so the returned duration can be assumed to be network latency and Binance's processing time.
+    /// It includes near zero processing by bfcpp, so the returned duration can be assumed to be network latency plus Binance's processing time.
     /// Testing has seen this latency range from 300ms to 750ms between calls, whilst an ICMP ping is 18ms.
     /// See https://binance-docs.github.io/apidocs/futures/en/#test-connectivity.
     /// </summary>
@@ -86,33 +92,35 @@ namespace bfcpp
     }
 
 
-    /// <summary>
-    /// Futures Only. Receives data from here: https://binance-docs.github.io/apidocs/futures/en/#mark-price-stream-for-all-market
-    /// </summary>
-    /// <param name = "onData">Your callback function. See this classes docs for an explanation </param>
-    /// <returns></returns>
-    MonitorToken monitorMarkPrice(std::function<void(std::any)> onData);
-
-
-    /// <summary>
-    /// Monitor data on the spot market.
-    /// </summary>
-    /// <param name="apiKey"></param>
-    /// <param name="onData"></param>
-    /// <param name="mode"></param>
-    /// <returns></returns>
-    MonitorToken monitorUserData(std::function<void(std::any)> onData);
 
 
     // --- monitor functions
 
 
     /// <summary>
+    /// See https://binance-docs.github.io/apidocs/futures/en/#mark-price-stream-for-all-market.
+    /// This is hardwired to the max frequency of 1000ms.
+    /// </summary>
+    /// <param name = "onData">Your callback function. The any holds an MarkPriceStream object</param>
+    /// <param name = "symbol">Optional symbol. If set, only mark price for that symbol is returned</param>
+    /// <returns>Monitor token, used to cancel the monitor</returns>
+    MonitorToken monitorMarkPrice(std::function<void(std::any)> onData, const string& symbol = "");
+
+
+    /// <summary>
+    /// Monitor data on the spot market.
+    /// </summary>
+    /// <param name = "onData">Your callback function. The any holds an UsdFutureUserData object</param>
+    /// <returns>Monitor token, used to cancel the monitor</returns>
+    MonitorToken monitorUserData(std::function<void(std::any)> onData);
+
+
+    /// <summary>
     /// Receives from the miniTicker stream for all symbols. Updates every 1000ms (limited by the Binance API).
     /// See https://binance-docs.github.io/apidocs/futures/en/#all-market-mini-tickers-stream
     /// </summary>
-    /// <param name="onData">Your callback function. See this classes docs for an explanation</param>
-    /// <returns>A MonitorToken. If MonitorToken::isValid() is a problem occured.</returns>
+    /// <param name = "onData">Your callback function. The any holds an AllMarketMiniTickerStream object</param>
+    /// <returns>Monitor token, used to cancel the monitor</returns>
     MonitorToken monitorMiniTicker(std::function<void(std::any)> onData);
 
 
@@ -120,19 +128,19 @@ namespace bfcpp
     /// Receives from the Kline/Candlestick stream.
     /// See https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-streams
     /// </summary>
-    /// <param name="symbol"></param>
-    /// <param name="onData"></param>
-    /// <returns></returns>
+    /// <param name="symbol">Which symbol receive sticks for</param>
+    /// <param name="interval">Period, such as "15m". See Binance docs.</param>
+    /// <param name = "onData">Your callback function. The any holds an CandleStream object</param>
+    /// <returns>Monitor token, used to cancel the monitor</returns>
     MonitorToken monitorKlineCandlestickStream(const string& symbol, const string& interval, std::function<void(std::any)> onData);
 
 
     /// <summary>
-    /// Receives from the symbol mini ticker
-    /// Updated every 1000ms (limited by the Binance API).
+    /// Receives from the symbol mini ticker. Updated every 500ms (limited by the Binance API).
     /// See https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-mini-ticker-stream
     /// </summary>
-    /// <param name="symbol">The symbtol to monitor</param>
-    /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
+    /// <param name="symbol">The symbol to monitor</param>
+    /// <param name = "onData">Your callback function. The any holds a SymbolMiniTickerStream</param>
     /// <returns></returns>
     MonitorToken monitorSymbol(const string& symbol, std::function<void(std::any)> onData);
 
@@ -142,7 +150,7 @@ namespace bfcpp
     /// See https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-book-ticker-streams
     /// </summary>
     /// <param name="symbol">The symbol</param>
-    /// <param name = "onData">Your callback function.See this classes docs for an explanation< / param>
+    /// <param name = "onData">Your callback function. The any holds a SymbolBookTickerStream</param>
     /// <returns></returns>
     MonitorToken monitorSymbolBookStream(const string& symbol, std::function<void(std::any)> onData);
 
@@ -151,24 +159,30 @@ namespace bfcpp
     /// Receives from the Partial Book Depth Stream.
     /// See https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams.
     /// </summary>
-    /// <param name="symbol"></param>
-    /// <param name="level"></param>
-    /// <param name="interval"></param>
-    /// <param name="onData"></param>
+    /// <param name="symbol">The symbol</param>
+    /// <param name="level">See docs</param>
+    /// <param name="interval">See docs</param>
+    /// <param name="onData">Your callback function. The any holds a BookDepthStream</param>
     /// <returns></returns>
     MonitorToken monitorPartialBookDepth(const string& symbol, const string& level, const string& interval, std::function<void(std::any)> onData);
 
 
-
+    /// <summary>
+    /// Receives from the Diff.Book Dept Stream. 
+    /// See https://binance-docs.github.io/apidocs/futures/en/#diff-book-depth-streams.
+    /// </summary>
+    /// <param name="symbol">See docs</param>
+    /// <param name="interval">See docs</param>
+    /// <param name="onData">Your callback function. The any holds a BookDepthStream</param>
+    /// <returns></returns>
     MonitorToken monitorDiffBookDepth(const string& symbol, const string& interval, std::function<void(std::any)> onData);
-
 
 
     /// <summary>
     /// See See https://binance-docs.github.io/apidocs/futures/en/#long-short-ratio
     /// </summary>
-    /// <param name="query"></param>
-    /// <returns></returns>
+    /// <param name="query">See docs</param>
+    /// <returns>See TakerBuySellVolume</returns>
     virtual TakerBuySellVolume takerBuySellVolume(map<string, string>&& query);
 
 
@@ -178,7 +192,7 @@ namespace bfcpp
     /// See https://binance-docs.github.io/apidocs/futures/en/#kline-candlestick-data
     /// </summary>
     /// <param name="query"></param>
-    /// <returns></returns>
+    /// <returns>See KlineCandlestick</returns>
     KlineCandlestick klines(map<string, string>&& query);
 
     
@@ -199,11 +213,20 @@ namespace bfcpp
     AccountBalance accountBalance();
 
 
-
+    /// <summary>
+    /// See https://binance-docs.github.io/apidocs/futures/en/#exchange-information
+    /// </summary>
+    /// <returns>See ExchangeInfo</returns>
     ExchangeInfo exchangeInfo();
 
 
+    /// <summary>
+    /// See https://binance-docs.github.io/apidocs/futures/en/#order-book
+    /// </summary>
+    /// <param name="query">See docs</param>
+    /// <returns>See OrderBook</returns>
     OrderBook orderBook(map<string, string>&& query);
+
 
 
     // --- order management
@@ -220,7 +243,7 @@ namespace bfcpp
     /// Use the priceTransform() function to make the price value suitable.
     /// </summary>
     /// <param name="order">Order params, see link above.</param>
-    /// <returns>See 'response' Rest, see link above.</returns>
+    /// <returns>See NewOrderResult.</returns>
     NewOrderResult newOrder(map<string, string>&& order)
     {
       return doNewOrder(std::move(order)).get();
@@ -332,12 +355,16 @@ namespace bfcpp
     /// </summary>
     /// <param name="call">The call for which this will set the time</param>
     /// <param name="ms">time in milliseconds</param>
-    void setReceiveWindow(const RestCall call, std::chrono::milliseconds ms)
+    void setReceiveWindow(const RestCall call, const std::chrono::milliseconds ms)
     {
       m_receiveWindowMap[call] = std::to_string(ms.count());
     }
 
-    MarketType marketType() const { return m_marketType; }
+    MarketType marketType() const
+    {
+      return m_marketType;
+    }
+
 
   private:
 

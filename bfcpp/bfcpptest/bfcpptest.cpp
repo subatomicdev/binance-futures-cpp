@@ -113,11 +113,9 @@ auto handleUserDataUsdFutures = [](std::any userData)
 /// <summary>
 /// A simple function to receive mark price from the Future's market for all symbols.
 /// </summary>
-void monitorMarkPrice()
+void monitorMarkPrice(string symbol = "")
 {
-	std::cout << "\n\n--- USD-M Futures Mark Price ---\n";
-
-	auto markPriceHanlder = [](std::any data)
+	auto markPriceHandler = [](std::any data)
 	{
 		auto priceData = std::any_cast<MarkPriceStream> (data);
 
@@ -132,17 +130,22 @@ void monitorMarkPrice()
 	};
 
 
+	if (symbol.empty())
+		std::cout << "\n\n--- USD-M Futures All Symbols Mark Price ---\n";
+	else
+		std::cout << "\n\n--- USD-M Futures " + symbol + " Mark Price ---\n";
+
+
 	UsdFuturesMarket usdFutures;
 
 	try
 	{
-		usdFutures.monitorMarkPrice(markPriceHanlder);
+		usdFutures.monitorMarkPrice(markPriceHandler, symbol);
 	}
 	catch (bfcpp::BfcppDisconnectException dex)
 	{
 		logg(dex.source() + " has been disconnected");
 	}
-	
 
 	std::this_thread::sleep_for(10s);
 }
@@ -1046,7 +1049,8 @@ int main(int argc, char** argv)
 
 
 		// these don't require keys
-		//monitorMarkPrice();
+		monitorMarkPrice();
+		//monitorMarkPrice("BTCUSDT");
 		//monitorCandleSticks();
 		//monitorSymbol();
 		//monitorSymbolBook();
@@ -1057,7 +1061,7 @@ int main(int argc, char** argv)
 
 
 		//klines();
-		exchangeInfo();
+		//exchangeInfo();
 		//orderBook();
 
 
