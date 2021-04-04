@@ -9,9 +9,11 @@ The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functio
 ---
 
 ## Recent Updates
-**17th March 2021**
-- Added monitor of partialBookDepth and diffBookDepth for websocket streams
-- Added orderBook Rest call
+**4th April 2021**
+- Added optional symbol arg to ```monitorMarkPrice()``` to monitor one symbol rather than all
+
+**3rd April 2021**
+- Fixed bug causing no websockets to stop responding when a ping was received
 
 ---
 
