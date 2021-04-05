@@ -13,7 +13,7 @@ The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functio
 - Added optional symbol arg to ```monitorMarkPrice()``` to monitor one symbol rather than all
 
 **3rd April 2021**
-- Fixed bug causing no websockets to stop responding when a ping was received
+- Fixed bug causing websockets to stop responding when a ping was received
 
 ---
 
