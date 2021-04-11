@@ -231,7 +231,7 @@ namespace bfcpp
             }
             catch (std::exception ex)
             {
-              throw BfcppException (ex.what());
+              pplx::cancel_current_task();
             }            
           }, token);
 

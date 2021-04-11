@@ -526,64 +526,43 @@ namespace bfcpp
 
     void handleUserDataStream(shared_ptr<WebSocketSession> session, std::function<void(UsdFutureUserData)> onData)
     {
-      while (!session->getCancelToken().is_canceled())
+      try
       {
-        try
+        while (!session->getCancelToken().is_canceled())
         {
-          auto  rcv = session->client.receive().then([=, token = session->getCancelToken()](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
+          session->client.receive().then([=, token = session->getCancelToken()](pplx::task<ws::client::websocket_incoming_message> websocketInMessage)
           {
             if (!token.is_canceled())
             {
-              try
+              std::string strMsg;
+              websocketInMessage.get().extract_string().then([=, &strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
               {
-                std::string strMsg;
-                websocketInMessage.get().extract_string().then([=, &strMsg, cancelToken = session->getCancelToken()](pplx::task<std::string> str_tsk)
+                if (!cancelToken.is_canceled())
                 {
-                  try
-                  {
-                    if (!cancelToken.is_canceled())
-                      strMsg = str_tsk.get();
-                  }
-                  catch (...)
-                  {
-                    throw;
-                  }
-                }, session->getCancelToken()).wait();
+                  strMsg = str_tsk.get();
+                }
+              }, token).wait();
 
 
-                if (!strMsg.empty())
+              if (!strMsg.empty())
+              {
+                std::error_code errCode;
+                if (auto json = web::json::value::parse(strMsg, errCode); errCode.value() == 0)
                 {
-                  std::error_code errCode;
-                  if (auto json = web::json::value::parse(strMsg, errCode); errCode.value() == 0)
-                  {
-                    extractUsdFuturesUserData(session, std::move(json));
-                  }
-                  else
-                  {
-                    throw BfcppException("Invalid json: " + strMsg); // TODO should this be an exception or just ignore?
-                  }
+                  extractUsdFuturesUserData(session, std::move(json));
                 }
               }
-              catch (pplx::task_canceled tc)
-              {
-                throw BfcppDisconnectException(session->uri);
-              }
-              catch (std::exception ex)
-              {
-                throw;
-              }
             }
-            else
-            {
-              pplx::cancel_current_task();
-            }
-
           }, session->getCancelToken()).wait();
         }
-        catch (...)
-        {
-          throw;
-        }
+      }
+      catch (pplx::task_canceled)
+      {
+        throw BfcppDisconnectException(session->uri);
+      }
+      catch (std::exception ex)
+      {
+        throw;
       }
     }
 
