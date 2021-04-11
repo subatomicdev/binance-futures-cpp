@@ -596,7 +596,7 @@ namespace bfcpp
     std::atomic_bool connected;
 
     void cancel()
-    {
+    { 
       cancelTokenSource.cancel();
     }
 
@@ -616,7 +616,6 @@ namespace bfcpp
 
 
 
-
   template <typename T>
   string toString(const T a_value, const int n = 6)
   {
@@ -631,16 +630,22 @@ namespace bfcpp
   {
     switch (auto t = jsonVal.type(); t)
     {
-      // [[likely]] TODO attribute in C++20
+#if __cplusplus > 201703L
+      [[likely]]
+#endif
     case json::value::value_type::String:
       return utility::conversions::to_utf8string(jsonVal.as_string());
       break;
+
 
     case json::value::value_type::Number:
       return std::to_string(jsonVal.as_number().to_int64());
       break;
 
-      // [[unlikely]] TODO attribute in C++20
+
+#if __cplusplus > 201703L
+      [[unlikely]]
+#endif
     case json::value::value_type::Boolean:
       return jsonVal.as_bool() ? utility::conversions::to_utf8string("true") : utility::conversions::to_utf8string("false");
       break;
@@ -655,10 +660,19 @@ namespace bfcpp
   inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, const string& key)
   {
     auto keyJsonString = utility::conversions::to_string_t(key);
-
     if (jsonVal.has_field(keyJsonString))
     {
-      values[key] = jsonValueToString(jsonVal.at(keyJsonString));
+      values.emplace(key, jsonValueToString(jsonVal.at(keyJsonString)));
+    }
+  }
+
+
+  inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, string&& key)
+  {
+    auto keyJsonString = utility::conversions::to_string_t(key);
+    if (jsonVal.has_field(keyJsonString))
+    {
+      values.emplace(std::move(key), jsonValueToString(jsonVal.at(keyJsonString)));
     }
   }
 
@@ -668,13 +682,9 @@ namespace bfcpp
   {
     for (const auto& v : jsonObj)
     {
-      auto keyUtf8String = utility::conversions::to_utf8string(v.first);
-
       if (keys.find(utility::conversions::to_utf8string(v.first)) != keys.cend())
       {
-        auto& keyJsonString = utility::conversions::to_string_t(v.first);
-
-        values[keyUtf8String] = jsonValueToString(v.second);
+        values.emplace(utility::conversions::to_utf8string(v.first), jsonValueToString(v.second));
       }
     }
   }
@@ -683,6 +693,15 @@ namespace bfcpp
   inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, const set<string>& keys)
   {
     for (const auto& k : keys)
+    {
+      getJsonValues(jsonVal, values, k);
+    }
+  }
+
+
+  inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, set<string>&& keys)
+  {
+    for (auto& k : keys)
     {
       getJsonValues(jsonVal, values, k);
     }

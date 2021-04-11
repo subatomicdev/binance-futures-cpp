@@ -705,16 +705,17 @@ namespace bfcpp
 
       session->cancel();
 
+      session->client.close(ws::client::websocket_close_status::going_away).then([&session]()
+      {
+        session->connected = false;
+      }).wait();
+
       // calling wait() on a task that's already cancelled throws an exception
       if (!session->receiveTask.is_done())
       {
         session->receiveTask.wait();
       }
-
-      session->client.close(ws::client::websocket_close_status::going_away).then([&session]()
-      {
-        session->connected = false;
-      }).wait();
+           
 
       // when called from disconnect() this flag is false to avoid invalidating iterators in m_idToSession, 
       // this is tidier than returning the new iterator from erase()

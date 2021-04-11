@@ -663,7 +663,7 @@ namespace bfcpp
                   if (auto msg = websocketInMessage.get(); msg.message_type() == ws::client::websocket_message_type::text_message)
                   {
                     extractFunc(msg, session);
-                  }                  
+                  }
                 }
                 catch (const std::exception ex)
                 {
@@ -679,7 +679,7 @@ namespace bfcpp
         }
         catch (const std::exception ex)
         {
-          throw BfcppException(ex.what());
+          pplx::cancel_current_task();
         }
       }, token);
 

@@ -171,11 +171,11 @@ void monitorCandleSticks()
 	};
 
 
-	UsdFuturesMarket usdFutures;
+	UsdFuturesTestMarket usdFutures;
 
 	try
 	{
-		usdFutures.monitorKlineCandlestickStream("btcusdt", "15m", onStickHandler);
+		usdFutures.monitorKlineCandlestickStream("CVCUSDT", "15m", onStickHandler);
 	}
 	catch (bfcpp::BfcppDisconnectException dex)
 	{
@@ -183,7 +183,7 @@ void monitorCandleSticks()
 	}
 
 
-	std::this_thread::sleep_for(30s);
+	std::this_thread::sleep_for(5s);
 }
 
 
@@ -1049,8 +1049,8 @@ int main(int argc, char** argv)
 
 
 		// these don't require keys
-		monitorMarkPrice();
-		//monitorMarkPrice("BTCUSDT");
+		//monitorMarkPrice();
+		monitorMarkPrice("BTCUSDT");
 		//monitorCandleSticks();
 		//monitorSymbol();
 		//monitorSymbolBook();
