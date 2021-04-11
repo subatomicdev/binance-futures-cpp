@@ -9,6 +9,9 @@ The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functio
 ---
 
 ## Recent Updates
+**11th April 2021**
+- Fixed closing/shutdown for market monitors and user data stream
+
 **4th April 2021**
 - Added optional symbol arg to ```monitorMarkPrice()``` to monitor one symbol rather than all
 
