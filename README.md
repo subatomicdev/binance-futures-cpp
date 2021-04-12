@@ -286,26 +286,26 @@ logg(ss.str());
 Dependencies are handled by vcpkg, a cross platform package manager.
 
 ### Windows
-1. Build vcpkg: open a command prompt in vcpkg_win and run:   bootstrap-vcpkg.bat
+1. Build vcpkg: open a command prompt in vcpkg_win and run:   ```bootstrap-vcpkg.bat```
 2. Install dependencies: in the same prompt run:
 ```
    .\vcpkg install cpprestsdk[websockets] poco boost-asio --triplet x64-windows-static
 ```
-3. Open the VS solution binancews/binancews.sln
-4. Change to 'Release', right-click on the 'binancews' project and select "Setup as startup project"
+3. Open the VS solution ```bfcpp/bfcpp.sln```
+4. Change to 'Release', right-click on the 'bfcpptest' project and select "Setup as startup project"
 5. Run
 
 
 ### Linux
 _NOTE: testing on Linux has been limited, I hope to improve this in the coming weeks_
 
-1. Build vcpkg: open shell in vcpkg_linux and run:  bootstrap-vcpkg.sh
+1. Build vcpkg: open shell in vcpkg_linux and run:  ```bootstrap-vcpkg.sh```
 2. Install dependencies: in the same prompt run:
 ```
 ./vcpkg install cpprestsdk[websockets] poco boost-asio --triplet x64-linux
 ```
-3. Go up a directory then into 'binancews' directory and run:   ```cmake . && make```
-4. The binary is in the 'bfcpp' sub-dir ('bfcpp/bfcpptest' from the top level directory) 
+3. Go up a directory then into 'bfcpp' directory and run:   ```cmake . && make```
+4. The binary is in the 'bfcpptest' sub-dir ('bfcpp/bfcpptest' from the top level directory) 
 
 
 # Run
