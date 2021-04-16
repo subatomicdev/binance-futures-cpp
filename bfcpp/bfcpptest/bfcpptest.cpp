@@ -1050,14 +1050,14 @@ int main(int argc, char** argv)
 
 		// these don't require keys
 		//monitorMarkPrice();
-		monitorMarkPrice("BTCUSDT");
+		//monitorMarkPrice("BTCUSDT");
 		//monitorCandleSticks();
 		//monitorSymbol();
 		//monitorSymbolBook();
 		//monitorAllMarketMiniTicker();
 		//monitorMultipleStreams();
 		//monitorPartialBookDepth();
-		//monitorDiffBookDepth();
+		monitorDiffBookDepth();
 
 
 		//klines();

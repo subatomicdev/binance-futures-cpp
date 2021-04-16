@@ -690,7 +690,7 @@ namespace bfcpp
   }
 
 
-  inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, const set<string>& keys)
+  inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, const vector<string>& keys)
   {
     for (const auto& k : keys)
     {
@@ -699,11 +699,11 @@ namespace bfcpp
   }
 
 
-  inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, set<string>&& keys)
+  inline void getJsonValues(const web::json::value& jsonVal, map<string, string>& values, vector<string>&& keys)
   {
-    for (auto& k : keys)
+    for (auto&& k : keys)
     {
-      getJsonValues(jsonVal, values, k);
+      getJsonValues(jsonVal, values, std::move(k));
     }
   }
 

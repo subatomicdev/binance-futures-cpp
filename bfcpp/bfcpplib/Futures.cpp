@@ -362,7 +362,7 @@ namespace bfcpp
         const utility::string_t PositionsField = utility::conversions::to_string_t("positions");
 
 
-        getJsonValues(json, info.data, set<string> {  "feeTier", "canTrade", "canDeposit", "canWithdraw", "updateTime", "totalInitialMargin", "totalMaintMargin", "totalWalletBalance",
+        getJsonValues(json, info.data, vector<string> {  "feeTier", "canTrade", "canDeposit", "canWithdraw", "updateTime", "totalInitialMargin", "totalMaintMargin", "totalWalletBalance",
                                                       "totalUnrealizedProfit", "totalMarginBalance", "totalPositionInitialMargin", "totalOpenOrderInitialMargin", "totalCrossWalletBalance",
                                                       "totalCrossUnPnl", "availableBalance", "maxWithdrawAmount"});
 
@@ -371,7 +371,7 @@ namespace bfcpp
         for (const auto& entry : assetArray)
         {
           map<string, string> order;
-          getJsonValues(entry, order, set<string> { "asset", "walletBalance", "unrealizedProfit", "marginBalance", "maintMargin", "initialMargin", "positionInitialMargin",
+          getJsonValues(entry, order, vector<string> { "asset", "walletBalance", "unrealizedProfit", "marginBalance", "maintMargin", "initialMargin", "positionInitialMargin",
                                                     "openOrderInitialMargin", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
 
           info.assets.emplace_back(std::move(order));
@@ -382,7 +382,7 @@ namespace bfcpp
         for (const auto& entry : positionArray)
         {
           map<string, string> position;
-          getJsonValues(entry, position, set<string> {  "symbol", "initialMargin", "maintMargin", "unrealizedProfit", "positionInitialMargin", "openOrderInitialMargin",
+          getJsonValues(entry, position, vector<string> {  "symbol", "initialMargin", "maintMargin", "unrealizedProfit", "positionInitialMargin", "openOrderInitialMargin",
                                                         "leverage", "isolated", "entryPrice", "maxNotional", "positionSide", "positionAmt"});
 
           info.positions.emplace_back(std::move(position));
@@ -417,7 +417,7 @@ namespace bfcpp
         for (const auto& entry : json.as_array())
         {
           map<string, string> order;
-          getJsonValues(entry, order, set<string> { "accountAlias", "asset", "balance", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
+          getJsonValues(entry, order, { "accountAlias", "asset", "balance", "crossWalletBalance", "crossUnPnl", "availableBalance", "maxWithdrawAmount"});
 
           balance.balances.emplace_back(std::move(order));
         }
@@ -452,7 +452,7 @@ namespace bfcpp
         for (const auto& entry : json.as_array())
         {
           map<string, string> order;
-          getJsonValues(entry, order, set<string> { "buySellRatio", "buyVol", "sellVol", "timestamp"});
+          getJsonValues(entry, order, { "buySellRatio", "buyVol", "sellVol", "timestamp"});
 
           result.response.emplace_back(std::move(order));
         }
@@ -532,8 +532,8 @@ namespace bfcpp
         for (const auto& entry : json.as_array())
         {
           map<string, string> order;
-          getJsonValues(entry, order, set<string> { "avgPrice", "clientOrderId", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide", "status",
-                                                    "stopPrice", "closePosition", "symbol", "time", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
+          getJsonValues(entry, order, { "avgPrice", "clientOrderId", "cumQuote", "executedQty", "orderId", "origQty", "origType", "price", "reduceOnly", "side", "positionSide", "status",
+                                        "stopPrice", "closePosition", "symbol", "time", "timeInForce", "type", "activatePrice", "priceRate", "updateTime", "workingType", "priceProtect"});
 
           result.response.emplace_back(std::move(order));
         }
@@ -573,7 +573,7 @@ namespace bfcpp
         for (auto& rate : rateLimits)
         {
           map<string, string> values;
-          getJsonValues(rate, values, set<string> { "rateLimitType", "interval", "intervalNum", "limit"});
+          getJsonValues(rate, values, { "rateLimitType", "interval", "intervalNum", "limit"});
 
           result.rateLimits.emplace_back(std::move(values));
         }
@@ -585,9 +585,9 @@ namespace bfcpp
         {
           ExchangeInfo::Symbol sym;
 
-          getJsonValues(symbol, sym.data, set<string> { "symbol", "pair", "contractType", "deliveryDate", "onboardDate", "status", "maintMarginPercent", "requiredMarginPercent", "baseAsset",
-                                                        "quoteAsset", "marginAsset", "pricePrecision", "quantityPrecision", "baseAssetPrecision", "quotePrecision", "underlyingType",
-                                                        "settlePlan", "triggerProtect"});
+          getJsonValues(symbol, sym.data, { "symbol", "pair", "contractType", "deliveryDate", "onboardDate", "status", "maintMarginPercent", "requiredMarginPercent", "baseAsset",
+                                            "quoteAsset", "marginAsset", "pricePrecision", "quantityPrecision", "baseAssetPrecision", "quotePrecision", "underlyingType",
+                                            "settlePlan", "triggerProtect"});
 
 
           auto& subType = symbol[utility::conversions::to_string_t("underlyingSubType")].as_array();
@@ -601,7 +601,7 @@ namespace bfcpp
           for (auto& filter : filters)
           {
             map<string, string> values;
-            getJsonValues(filter, values, set<string> {"filterType", "maxPrice", "minPrice", "tickSize", "stepSize", "maxQty", "minQty", "notional", "multiplierDown", "multiplierUp", "multiplierDecimal"});
+            getJsonValues(filter, values,  {"filterType", "maxPrice", "minPrice", "tickSize", "stepSize", "maxQty", "minQty", "notional", "multiplierDown", "multiplierUp", "multiplierDecimal"});
 
             sym.filters.emplace_back(std::move(values));
           }
