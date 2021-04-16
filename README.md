@@ -8,7 +8,7 @@ The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functio
 
 ---
 
-## Recent Updates
+# Recent Updates
 **11th April 2021**
 - Fixed closing/shutdown for market monitors and user data stream
 
