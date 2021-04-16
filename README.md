@@ -238,7 +238,7 @@ int main(int argc, char** argv)
      }
    }
 
-   logg(ss.str());
+   std::cout << ss.str();
   
    return 0;
 }
@@ -259,24 +259,31 @@ Order Ids:
 
 ### Get All Orders
 ```cpp
-UsdFuturesTestMarket futuresTest { ApiAccess {"YOUR API KEY", "YOUR SECRET KEY"} };
-
-framework::ScopedTimer timer;
-auto result = futuresTest.allOrders({ {"symbol", "BTCUSDT"} });
-
-stringstream ss;
-ss << "\nFound " << result.response.size() << " orders in " << timer.stopLong() << " ms";
-
-for (const auto& order : result.response)
+int main(int argc, char** argv)
 {
-  ss << "\n{";
-  for (const auto& values : order)
+  UsdFuturesTestMarket futuresTest { ApiAccess {"YOUR API KEY", "YOUR SECRET KEY"} };
+
+  framework::ScopedTimer timer;
+  auto result = futuresTest.allOrders({ {"symbol", "BTCUSDT"} });
+
+  stringstream ss;
+  ss << "\nFound " << result.response.size() << " orders in " << timer.stopLong() << " ms";
+
+  for (const auto& order : result.response)
   {
-    ss << "\n\t" << values.first << "=" << values.second;
+    ss << "\n{";
+    for (const auto& values : order)
+    {
+      ss << "\n\t" << values.first << "=" << values.second;
+    }
+    ss << "\n}";
   }
-  ss << "\n}";
+  std::cout << ss.str();
+
+  return 0;
 }
-logg(ss.str());
+
+
 ```
 ---
 
