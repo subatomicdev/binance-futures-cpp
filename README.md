@@ -1,6 +1,5 @@
 # Binance Futures C++
 
-**This is an active project in the early stages, beginning mid Feb 2021, so I don't recommend relying on the library until it's had more testing and the API is stable.**
 # Summary
 Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
 
