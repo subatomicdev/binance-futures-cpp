@@ -311,7 +311,7 @@ _NOTE: testing on Linux has been limited, I hope to improve this in the coming w
 ```
 ./vcpkg install cpprestsdk[websockets] poco boost-asio --triplet x64-linux
 ```
-3. Go up a directory then into 'bfcpp' directory and run:   ```cmake . && make```
+3. Go up a directory then into 'bfcpp' directory and run:   ```cmake . -DCMAKE_BUILD_TYPE=Release && make```
 4. The binary is in the 'bfcpptest' sub-dir ('bfcpp/bfcpptest' from the top level directory) 
 
 
