@@ -6,14 +6,11 @@ The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functio
 ---
 
 # Recent Updates
-**11th April 2021**
-- Fixed closing/shutdown for market monitors and user data stream
 
-**4th April 2021**
-- Added optional symbol arg to ```monitorMarkPrice()``` to monitor one symbol rather than all
+**11th May 2021**
+- I don't have immediate plans to add more to the library. I read Binance's changelog during their regular updates, so will make any changes that are required
+- If there's an endpoint you require, I prefer you create an issue so I can add the functionality for the benefit of everyone
 
-**3rd April 2021**
-- Fixed bug causing websockets to stop responding when a ping was received
 
 ---
 
