@@ -1,16 +1,14 @@
+# UPDATE #
+I have started a new library for the Binance Futures API. It is a complete redesign, using boost Beast, ASIO and JSON libraries rather than cpprest.
+
+It should be ready by the end of August. In the meantime I don't recommend using this library.
+
+
+
 # Binance Futures C++
 Binance Futures C++ is a C++17 library for Binance's REST and websockets API.
 
 The project uses Microsoft's cpprestsdk for asynchronous websockets/HTTP functionality.
-
----
-
-# Recent Updates
-
-**11th May 2021**
-- I don't have immediate plans to add more to the library. I read Binance's changelog during their regular updates, so will make any changes that are required
-- If there's an endpoint you require, I prefer you create an issue so I can add the functionality for the benefit of everyone
-
 
 ---
 
