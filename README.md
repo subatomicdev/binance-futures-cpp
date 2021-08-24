@@ -1,7 +1,7 @@
 # UPDATE #
-I have started a new library for the Binance Futures API. It is a complete redesign, using boost Beast, ASIO and JSON libraries rather than cpprest.
+I have started a new library, **Binance Beast**. It is a complete redesign, using boost Beast, ASIO and JSON libraries rather than cpprest.
 
-It should be ready by the end of August. In the meantime I don't recommend using this library.
+Find it here: https://github.com/subatomicdev/binancebeast
 
 
 
