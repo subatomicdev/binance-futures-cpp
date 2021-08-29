@@ -1,8 +1,13 @@
+---
+---
 # UPDATE #
-I have started a new library, **Binance Beast**. It is a complete redesign, using boost Beast, ASIO and JSON libraries rather than cpprest.
+I have created a new library, **Binance Beast**. It is a complete redesign, using Boost's Beast/ASIO and JSON libraries rather than cpprest. It has a much cleaner interface and is more usable. Use Beast Beast instead of this library:
 
-Find it here: https://github.com/subatomicdev/binancebeast
+https://github.com/subatomicdev/binancebeast
 
+
+---
+---
 
 
 # Binance Futures C++
