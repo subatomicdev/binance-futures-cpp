@@ -1,7 +1,7 @@
 ---
 ---
 # UPDATE #
-I have created a new library, **Binance Beast**. It is a complete redesign, using Boost's Beast/ASIO and JSON libraries rather than cpprest. It has a much cleaner interface and is more usable. Use Beast Beast instead of this library:
+I have created a new library, **Binance Beast**. It is a complete redesign, using Boost's Beast/ASIO and JSON libraries rather than cpprest. It has a much cleaner interface and is more usable. Use Binance Beast instead of this library:
 
 https://github.com/subatomicdev/binancebeast
 
